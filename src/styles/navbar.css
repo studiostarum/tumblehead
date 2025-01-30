@@ -1,0 +1,14 @@
+.navbar {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar.visible {
+    opacity: 1;
+    transform: translateY(0);
+} 
