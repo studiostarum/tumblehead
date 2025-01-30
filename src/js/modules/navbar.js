@@ -6,8 +6,8 @@ import '../../styles/navbar.css';
  */
 class NavbarController {
     constructor() {
-        this.navbar = document.querySelector('.navbar');
-        this.heroSection = document.querySelector('.section-hero-a');
+        this.navbar = document.querySelector('[data-navbar]');
+        this.heroSection = document.querySelector('[data-hero]');
         this.isNavbarVisible = false;
         this.handleScroll = throttle(this._handleScroll.bind(this), 100);
     }
@@ -21,10 +21,16 @@ class NavbarController {
             return;
         }
 
-        // Initial check
+        // If no hero section, always show navbar
+        if (!this.heroSection) {
+            this.navbar.setAttribute('data-state', 'visible');
+            return;
+        }
+
+        // Initial check for pages with hero section
         this._handleScroll();
         
-        // Add scroll listener
+        // Add scroll listener only for pages with hero section
         window.addEventListener('scroll', this.handleScroll, { passive: true });
     }
 
@@ -32,7 +38,9 @@ class NavbarController {
      * Clean up event listeners
      */
     destroy() {
-        window.removeEventListener('scroll', this.handleScroll);
+        if (this.heroSection) {
+            window.removeEventListener('scroll', this.handleScroll);
+        }
     }
 
     /**
@@ -42,7 +50,7 @@ class NavbarController {
     _handleScroll() {
         if (!this.heroSection) {
             console.warn('Hero section not found. Navbar will remain visible.');
-            this.navbar?.classList.add('visible');
+            this.navbar?.setAttribute('data-state', 'visible');
             return;
         }
 
@@ -50,10 +58,10 @@ class NavbarController {
         const shouldShowNavbar = heroBottom <= 0;
 
         if (shouldShowNavbar && !this.isNavbarVisible) {
-            this.navbar.classList.add('visible');
+            this.navbar.setAttribute('data-state', 'visible');
             this.isNavbarVisible = true;
         } else if (!shouldShowNavbar && this.isNavbarVisible) {
-            this.navbar.classList.remove('visible');
+            this.navbar.setAttribute('data-state', 'hidden');
             this.isNavbarVisible = false;
         }
     }
