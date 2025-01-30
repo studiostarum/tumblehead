@@ -11,22 +11,32 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         rollupOptions: {
-            input: {
-                main: resolve(__dirname, 'index.html')
-            },
+            input: 'src/js/main.js',
             output: {
-                entryFileNames: 'js/[name]-[hash].js',
-                chunkFileNames: 'js/[name]-[hash].js',
-                assetFileNames: ({name}) => {
-                    if (/\.(css)$/.test(name ?? '')) {
-                        return 'styles/[name]-[hash][extname]';
+                // Generic bundle name with min suffix
+                entryFileNames: 'bundle.min.js',
+                assetFileNames: (assetInfo) => {
+                    if (assetInfo.name.endsWith('.css')) {
+                        return 'bundle.min.css';
                     }
                     return 'assets/[name]-[hash][extname]';
-                }
+                },
+                // Ensure all CSS is bundled into one file
+                manualChunks: undefined,
+                inlineDynamicImports: true
             }
         },
-        sourcemap: true,
-        minify: 'terser'
+        // Disable code splitting
+        cssCodeSplit: false,
+        sourcemap: false,
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true,
+                passes: 2
+            },
+            mangle: true
+        }
     },
     resolve: {
         alias: {
@@ -34,7 +44,13 @@ export default defineConfig({
         }
     },
     css: {
-        modules: false // Disable CSS modules for global styles
+        // Ensure CSS is extracted to a single file
+        modules: false,
+        // Add CSS minification options
+        postcss: {
+            minimize: true,
+            minify: true
+        }
     },
     server: {
         open: true,
