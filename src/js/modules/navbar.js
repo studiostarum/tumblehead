@@ -6,38 +6,63 @@ import '../../styles/navbar.css';
  */
 class NavbarController {
     constructor() {
-        this.navbar = document.querySelector('[data-element="navbar"]');
-        this.heroSection = document.querySelector('[data-section="hero"]');
-        this.isNavbarVisible = false;
-        this.handleScroll = throttle(this._handleScroll.bind(this), 100);
-        this.scrollThreshold = 100; // Pixels to scroll before showing navbar
+        console.log('NavbarController: Constructor called');
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            console.log('NavbarController: DOM still loading, waiting...');
+            document.addEventListener('DOMContentLoaded', () => this._initialize());
+        } else {
+            console.log('NavbarController: DOM ready, initializing...');
+            this._initialize();
+        }
     }
 
     /**
-     * Initialize the navbar controller
+     * Initialize all elements and state
+     * @private
      */
-    init() {
+    _initialize() {
+        this.navbar = document.querySelector('[data-element="navbar"]');
+        this.heroSection = document.querySelector('[data-section="hero"]');
+        
+        console.log('NavbarController: Elements found:', {
+            navbar: !!this.navbar,
+            heroSection: !!this.heroSection
+        });
+
         if (!this.navbar) {
             console.error('Navbar element not found');
             return;
         }
 
-        // Set initial state
+        // Initialize state
+        this.isNavbarVisible = false;
+        this.scrollThreshold = 100;
+
+        // Set initial state using data attribute only
+        console.log('NavbarController: Setting initial hidden state');
         this.navbar.setAttribute('data-state', 'hidden');
+
+        // Bind scroll handler
+        this.handleScroll = throttle(this._handleScroll.bind(this), 100);
 
         // If no hero section, show navbar after a small delay
         if (!this.heroSection) {
+            console.log('NavbarController: No hero section found, showing navbar after delay');
             setTimeout(() => {
                 this.navbar.setAttribute('data-state', 'visible');
+                console.log('NavbarController: Navbar shown (no hero)');
             }, 500);
             return;
         }
 
         // Initial check for pages with hero section
+        console.log('NavbarController: Hero section found, checking initial scroll position');
         this._handleScroll();
         
         // Add scroll listener only for pages with hero section
         window.addEventListener('scroll', this.handleScroll, { passive: true });
+        console.log('NavbarController: Scroll listener added');
     }
 
     /**
@@ -46,6 +71,7 @@ class NavbarController {
     destroy() {
         if (this.heroSection) {
             window.removeEventListener('scroll', this.handleScroll);
+            console.log('NavbarController: Cleaned up event listeners');
         }
     }
 
@@ -54,27 +80,38 @@ class NavbarController {
      * @private
      */
     _handleScroll() {
-        if (!this.heroSection) {
-            this.navbar?.setAttribute('data-state', 'visible');
+        if (!this.heroSection || !this.navbar) {
+            console.log('NavbarController: Missing elements in scroll handler');
             return;
         }
 
         const heroRect = this.heroSection.getBoundingClientRect();
-        const scrollPosition = window.scrollY;
         const shouldShowNavbar = heroRect.bottom <= this.scrollThreshold;
 
+        console.log('NavbarController: Scroll check', {
+            heroBottom: heroRect.bottom,
+            threshold: this.scrollThreshold,
+            shouldShow: shouldShowNavbar,
+            currentlyVisible: this.isNavbarVisible
+        });
+
         if (shouldShowNavbar && !this.isNavbarVisible) {
-            this.navbar.setAttribute('data-state', 'visible');
+            console.log('NavbarController: Showing navbar');
+            requestAnimationFrame(() => {
+                this.navbar.setAttribute('data-state', 'visible');
+            });
             this.isNavbarVisible = true;
         } else if (!shouldShowNavbar && this.isNavbarVisible) {
-            this.navbar.setAttribute('data-state', 'hidden');
+            console.log('NavbarController: Hiding navbar');
+            requestAnimationFrame(() => {
+                this.navbar.setAttribute('data-state', 'hidden');
+            });
             this.isNavbarVisible = false;
         }
     }
 }
 
 export const initNavbar = () => {
-    const navbarController = new NavbarController();
-    navbarController.init();
-    return navbarController;
+    console.log('NavbarController: Initializing...');
+    return new NavbarController();
 }; 
