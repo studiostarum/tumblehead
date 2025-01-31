@@ -2,13 +2,16 @@ import { throttle } from './utils.js';
 import '../../styles/navbar.css';
 
 /**
- * Navbar visibility controller class
+ * Navbar controller class
  */
 class NavbarController {
     constructor() {
-        this.navbar = document.querySelector('[data-navbar]');
+        this.navbar = document.querySelector('.navbar');
         this.heroSection = document.querySelector('[data-hero]');
+        this.menuButton = document.querySelector('.menu-button');
+        this.navMenu = document.querySelector('.nav-menu-wrapper');
         this.isNavbarVisible = false;
+        this.isMenuOpen = false;
         this.handleScroll = throttle(this._handleScroll.bind(this), 100);
     }
 
@@ -20,6 +23,9 @@ class NavbarController {
             console.error('Navbar element not found');
             return;
         }
+
+        // Initialize menu button click handler
+        this._initMenuButton();
 
         // If no hero section, always show navbar
         if (!this.heroSection) {
@@ -35,11 +41,33 @@ class NavbarController {
     }
 
     /**
+     * Initialize menu button functionality
+     * @private
+     */
+    _initMenuButton() {
+        if (!this.menuButton || !this.navMenu) return;
+
+        this.menuButton.addEventListener('click', () => {
+            this.isMenuOpen = !this.isMenuOpen;
+            this.navMenu.style.display = this.isMenuOpen ? 'flex' : 'none';
+            this.navMenu.style.opacity = this.isMenuOpen ? '1' : '0';
+            
+            // Add rotation animation to the menu button
+            this.menuButton.style.transform = this.isMenuOpen 
+                ? 'rotate(45deg)' 
+                : 'rotate(0deg)';
+        });
+    }
+
+    /**
      * Clean up event listeners
      */
     destroy() {
         if (this.heroSection) {
             window.removeEventListener('scroll', this.handleScroll);
+        }
+        if (this.menuButton) {
+            this.menuButton.removeEventListener('click', this._initMenuButton);
         }
     }
 
