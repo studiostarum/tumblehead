@@ -1,7 +1,8 @@
-.navbar {
+[data-element="navbar"] {
     opacity: 0;
+    visibility: hidden;
     transform: translateY(-20px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
     position: fixed;
     width: 100%;
     top: 0;
@@ -10,8 +11,9 @@
     padding: 1rem 0;
 }
 
-.navbar[data-state="visible"] {
+[data-element="navbar"][data-state="visible"] {
     opacity: 1;
+    visibility: visible;
     transform: translateY(0);
 }
 

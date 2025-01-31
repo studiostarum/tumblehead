@@ -6,13 +6,11 @@ import '../../styles/navbar.css';
  */
 class NavbarController {
     constructor() {
-        this.navbar = document.querySelector('.navbar');
-        this.heroSection = document.querySelector('[data-hero]');
-        this.menuButton = document.querySelector('.menu-button');
-        this.navMenu = document.querySelector('.nav-menu-wrapper');
+        this.navbar = document.querySelector('[data-element="navbar"]');
+        this.heroSection = document.querySelector('[data-section="hero"]');
         this.isNavbarVisible = false;
-        this.isMenuOpen = false;
         this.handleScroll = throttle(this._handleScroll.bind(this), 100);
+        this.scrollThreshold = 100; // Pixels to scroll before showing navbar
     }
 
     /**
@@ -24,12 +22,14 @@ class NavbarController {
             return;
         }
 
-        // Initialize menu button click handler
-        this._initMenuButton();
+        // Set initial state
+        this.navbar.setAttribute('data-state', 'hidden');
 
-        // If no hero section, always show navbar
+        // If no hero section, show navbar after a small delay
         if (!this.heroSection) {
-            this.navbar.setAttribute('data-state', 'visible');
+            setTimeout(() => {
+                this.navbar.setAttribute('data-state', 'visible');
+            }, 500);
             return;
         }
 
@@ -41,33 +41,11 @@ class NavbarController {
     }
 
     /**
-     * Initialize menu button functionality
-     * @private
-     */
-    _initMenuButton() {
-        if (!this.menuButton || !this.navMenu) return;
-
-        this.menuButton.addEventListener('click', () => {
-            this.isMenuOpen = !this.isMenuOpen;
-            this.navMenu.style.display = this.isMenuOpen ? 'flex' : 'none';
-            this.navMenu.style.opacity = this.isMenuOpen ? '1' : '0';
-            
-            // Add rotation animation to the menu button
-            this.menuButton.style.transform = this.isMenuOpen 
-                ? 'rotate(45deg)' 
-                : 'rotate(0deg)';
-        });
-    }
-
-    /**
      * Clean up event listeners
      */
     destroy() {
         if (this.heroSection) {
             window.removeEventListener('scroll', this.handleScroll);
-        }
-        if (this.menuButton) {
-            this.menuButton.removeEventListener('click', this._initMenuButton);
         }
     }
 
@@ -77,13 +55,13 @@ class NavbarController {
      */
     _handleScroll() {
         if (!this.heroSection) {
-            console.warn('Hero section not found. Navbar will remain visible.');
             this.navbar?.setAttribute('data-state', 'visible');
             return;
         }
 
-        const heroBottom = this.heroSection.getBoundingClientRect().bottom;
-        const shouldShowNavbar = heroBottom <= 0;
+        const heroRect = this.heroSection.getBoundingClientRect();
+        const scrollPosition = window.scrollY;
+        const shouldShowNavbar = heroRect.bottom <= this.scrollThreshold;
 
         if (shouldShowNavbar && !this.isNavbarVisible) {
             this.navbar.setAttribute('data-state', 'visible');
