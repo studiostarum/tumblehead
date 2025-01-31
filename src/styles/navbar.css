@@ -1,16 +1,10 @@
 [data-element="navbar"] {
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-20px);
+    transform: translateY(-1.25rem);
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    position: fixed;
-    width: 100%;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    padding: 1rem 0;
     pointer-events: none;
+    will-change: transform, opacity, visibility;
 }
 
 [data-element="navbar"][data-state="visible"] {
@@ -18,4 +12,4 @@
     visibility: visible;
     transform: translateY(0);
     pointer-events: all;
-}
+} 

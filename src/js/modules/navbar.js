@@ -37,7 +37,6 @@ class NavbarController {
 
         // Initialize state
         this.isNavbarVisible = false;
-        this.scrollThreshold = 100;
 
         // Set initial state using data attribute only
         console.log('NavbarController: Setting initial hidden state');
@@ -81,32 +80,22 @@ class NavbarController {
      */
     _handleScroll() {
         if (!this.heroSection || !this.navbar) {
-            console.log('NavbarController: Missing elements in scroll handler');
             return;
         }
 
+        // Get hero section's bottom position relative to viewport
         const heroRect = this.heroSection.getBoundingClientRect();
-        const shouldShowNavbar = heroRect.bottom <= this.scrollThreshold;
+        const hasScrolledPastHero = heroRect.bottom <= 0;
 
-        console.log('NavbarController: Scroll check', {
-            heroBottom: heroRect.bottom,
-            threshold: this.scrollThreshold,
-            shouldShow: shouldShowNavbar,
-            currentlyVisible: this.isNavbarVisible
-        });
-
-        if (shouldShowNavbar && !this.isNavbarVisible) {
-            console.log('NavbarController: Showing navbar');
-            requestAnimationFrame(() => {
-                this.navbar.setAttribute('data-state', 'visible');
-            });
+        // Update navbar visibility state
+        if (hasScrolledPastHero && !this.isNavbarVisible) {
+            this.navbar.setAttribute('data-state', 'visible');
             this.isNavbarVisible = true;
-        } else if (!shouldShowNavbar && this.isNavbarVisible) {
-            console.log('NavbarController: Hiding navbar');
-            requestAnimationFrame(() => {
-                this.navbar.setAttribute('data-state', 'hidden');
-            });
+            console.log('NavbarController: Showing navbar after hero section');
+        } else if (!hasScrolledPastHero && this.isNavbarVisible) {
+            this.navbar.setAttribute('data-state', 'hidden');
             this.isNavbarVisible = false;
+            console.log('NavbarController: Hiding navbar before hero section');
         }
     }
 }
