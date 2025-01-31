@@ -2,13 +2,13 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
-    plugins: [],
+    root: 'src',
     build: {
-        outDir: 'dist',
+        outDir: '../dist',
+        emptyOutDir: true,
         rollupOptions: {
             input: 'src/js/main.js',
             output: {
-                // Generic bundle name with min suffix
                 entryFileNames: 'bundle.min.js',
                 assetFileNames: (assetInfo) => {
                     if (assetInfo.name.endsWith('.css')) {
@@ -16,12 +16,10 @@ export default defineConfig({
                     }
                     return 'assets/[name]-[hash][extname]';
                 },
-                // Ensure all CSS is bundled into one file
                 manualChunks: undefined,
                 inlineDynamicImports: true
             }
         },
-        // Disable code splitting
         cssCodeSplit: false,
         sourcemap: false,
         minify: 'terser',
@@ -39,9 +37,7 @@ export default defineConfig({
         }
     },
     css: {
-        // Ensure CSS is extracted to a single file
         modules: false,
-        // Add CSS minification options
         postcss: {
             minimize: true,
             minify: true
