@@ -3,75 +3,22 @@
     color: var(--dark);
 }
 
-/* Custom Scrollbar Container Styles */
-.category-filter-menu-wrapper {
-    position: relative;
-    overflow: hidden;
+::-webkit-scrollbar {
+    height: 0.5rem;
 }
 
-.category-filter-menu, .category-filter-inner-menu {
-    display: flex;
-    gap: 0.75rem;
-    padding: 0.5rem;
-    padding-bottom: 1.25rem; /* Make room for custom scrollbar */
-    overflow-x: scroll;
-    overflow-y: hidden;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    -ms-overflow-style: none; /* Hide IE scrollbar */
-    scrollbar-width: none; /* Hide Firefox scrollbar */
-    position: relative;
+/* Track */
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
 }
 
-/* Hide default scrollbar for all browsers */
-.category-filter-menu::-webkit-scrollbar,
-.category-filter-inner-menu::-webkit-scrollbar {
-    display: none;
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.075);
+    border-radius: 99rem;
 }
 
-/* Custom Scrollbar Track */
-.category-filter-menu::after,
-.category-filter-inner-menu::after {
-    content: '';
-    position: absolute;
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    height: 0.25rem;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 0.25rem;
-    pointer-events: none;
-}
-
-/* Custom Scrollbar Thumb */
-.category-filter-menu::before,
-.category-filter-inner-menu::before {
-    content: '';
-    position: absolute;
-    bottom: 0.5rem;
-    height: 0.25rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 0.25rem;
-    width: var(--scrollbar-width, 20%);
-    left: var(--scrollbar-left, 0.5rem);
-    transition: background 0.3s ease;
-    pointer-events: none;
-}
-
-/* Scrollbar Thumb Hover Effect */
-.category-filter-menu:hover::before,
-.category-filter-inner-menu:hover::before {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-/* Ensure filter items don't shrink */
-.w-dyn-item {
-    flex-shrink: 0;
-}
-
-/* Hide radio inputs while keeping them accessible */
-.category-filter-radio-button {
-    opacity: 0;
-    position: absolute;
-    z-index: -1;
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
