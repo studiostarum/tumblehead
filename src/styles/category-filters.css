@@ -3,51 +3,65 @@
     color: var(--dark);
 }
 
-/* Custom Horizontal Scrollbar Styles */
+/* Custom Scrollbar Container Styles */
+.category-filter-menu-wrapper {
+    position: relative;
+    overflow: hidden;
+}
+
 .category-filter-menu, .category-filter-inner-menu {
-    scrollbar-width: thin; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     display: flex;
     gap: 0.75rem;
     padding: 0.5rem;
+    padding-bottom: 1.25rem; /* Make room for custom scrollbar */
+    overflow-x: scroll;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none; /* Hide IE scrollbar */
+    scrollbar-width: none; /* Hide Firefox scrollbar */
+    position: relative;
 }
 
-/* Hide default scrollbar for Chrome, Safari and Opera */
+/* Hide default scrollbar for all browsers */
 .category-filter-menu::-webkit-scrollbar,
 .category-filter-inner-menu::-webkit-scrollbar {
-    height: 6px;
-    background: transparent;
+    display: none;
 }
 
-/* Track */
-.category-filter-menu::-webkit-scrollbar-track,
-.category-filter-inner-menu::-webkit-scrollbar-track {
+/* Custom Scrollbar Track */
+.category-filter-menu::after,
+.category-filter-inner-menu::after {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    height: 0.25rem;
     background: rgba(0, 0, 0, 0.05);
     border-radius: 0.25rem;
+    pointer-events: none;
 }
 
-/* Handle */
-.category-filter-menu::-webkit-scrollbar-thumb,
-.category-filter-inner-menu::-webkit-scrollbar-thumb {
+/* Custom Scrollbar Thumb */
+.category-filter-menu::before,
+.category-filter-inner-menu::before {
+    content: '';
+    position: absolute;
+    bottom: 0.5rem;
+    height: 0.25rem;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 0.25rem;
+    width: var(--scrollbar-width, 20%);
+    left: var(--scrollbar-left, 0.5rem);
     transition: background 0.3s ease;
+    pointer-events: none;
 }
 
-/* Handle on hover */
-.category-filter-menu::-webkit-scrollbar-thumb:hover,
-.category-filter-inner-menu::-webkit-scrollbar-thumb:hover {
+/* Scrollbar Thumb Hover Effect */
+.category-filter-menu:hover::before,
+.category-filter-inner-menu:hover::before {
     background: rgba(0, 0, 0, 0.3);
-}
-
-/* Ensure menu wrapper doesn't show scrollbars */
-.category-filter-menu-wrapper {
-    overflow: hidden;
-    position: relative;
 }
 
 /* Ensure filter items don't shrink */
