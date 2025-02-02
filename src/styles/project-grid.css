@@ -1,0 +1,21 @@
+[data-element="project-grid"] {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+/* Target every 3rd grid item */
+[data-element="project-grid"] > *:nth-child(3n) {
+    grid-column: span 2;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    [data-element="project-grid"] {
+        grid-template-columns: 1fr;
+    }
+    
+    [data-element="project-grid"] > *:nth-child(3n) {
+        grid-column: auto;
+    }
+} 

@@ -15,7 +15,7 @@ export function initVideoAutoplay() {
                         }
                     }, 150); // Slightly increased delay
                 });
-            }
+            } 
             // Pause the video if it's out of view
             else {
                 if (!video.paused) {
