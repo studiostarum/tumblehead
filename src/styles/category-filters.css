@@ -1,0 +1,4 @@
+.category-filter-link.w--redirected-checked~.category-filter-link-label {
+    background-color: var(--light);
+    color: var(--dark);
+}
