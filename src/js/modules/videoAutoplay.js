@@ -1,71 +1,32 @@
-/**
- * Video Autoplay Controller for Finsweet CMS Filter integration
- */
-class VideoAutoplayController {
-    constructor() {
-        this.initialize();
-    }
+export function initVideoAutoplay() {
+    const videos = document.querySelectorAll('video');
 
-    /**
-     * Initialize the video autoplay controller
-     * @private
-     */
-    initialize() {
-        // Initialize Finsweet attributes array if it doesn't exist
-        window.fsAttributes = window.fsAttributes || [];
-        
-        // Push the CMS filter instance setup
-        window.fsAttributes.push([
-            'cmsfilter',
-            (filterInstances) => {
-                // Get the first instance
-                const [filterInstance] = filterInstances;
-                
-                if (!filterInstance) {
-                    console.warn('VideoAutoplay: No filter instance found');
-                    return;
-                }
-
-                // Listen for render complete event
-                filterInstance.listInstance.on('renderitems', () => this.handleVideoAutoplay());
-            },
-        ]);
-    }
-
-    /**
-     * Handle video autoplay for all videos in the filtered content
-     * @private
-     */
-    handleVideoAutoplay() {
-        const videos = document.querySelectorAll('video[autoplay]');
-        
-        videos.forEach(video => {
-            try {
-                // Reset the video source to trigger autoplay
-                const currentSrc = video.src;
-                video.src = '';
-                video.src = currentSrc;
-                
-                // Ensure autoplay attributes are set
-                video.autoplay = true;
-                video.muted = true;
-                video.playsInline = true;
-                
-                // Force play (needed for some browsers)
-                video.play().catch(error => {
-                    console.warn('VideoAutoplay: Autoplay failed:', error);
+    const observer = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            const video = entry.target;
+            // Play the video if it's in view
+            if (entry.isIntersecting) {
+                // Use requestAnimationFrame to synchronize with the browser's repaint cycle
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        // Play the video if it's not already playing
+                        if (video.paused) {
+                            video.play().catch(error => console.error('Error trying to play the video:', error));
+                        }
+                    }, 150); // Slightly increased delay
                 });
-            } catch (error) {
-                console.error('VideoAutoplay: Error handling video:', error);
+            }
+            // Pause the video if it's out of view
+            else {
+                if (!video.paused) {
+                    video.pause();
+                }
             }
         });
-    }
-}
+    }, { threshold: 0.05 }); // Adjust the threshold as needed
 
-/**
- * Initialize the video autoplay controller
- * @returns {VideoAutoplayController} The controller instance
- */
-export const initVideoAutoplay = () => {
-    return new VideoAutoplayController();
-}; 
+    // Observe each video
+    videos.forEach(video => {
+        observer.observe(video);
+    });
+}
