@@ -4,6 +4,11 @@
     gap: 1rem;
 }
 
+/* When there's only one item, make it span full width */
+[data-element="project-grid"] > *:only-child {
+    grid-column: 1 / -1;
+}
+
 /* Target every 3rd grid item */
 [data-element="project-grid"] > *:nth-child(3n) {
     grid-column: span 2;

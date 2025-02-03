@@ -42,8 +42,13 @@ class NavbarController {
         console.log('NavbarController: Setting initial hidden state');
         this.navbar.setAttribute('data-state', 'hidden');
 
-        // Bind scroll handler
+        // Bind event handlers
         this.handleScroll = throttle(this._handleScroll.bind(this), 100);
+        this.handleKeydown = this._handleKeydown.bind(this);
+
+        // Add keyboard listener for Escape key
+        document.addEventListener('keydown', this.handleKeydown);
+        console.log('NavbarController: Keyboard listener added');
 
         // If no hero section, show navbar after a small delay
         if (!this.heroSection) {
@@ -70,7 +75,20 @@ class NavbarController {
     destroy() {
         if (this.heroSection) {
             window.removeEventListener('scroll', this.handleScroll);
-            console.log('NavbarController: Cleaned up event listeners');
+        }
+        document.removeEventListener('keydown', this.handleKeydown);
+        console.log('NavbarController: Cleaned up event listeners');
+    }
+
+    /**
+     * Handle keyboard events
+     * @private
+     */
+    _handleKeydown(event) {
+        if (event.key === 'Escape' && this.isNavbarVisible) {
+            this.navbar.setAttribute('data-state', 'hidden');
+            this.isNavbarVisible = false;
+            console.log('NavbarController: Navbar hidden via Escape key');
         }
     }
 
