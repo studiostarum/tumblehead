@@ -24,10 +24,12 @@ class NavbarController {
     _initialize() {
         this.navbar = document.querySelector('[data-element="navbar"]');
         this.heroSection = document.querySelector('[data-section="hero"]');
+        this.menuWrapper = document.querySelector('.nav-menu-wrapper');
         
         console.log('NavbarController: Elements found:', {
             navbar: !!this.navbar,
-            heroSection: !!this.heroSection
+            heroSection: !!this.heroSection,
+            menuWrapper: !!this.menuWrapper
         });
 
         if (!this.navbar) {
@@ -85,10 +87,16 @@ class NavbarController {
      * @private
      */
     _handleKeydown(event) {
-        if (event.key === 'Escape' && this.isNavbarVisible) {
-            this.navbar.setAttribute('data-state', 'hidden');
-            this.isNavbarVisible = false;
-            console.log('NavbarController: Navbar hidden via Escape key');
+        if (event.key === 'Escape') {
+            // Check if menu is visible by checking its opacity
+            if (this.menuWrapper && this.menuWrapper.style.opacity === '1') {
+                // Trigger the Finsweet attribute click to properly close the menu
+                const menuButton = document.querySelector('[fs-scrolldisable-element="toggle"]');
+                if (menuButton) {
+                    menuButton.click();
+                }
+                console.log('NavbarController: Menu closed via Escape key');
+            }
         }
     }
 
