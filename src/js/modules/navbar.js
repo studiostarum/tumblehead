@@ -24,11 +24,13 @@ class NavbarController {
     _initialize() {
         this.navbar = document.querySelector('[data-element="navbar"]');
         this.heroSection = document.querySelector('[data-section="hero"]');
+        this.menuButton = document.querySelector('.menu-button');
         this.menuWrapper = document.querySelector('.nav-menu-wrapper');
         
         console.log('NavbarController: Elements found:', {
             navbar: !!this.navbar,
             heroSection: !!this.heroSection,
+            menuButton: !!this.menuButton,
             menuWrapper: !!this.menuWrapper
         });
 
@@ -43,6 +45,20 @@ class NavbarController {
         // Set initial state using data attribute only
         console.log('NavbarController: Setting initial hidden state');
         this.navbar.setAttribute('data-state', 'hidden');
+
+        // Set initial states
+        if (this.menuButton && this.menuWrapper) {
+            this.menuButton.style.transform = 'rotate(0deg)';
+            this.menuWrapper.style.display = 'none';
+            this.menuWrapper.style.opacity = '0';
+            
+            // Add transition properties
+            this.menuButton.style.transition = 'transform 0.3s ease';
+            this.menuWrapper.style.transition = 'opacity 0.3s ease';
+            
+            // Add click event listener
+            this.menuButton.addEventListener('click', this._handleMenuToggle.bind(this));
+        }
 
         // Bind event handlers
         this.handleScroll = throttle(this._handleScroll.bind(this), 100);
@@ -79,6 +95,9 @@ class NavbarController {
             window.removeEventListener('scroll', this.handleScroll);
         }
         document.removeEventListener('keydown', this.handleKeydown);
+        if (this.menuButton) {
+            this.menuButton.removeEventListener('click', this._handleMenuToggle);
+        }
         console.log('NavbarController: Cleaned up event listeners');
     }
 
@@ -122,6 +141,36 @@ class NavbarController {
             this.navbar.setAttribute('data-state', 'hidden');
             this.isNavbarVisible = false;
             console.log('NavbarController: Hiding navbar before hero section');
+        }
+    }
+
+    /**
+     * Handle menu button toggle
+     * @private
+     */
+    _handleMenuToggle() {
+        if (!this.menuButton || !this.menuWrapper) return;
+
+        const isMenuOpen = this.menuWrapper.style.display === 'block';
+
+        if (!isMenuOpen) {
+            // Opening the menu
+            this.menuWrapper.style.display = 'block';
+            // Force a reflow to ensure the display change takes effect
+            this.menuWrapper.offsetHeight;
+            this.menuWrapper.style.opacity = '1';
+            this.menuButton.style.transform = 'rotate(45deg)';
+        } else {
+            // Closing the menu
+            this.menuWrapper.style.opacity = '0';
+            this.menuButton.style.transform = 'rotate(0deg)';
+            
+            // Wait for the transition to complete before hiding
+            setTimeout(() => {
+                if (this.menuWrapper.style.opacity === '0') {
+                    this.menuWrapper.style.display = 'none';
+                }
+            }, 300); // Match the transition duration
         }
     }
 }
