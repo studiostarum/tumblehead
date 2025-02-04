@@ -1,19 +1,15 @@
-/* Base styles - these apply before any transitions */
+/* Base navbar styles */
 [data-element="navbar"] {
-    opacity: 0;
-    visibility: hidden;
     pointer-events: none;
     will-change: transform, opacity, visibility;
 }
 
-/* Transition styles - only apply after initialization */
 [data-element="navbar"][data-state] {
     transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Visible state */
 [data-element="navbar"][data-state="visible"] {
     opacity: 1;
     visibility: visible;
@@ -21,7 +17,6 @@
     pointer-events: all;
 }
 
-/* Hidden state - explicitly set transform for consistency */
 [data-element="navbar"][data-state="hidden"] {
     opacity: 0;
     visibility: hidden;
@@ -29,15 +24,14 @@
     pointer-events: none;
 }
 
-/* Menu animation states */
-.menu-button[data-state="open"] .menu-button-icon {
-    transform: rotate(45deg);
-    transition: transform 0.3s ease;
-}
-
+/* Menu button animations */
 .menu-button .menu-button-icon {
     transform: rotate(0deg);
     transition: transform 0.3s ease;
+}
+
+.menu-button[data-state="open"] .menu-button-icon {
+    transform: rotate(45deg);
 }
 
 /* Nav menu wrapper animations */
@@ -46,22 +40,18 @@
     top: 100%;
     left: 0;
     right: 0;
-    transform: translateY(-1rem);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.3s;
-    will-change: opacity, transform, visibility;
-}
-
-.nav-menu-wrapper[data-state="visible"] {
-    opacity: 1;
-    visibility: visible;
     transform: translateY(0);
-    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .nav-menu-wrapper[data-state="hidden"] {
     opacity: 0;
-    visibility: hidden;
+    pointer-events: none;
     transform: translateY(-1rem);
+}
+
+.nav-menu-wrapper[data-state="visible"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
 } 
