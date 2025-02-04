@@ -1,4 +1,4 @@
-/* Only the essential animation and state management styles */
+/* Base styles - these apply before any transitions */
 [data-element="navbar"] {
     opacity: 0;
     visibility: hidden;
@@ -7,16 +7,27 @@
     will-change: transform, opacity, visibility;
 }
 
-/* Only apply transitions after initialization */
+/* Transition styles - only apply after initialization */
 [data-element="navbar"][data-state] {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Visible state */
 [data-element="navbar"][data-state="visible"] {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
     pointer-events: all;
+}
+
+/* Hidden state - explicitly set transform for consistency */
+[data-element="navbar"][data-state="hidden"] {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(1.25rem);
+    pointer-events: none;
 }
 
 /* Menu animation states */

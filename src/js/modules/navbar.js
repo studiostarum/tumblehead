@@ -44,18 +44,12 @@ class NavbarController {
         // Initialize state
         this.isNavbarVisible = !this.heroSection; // Set to true if no hero section
 
-        // Ensure initial styles are set before adding data-state
-        // This prevents the initial animation from playing when we don't want it
-        this.navbar.style.opacity = this.isNavbarVisible ? '1' : '0';
-        this.navbar.style.visibility = this.isNavbarVisible ? 'visible' : 'hidden';
-        this.navbar.style.transform = this.isNavbarVisible ? 'translateY(0)' : 'translateY(1.25rem)';
-        
-        // Force a reflow before setting data-state to ensure initial styles are applied
-        this.navbar.offsetHeight;
-
         // Set initial state based on whether there's a hero section
         console.log('NavbarController: Setting initial state');
-        this.navbar.setAttribute('data-state', this.heroSection ? 'hidden' : 'visible');
+        
+        // Remove the manual style setting as it interferes with the CSS transitions
+        // Let CSS handle the initial state entirely
+        this.navbar.setAttribute('data-state', this.isNavbarVisible ? 'visible' : 'hidden');
 
         // Set initial states
         if (this.menuButton && this.menuWrapper) {
