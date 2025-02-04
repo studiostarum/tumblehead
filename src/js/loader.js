@@ -5,29 +5,61 @@
 (function() {
     const CURRENT_VERSION = '1.0.0'; // We'll update this automatically in our build process
     const STORAGE_KEY = 'th_script_version';
-    const SCRIPT_URL = 'https://cdn.jsdelivr.net/gh/studiostarum/tumblehead@main/dist/bundle.min.js';
+    const BASE_URL = 'https://cdn.jsdelivr.net/gh/studiostarum/tumblehead@main/dist';
     
-    function loadMainScript() {
-        // Create script element
-        const script = document.createElement('script');
-        script.src = `${SCRIPT_URL}?v=${CURRENT_VERSION}`;
-        script.async = true;
-        
-        // Add error handling
-        script.onerror = () => {
-            console.error('Failed to load main script. Retrying with uncached version...');
-            // If load fails, try again with a cache buster
-            script.src = `${SCRIPT_URL}?v=${Date.now()}`;
-        };
-        
-        // Append to document
-        document.body.appendChild(script);
-        
-        // Store the current version
+    function loadResource(type, path) {
+        return new Promise((resolve, reject) => {
+            const element = document.createElement(type === 'js' ? 'script' : 'link');
+            
+            // Set common attributes
+            element.setAttribute('data-version', CURRENT_VERSION);
+            
+            if (type === 'js') {
+                element.src = `${BASE_URL}/${path}?v=${CURRENT_VERSION}`;
+                element.async = true;
+            } else {
+                element.rel = 'stylesheet';
+                element.href = `${BASE_URL}/${path}?v=${CURRENT_VERSION}`;
+            }
+            
+            // Add load and error handlers
+            element.onload = () => resolve();
+            element.onerror = () => {
+                console.error(`Failed to load ${type} resource. Retrying with uncached version...`);
+                // If load fails, try again with a timestamp
+                if (type === 'js') {
+                    element.src = `${BASE_URL}/${path}?v=${Date.now()}`;
+                } else {
+                    element.href = `${BASE_URL}/${path}?v=${Date.now()}`;
+                }
+                // We still resolve here as we don't want to block the chain
+                resolve();
+            };
+            
+            // Append to appropriate location
+            if (type === 'js') {
+                document.body.appendChild(element);
+            } else {
+                document.head.appendChild(element);
+            }
+        });
+    }
+    
+    async function loadResources() {
         try {
-            localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
-        } catch (e) {
-            console.warn('LocalStorage not available');
+            // Load CSS first
+            await loadResource('css', 'bundle.min.css');
+            // Then load JS
+            await loadResource('js', 'bundle.min.js');
+            
+            // Store the current version
+            try {
+                localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
+            } catch (e) {
+                console.warn('LocalStorage not available');
+            }
+        } catch (error) {
+            console.error('Error loading resources:', error);
         }
     }
     
@@ -39,11 +71,16 @@
             caches.keys().then(keys => {
                 keys.forEach(key => caches.delete(key));
             });
+            
+            // Also remove any existing script/style tags from previous versions
+            document.querySelectorAll('script[data-version], link[data-version]').forEach(el => {
+                el.parentNode.removeChild(el);
+            });
         }
     } catch (e) {
         console.warn('Cache API not available');
     }
     
-    // Load the main script
-    loadMainScript();
+    // Load all resources
+    loadResources();
 })(); 

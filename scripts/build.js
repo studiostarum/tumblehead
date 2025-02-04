@@ -3,19 +3,35 @@ const path = require('path');
 const crypto = require('crypto');
 
 // Function to generate a hash from file contents
-function generateHash(filePath) {
-    const fileBuffer = fs.readFileSync(filePath);
+function generateHash(filePaths) {
     const hashSum = crypto.createHash('sha1');
-    hashSum.update(fileBuffer);
+    
+    // Combine contents of all files for hashing
+    filePaths.forEach(filePath => {
+        const fileBuffer = fs.readFileSync(filePath);
+        hashSum.update(fileBuffer);
+    });
+    
     return hashSum.digest('hex').substring(0, 8);
 }
 
 // Main build process
 async function build() {
     try {
-        // Generate hash from bundle.min.js
-        const bundlePath = path.join(__dirname, '../dist/bundle.min.js');
-        const version = generateHash(bundlePath);
+        // Generate hash from both bundles
+        const bundlePaths = [
+            path.join(__dirname, '../dist/bundle.min.js'),
+            path.join(__dirname, '../dist/bundle.min.css')
+        ];
+        
+        // Ensure both files exist
+        bundlePaths.forEach(filePath => {
+            if (!fs.existsSync(filePath)) {
+                throw new Error(`Bundle file not found: ${filePath}`);
+            }
+        });
+        
+        const version = generateHash(bundlePaths);
         
         // Read the loader template
         const loaderPath = path.join(__dirname, '../src/js/loader.js');
