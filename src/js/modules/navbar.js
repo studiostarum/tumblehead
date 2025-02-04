@@ -43,11 +43,11 @@ class NavbarController {
         }
 
         // Initialize state
-        this.isNavbarVisible = false;
+        this.isNavbarVisible = !this.heroSection; // Set to true if no hero section
 
-        // Set initial state using data attribute only
-        console.log('NavbarController: Setting initial hidden state');
-        this.navbar.setAttribute('data-state', 'hidden');
+        // Set initial state based on whether there's a hero section
+        console.log('NavbarController: Setting initial state');
+        this.navbar.setAttribute('data-state', this.heroSection ? 'hidden' : 'visible');
 
         // Set initial states
         if (this.menuButton && this.menuWrapper) {
@@ -74,23 +74,16 @@ class NavbarController {
         document.addEventListener('keydown', this.handleKeydown);
         console.log('NavbarController: Keyboard listener added');
 
-        // If no hero section, show navbar after a small delay
-        if (!this.heroSection) {
-            console.log('NavbarController: No hero section found, showing navbar after delay');
-            setTimeout(() => {
-                this.navbar.setAttribute('data-state', 'visible');
-                console.log('NavbarController: Navbar shown (no hero)');
-            }, 500);
-            return;
+        // Only add scroll listener and do initial check if we have a hero section
+        if (this.heroSection) {
+            // Initial check for pages with hero section
+            console.log('NavbarController: Hero section found, checking initial scroll position');
+            this._handleScroll();
+            
+            // Add scroll listener only for pages with hero section
+            window.addEventListener('scroll', this.handleScroll, { passive: true });
+            console.log('NavbarController: Scroll listener added');
         }
-
-        // Initial check for pages with hero section
-        console.log('NavbarController: Hero section found, checking initial scroll position');
-        this._handleScroll();
-        
-        // Add scroll listener only for pages with hero section
-        window.addEventListener('scroll', this.handleScroll, { passive: true });
-        console.log('NavbarController: Scroll listener added');
     }
 
     /**
