@@ -53,13 +53,9 @@ class NavbarController {
 
         // Set initial states
         if (this.menuButton && this.menuWrapper) {
-            this.menuButton.style.transform = 'rotate(0deg)';
-            this.menuWrapper.style.display = 'none';
-            this.menuWrapper.style.opacity = '0';
-            
-            // Add transition properties
-            this.menuButton.style.transition = 'transform 0.3s ease';
-            this.menuWrapper.style.transition = 'opacity 0.3s ease';
+            // Remove inline styles and use data attributes
+            this.menuWrapper.removeAttribute('style');
+            this.menuWrapper.setAttribute('data-state', 'hidden');
             
             // Remove Finsweet attribute
             this.menuButton.removeAttribute('fs-scrolldisable-element');
@@ -152,28 +148,18 @@ class NavbarController {
     _handleMenuToggle() {
         if (!this.menuButton || !this.menuWrapper) return;
 
-        const isMenuOpen = this.menuWrapper.style.opacity === '1';
+        const isMenuOpen = this.menuWrapper.getAttribute('data-state') === 'visible';
 
         if (!isMenuOpen) {
             // Opening the menu
-            this.menuWrapper.style.display = 'block';
-            // Force a reflow to ensure the display change takes effect
-            this.menuWrapper.offsetHeight;
-            this.menuWrapper.style.opacity = '1';
+            this.menuWrapper.setAttribute('data-state', 'visible');
             this.menuButton.setAttribute('data-state', 'open');
-            this.scrollLocker.lock(); // Use our custom scroll locker
+            this.scrollLocker.lock();
         } else {
             // Closing the menu
-            this.menuWrapper.style.opacity = '0';
+            this.menuWrapper.setAttribute('data-state', 'hidden');
             this.menuButton.removeAttribute('data-state');
-            this.scrollLocker.unlock(); // Use our custom scroll locker
-            
-            // Wait for the transition to complete before hiding
-            setTimeout(() => {
-                if (this.menuWrapper.style.opacity === '0') {
-                    this.menuWrapper.style.display = 'none';
-                }
-            }, 300); // Match the transition duration
+            this.scrollLocker.unlock();
         }
     }
 }

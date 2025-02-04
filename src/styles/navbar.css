@@ -33,4 +33,21 @@
 /* Menu animation states */
 .menu-button[data-state="open"] .menu-button-icon {
     transform: rotate(45deg);
+}
+
+/* Nav menu wrapper animations */
+.nav-menu-wrapper {
+    transform: translateY(-1rem);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    will-change: opacity, transform;
+}
+
+.nav-menu-wrapper[data-state="visible"] {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.nav-menu-wrapper[data-state="hidden"] {
+    opacity: 0;
+    transform: translateY(-1rem);
 } 

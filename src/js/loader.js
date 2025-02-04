@@ -5,7 +5,7 @@
 (function() {
     const CURRENT_VERSION = '1.0.0'; // We'll update this automatically in our build process
     const STORAGE_KEY = 'th_script_version';
-    const BASE_URL = 'https://cdn.jsdelivr.net/gh/studiostarum/tumblehead@latest/dist';
+    const BASE_URL = 'https://cdn.jsdelivr.net/gh/studiostarum/tumblehead@main/dist';
     
     function loadResource(type, path) {
         return new Promise((resolve, reject) => {

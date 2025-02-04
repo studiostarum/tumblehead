@@ -6,12 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build:vite": "vite build",
-    "build:loader": "node scripts/build.js",
-    "build": "vite build",
-    "preview": "vite preview",
     "clean": "rm -rf dist",
-    "postbuild": "git add dist/* && git commit -m \"chore: update dist files\" && git push origin main"
+    "build": "npm run clean && vite build",
+    "build:loader": "node scripts/build.js",
+    "build:all": "npm run build && npm run build:loader",
+    "preview": "vite preview",
+    "postbuild:all": "git add dist/* && git commit -m \"chore: update dist files\" || true && git push origin main || true"
   },
   "keywords": [
     "webflow",
