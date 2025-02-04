@@ -25,6 +25,7 @@ class NavbarController {
         this.heroSection = document.querySelector('[data-section="hero"]');
         this.menuButton = document.querySelector('.menu-button');
         this.menuWrapper = document.querySelector('.nav-menu-wrapper');
+        this.isHomePage = document.querySelector('[data-page="home"]');
         
         // Initialize scroll locker
         this.scrollLocker = new ScrollLocker();
@@ -33,7 +34,8 @@ class NavbarController {
             navbar: !!this.navbar,
             heroSection: !!this.heroSection,
             menuButton: !!this.menuButton,
-            menuWrapper: !!this.menuWrapper
+            menuWrapper: !!this.menuWrapper,
+            isHomePage: this.isHomePage
         });
 
         if (!this.navbar) {
@@ -42,10 +44,11 @@ class NavbarController {
         }
 
         // Initialize state
-        this.isNavbarVisible = !this.heroSection; // Set to true if no hero section
+        // Only hide navbar initially if we're on home page and have a hero section
+        this.isNavbarVisible = !(this.isHomePage && this.heroSection);
 
-        // Set initial state based on whether there's a hero section
-        console.log('NavbarController: Setting initial state');
+        // Set initial state
+        console.log('NavbarController: Setting initial state:', this.isNavbarVisible ? 'visible' : 'hidden');
         this.navbar.setAttribute('data-state', this.isNavbarVisible ? 'visible' : 'hidden');
 
         // Set initial states for menu
@@ -65,13 +68,13 @@ class NavbarController {
         document.addEventListener('keydown', this.handleKeydown);
         console.log('NavbarController: Keyboard listener added');
 
-        // Only add scroll listener and do initial check if we have a hero section
-        if (this.heroSection) {
-            // Initial check for pages with hero section
-            console.log('NavbarController: Hero section found, checking initial scroll position');
+        // Only add scroll listener if we're on home page and have a hero section
+        if (this.isHomePage && this.heroSection) {
+            // Initial check for home page with hero section
+            console.log('NavbarController: Home page with hero section found, checking initial scroll position');
             this._handleScroll();
             
-            // Add scroll listener only for pages with hero section
+            // Add scroll listener only for home page with hero section
             window.addEventListener('scroll', this.handleScroll, { passive: true });
             console.log('NavbarController: Scroll listener added');
         }
