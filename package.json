@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "postbuild": "git add dist/* && git commit -m \"chore: update dist files\" && git push origin main"
   },
   "keywords": [
     "webflow",
@@ -21,5 +22,10 @@
     "@vitejs/plugin-legacy": "^5.0.0",
     "terser": "^5.37.0",
     "vite": "^5.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/studiostarum/tumblehead.git"
+  },
+  "private": true
 }
