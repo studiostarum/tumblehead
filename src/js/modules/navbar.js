@@ -14,14 +14,23 @@ export function initNavbar() {
         if (hero) {
             // Set initial state to hidden
             navbar.setAttribute('data-state', 'hidden');
+            navbar.style.display = 'none';
             
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     // When hero is less than 10% visible, show navbar
                     if (!entry.isIntersecting && entry.intersectionRatio < 0.1) {
+                        navbar.style.display = 'block';
+                        // Force a reflow
+                        navbar.offsetHeight;
                         navbar.setAttribute('data-state', 'visible');
                     } else {
                         navbar.setAttribute('data-state', 'hidden');
+                        setTimeout(() => {
+                            if (navbar.getAttribute('data-state') === 'hidden') {
+                                navbar.style.display = 'none';
+                            }
+                        }, 0);
                     }
                 });
             }, {
@@ -33,17 +42,17 @@ export function initNavbar() {
         }
     } else {
         // On non-home pages, always show navbar
+        navbar.style.display = 'block';
         navbar.setAttribute('data-state', 'visible');
     }
 
     // Function to open menu
     function openMenu() {
+        menuWrapper.style.display = 'block';
+        // Force a reflow
+        menuWrapper.offsetHeight;
         menuButton.setAttribute('data-state', 'open');
         menuWrapper.setAttribute('data-state', 'visible');
-        menuWrapper.style.display = 'block';
-        // Force a reflow before setting opacity
-        menuWrapper.offsetHeight;
-        menuWrapper.style.opacity = '1';
         scrollLocker.lock();
         isMenuOpen = true;
     }
@@ -52,16 +61,11 @@ export function initNavbar() {
     function closeMenu() {
         menuButton.setAttribute('data-state', '');
         menuWrapper.setAttribute('data-state', 'hidden');
-        menuWrapper.style.opacity = '0';
-        
-        // Wait for transition to complete before hiding
-        const transitionDuration = 300; // Match this with your CSS transition duration
         setTimeout(() => {
-            if (!isMenuOpen) { // Double check menu is still closed
+            if (!isMenuOpen) {
                 menuWrapper.style.display = 'none';
             }
-        }, transitionDuration);
-        
+        }, 0);
         scrollLocker.unlock();
         isMenuOpen = false;
     }
@@ -90,5 +94,8 @@ export function initNavbar() {
     });
 
     // Initialize menu state
-    closeMenu();
+    menuWrapper.style.display = 'none';
+    menuWrapper.setAttribute('data-state', 'hidden');
+    menuButton.setAttribute('data-state', '');
+    isMenuOpen = false;
 }

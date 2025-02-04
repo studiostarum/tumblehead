@@ -4,14 +4,9 @@
     will-change: transform, opacity, visibility;
 }
 
-[data-element="navbar"][data-state] {
-    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-        visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-        transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 [data-element="navbar"][data-state="visible"] {
     opacity: 1;
+    display: block;
     visibility: visible;
     transform: translateY(0);
     pointer-events: all;
@@ -19,35 +14,8 @@
 
 [data-element="navbar"][data-state="hidden"] {
     opacity: 0;
+    display: none;
     visibility: hidden;
     transform: translateY(1.25rem);
     pointer-events: none;
-}
-
-/* Menu button animations */
-.menu-button .menu-button-icon {
-    transform: rotate(0deg);
-    transition: transform 0.3s ease;
-}
-
-.menu-button[data-state="open"] .menu-button-icon {
-    transform: rotate(45deg);
-}
-
-/* Nav menu wrapper animations */
-.nav-menu-wrapper {
-    transform: translateY(0);
-    transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.nav-menu-wrapper[data-state="hidden"] {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-1rem);
-}
-
-.nav-menu-wrapper[data-state="visible"] {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
 }
