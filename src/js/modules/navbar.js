@@ -1,4 +1,4 @@
-import { throttle, ScrollLocker } from './utils.js';
+import { throttle, ScrollLocker } from '@/js/modules/utils';
 import '../../styles/navbar.css';
 
 /**

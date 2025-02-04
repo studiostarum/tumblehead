@@ -1,6 +1,11 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { minify } from 'terser';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Function to generate a hash from file contents
 function generateHash(filePaths) {
@@ -43,10 +48,23 @@ async function build() {
             `const CURRENT_VERSION = '${version}'`
         );
         
+        // Minify the loader script
+        const minified = await minify(loaderContent, {
+            compress: true,
+            mangle: true,
+            format: {
+                comments: false
+            }
+        });
+        
+        if (!minified.code) {
+            throw new Error('Failed to minify loader script');
+        }
+        
         // Write minified loader to dist
         fs.writeFileSync(
             path.join(__dirname, '../dist/loader.min.js'),
-            loaderContent
+            minified.code
         );
         
         console.log(`Build completed successfully. New version: ${version}`);

@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:vite": "vite build",
+    "build:loader": "node scripts/build.js",
+    "build": "npm run build:vite && npm run build:loader",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "postbuild": "git add dist/* && git commit -m \"chore: update dist files\" && git push origin main"
