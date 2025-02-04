@@ -40,6 +40,10 @@ export function initNavbar() {
     function openMenu() {
         menuButton.setAttribute('data-state', 'open');
         menuWrapper.setAttribute('data-state', 'visible');
+        menuWrapper.style.display = 'block';
+        // Force a reflow before setting opacity
+        menuWrapper.offsetHeight;
+        menuWrapper.style.opacity = '1';
         scrollLocker.lock();
         isMenuOpen = true;
     }
@@ -48,6 +52,16 @@ export function initNavbar() {
     function closeMenu() {
         menuButton.setAttribute('data-state', '');
         menuWrapper.setAttribute('data-state', 'hidden');
+        menuWrapper.style.opacity = '0';
+        
+        // Wait for transition to complete before hiding
+        const transitionDuration = 300; // Match this with your CSS transition duration
+        setTimeout(() => {
+            if (!isMenuOpen) { // Double check menu is still closed
+                menuWrapper.style.display = 'none';
+            }
+        }, transitionDuration);
+        
         scrollLocker.unlock();
         isMenuOpen = false;
     }

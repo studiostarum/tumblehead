@@ -8,10 +8,7 @@
     "dev": "vite",
     "clean": "rm -rf dist",
     "build": "npm run clean && vite build",
-    "build:loader": "node scripts/build.js",
-    "build:all": "npm run build && npm run build:loader",
-    "preview": "vite preview",
-    "postbuild:all": "git add dist/* && git commit -m \"chore: update dist files\" || true && git push origin main || true"
+    "preview": "vite preview"
   },
   "keywords": [
     "webflow",
