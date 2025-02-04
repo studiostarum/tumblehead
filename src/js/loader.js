@@ -9,10 +9,19 @@
     
     function loadResource(type, path) {
         return new Promise((resolve, reject) => {
+            // Check if script is already loaded
+            const existingElement = document.querySelector(`[data-version="${CURRENT_VERSION}"][data-resource="${path}"]`);
+            if (existingElement) {
+                console.log(`Resource ${path} already loaded`);
+                resolve();
+                return;
+            }
+            
             const element = document.createElement(type === 'js' ? 'script' : 'link');
             
             // Set common attributes
             element.setAttribute('data-version', CURRENT_VERSION);
+            element.setAttribute('data-resource', path);
             
             if (type === 'js') {
                 element.src = `${BASE_URL}/${path}?v=${CURRENT_VERSION}`;
@@ -23,9 +32,12 @@
             }
             
             // Add load and error handlers
-            element.onload = () => resolve();
+            element.onload = () => {
+                console.log(`Successfully loaded ${path}`);
+                resolve();
+            };
             element.onerror = () => {
-                console.error(`Failed to load ${type} resource. Retrying with uncached version...`);
+                console.error(`Failed to load ${path}. Retrying with uncached version...`);
                 // If load fails, try again with a timestamp
                 if (type === 'js') {
                     element.src = `${BASE_URL}/${path}?v=${Date.now()}`;
@@ -47,6 +59,13 @@
     
     async function loadResources() {
         try {
+            // Remove any existing script/style tags from previous versions
+            document.querySelectorAll('script[data-version], link[data-version]').forEach(el => {
+                if (el.getAttribute('data-version') !== CURRENT_VERSION) {
+                    el.parentNode.removeChild(el);
+                }
+            });
+            
             // Load CSS first
             await loadResource('css', 'bundle.min.css');
             // Then load JS
@@ -68,14 +87,11 @@
         const storedVersion = localStorage.getItem(STORAGE_KEY);
         if (storedVersion !== CURRENT_VERSION) {
             // Clear application cache if version has changed
-            caches.keys().then(keys => {
-                keys.forEach(key => caches.delete(key));
-            });
-            
-            // Also remove any existing script/style tags from previous versions
-            document.querySelectorAll('script[data-version], link[data-version]').forEach(el => {
-                el.parentNode.removeChild(el);
-            });
+            if ('caches' in window) {
+                caches.keys().then(keys => {
+                    keys.forEach(key => caches.delete(key));
+                });
+            }
         }
     } catch (e) {
         console.warn('Cache API not available');

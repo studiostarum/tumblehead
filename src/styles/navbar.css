@@ -6,8 +6,8 @@
 
 [data-element="navbar"][data-state] {
     transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-element="navbar"][data-state="visible"] {
@@ -36,10 +36,6 @@
 
 /* Nav menu wrapper animations */
 .nav-menu-wrapper {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
     transform: translateY(0);
     transition: transform 0.3s ease, opacity 0.3s ease;
 }
@@ -54,4 +50,4 @@
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
-} 
+}

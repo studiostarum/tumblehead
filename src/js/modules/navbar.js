@@ -54,8 +54,6 @@ class NavbarController {
             this.menuWrapper.removeAttribute('style');
             this.menuWrapper.setAttribute('data-state', 'hidden');
             
-            // Remove Finsweet attribute and add click listener
-            this.menuButton.removeAttribute('fs-scrolldisable-element');
             this.menuButton.addEventListener('click', this._handleMenuToggle.bind(this));
         }
 
