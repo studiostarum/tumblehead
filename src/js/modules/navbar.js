@@ -1,166 +1,80 @@
-import { throttle, ScrollLocker } from '@/js/modules/utils';
+import { ScrollLocker } from './utils';
 
-/**
- * Navbar controller class
- */
-class NavbarController {
-    constructor() {
-        console.log('NavbarController: Constructor called');
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            console.log('NavbarController: DOM still loading, waiting...');
-            document.addEventListener('DOMContentLoaded', () => this._initialize());
-        } else {
-            console.log('NavbarController: DOM ready, initializing...');
-            this._initialize();
-        }
-    }
+const scrollLocker = new ScrollLocker();
 
-    /**
-     * Initialize all elements and state
-     * @private
-     */
-    _initialize() {
-        this.navbar = document.querySelector('[data-element="navbar"]');
-        this.heroSection = document.querySelector('[data-section="hero"]');
-        this.menuButton = document.querySelector('.menu-button');
-        this.menuWrapper = document.querySelector('.nav-menu-wrapper');
-        this.isHomePage = document.querySelector('[data-page="home"]');
-        
-        // Initialize scroll locker
-        this.scrollLocker = new ScrollLocker();
-        
-        console.log('NavbarController: Elements found:', {
-            navbar: !!this.navbar,
-            heroSection: !!this.heroSection,
-            menuButton: !!this.menuButton,
-            menuWrapper: !!this.menuWrapper,
-            isHomePage: this.isHomePage
-        });
+export function initNavbar() {
+    const navbar = document.querySelector('[data-element="navbar"]');
+    const menuButton = navbar.querySelector('.menu-button');
+    const menuWrapper = navbar.querySelector('.nav-menu-wrapper');
+    let isMenuOpen = false;
 
-        if (!this.navbar) {
-            console.error('Navbar element not found');
-            return;
-        }
-
-        // Initialize state
-        // Only hide navbar initially if we're on home page and have a hero section
-        this.isNavbarVisible = !(this.isHomePage && this.heroSection);
-
-        // Set initial state
-        console.log('NavbarController: Setting initial state:', this.isNavbarVisible ? 'visible' : 'hidden');
-        this.navbar.setAttribute('data-state', this.isNavbarVisible ? 'visible' : 'hidden');
-
-        // Set initial states for menu
-        if (this.menuButton && this.menuWrapper) {
-            // Remove any inline styles that might interfere with transitions
-            this.menuWrapper.removeAttribute('style');
-            this.menuWrapper.setAttribute('data-state', 'hidden');
+    // Only setup hero intersection observer on home page
+    if (document.body.getAttribute('data-page') === 'home') {
+        const hero = document.querySelector('[data-element="hero"]');
+        if (hero) {
+            // Set initial state to hidden
+            navbar.setAttribute('data-state', 'hidden');
             
-            this.menuButton.addEventListener('click', this._handleMenuToggle.bind(this));
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    // When hero is less than 10% visible, show navbar
+                    if (!entry.isIntersecting && entry.intersectionRatio < 0.1) {
+                        navbar.setAttribute('data-state', 'visible');
+                    } else {
+                        navbar.setAttribute('data-state', 'hidden');
+                    }
+                });
+            }, {
+                threshold: [0, 0.1],
+                rootMargin: '-10% 0px 0px 0px' // Triggers slightly before the hero actually leaves viewport
+            });
+
+            observer.observe(hero);
         }
-
-        // Bind event handlers
-        this.handleScroll = throttle(this._handleScroll.bind(this), 100);
-        this.handleKeydown = this._handleKeydown.bind(this);
-
-        // Add keyboard listener for Escape key
-        document.addEventListener('keydown', this.handleKeydown);
-        console.log('NavbarController: Keyboard listener added');
-
-        // Only add scroll listener if we're on home page and have a hero section
-        if (this.isHomePage && this.heroSection) {
-            // Initial check for home page with hero section
-            console.log('NavbarController: Home page with hero section found, checking initial scroll position');
-            this._handleScroll();
-            
-            // Add scroll listener only for home page with hero section
-            window.addEventListener('scroll', this.handleScroll, { passive: true });
-            console.log('NavbarController: Scroll listener added');
-        }
+    } else {
+        // On non-home pages, always show navbar
+        navbar.setAttribute('data-state', 'visible');
     }
 
-    /**
-     * Clean up event listeners
-     */
-    destroy() {
-        if (this.heroSection) {
-            window.removeEventListener('scroll', this.handleScroll);
-        }
-        document.removeEventListener('keydown', this.handleKeydown);
-        if (this.menuButton) {
-            this.menuButton.removeEventListener('click', this._handleMenuToggle);
-        }
-        // Make sure to unlock scroll when destroying
-        if (this.scrollLocker && this.scrollLocker.isLocked) {
-            this.scrollLocker.unlock();
-        }
-        console.log('NavbarController: Cleaned up event listeners');
+    // Function to open menu
+    function openMenu() {
+        menuButton.setAttribute('data-state', 'open');
+        menuWrapper.setAttribute('data-state', 'visible');
+        scrollLocker.lock();
+        isMenuOpen = true;
     }
 
-    /**
-     * Handle keyboard events
-     * @private
-     */
-    _handleKeydown(event) {
-        if (event.key === 'Escape') {
-            // Check if menu is visible by checking its opacity
-            if (this.menuWrapper && this.menuWrapper.style.opacity === '1') {
-                this._handleMenuToggle();
-                console.log('NavbarController: Menu closed via Escape key');
-            }
-        }
+    // Function to close menu
+    function closeMenu() {
+        menuButton.setAttribute('data-state', '');
+        menuWrapper.setAttribute('data-state', 'hidden');
+        scrollLocker.unlock();
+        isMenuOpen = false;
     }
 
-    /**
-     * Handle scroll event to show/hide navbar
-     * @private
-     */
-    _handleScroll() {
-        if (!this.heroSection || !this.navbar) {
-            return;
-        }
-
-        // Get hero section's bottom position relative to viewport
-        const heroRect = this.heroSection.getBoundingClientRect();
-        const hasScrolledPastHero = heroRect.bottom <= 0;
-
-        // Update navbar visibility state
-        if (hasScrolledPastHero && !this.isNavbarVisible) {
-            this.navbar.setAttribute('data-state', 'visible');
-            this.isNavbarVisible = true;
-            console.log('NavbarController: Showing navbar after hero section');
-        } else if (!hasScrolledPastHero && this.isNavbarVisible) {
-            this.navbar.setAttribute('data-state', 'hidden');
-            this.isNavbarVisible = false;
-            console.log('NavbarController: Hiding navbar before hero section');
-        }
-    }
-
-    /**
-     * Handle menu button toggle
-     * @private
-     */
-    _handleMenuToggle() {
-        if (!this.menuButton || !this.menuWrapper) return;
-
-        const isMenuOpen = this.menuWrapper.getAttribute('data-state') === 'visible';
-
-        if (!isMenuOpen) {
-            // Opening the menu
-            this.menuWrapper.setAttribute('data-state', 'visible');
-            this.menuButton.setAttribute('data-state', 'open');
-            this.scrollLocker.lock();
+    // Toggle menu on button click
+    menuButton.addEventListener('click', () => {
+        if (isMenuOpen) {
+            closeMenu();
         } else {
-            // Closing the menu
-            this.menuWrapper.setAttribute('data-state', 'hidden');
-            this.menuButton.removeAttribute('data-state');
-            this.scrollLocker.unlock();
+            openMenu();
         }
-    }
+    });
+
+    // Close menu on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMenuOpen) {
+            closeMenu();
+        }
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (isMenuOpen && !navbar.contains(e.target)) {
+            closeMenu();
+        }
+    });
+
+    // Initialize menu state
+    closeMenu();
 }
-
-export const initNavbar = () => {
-    console.log('NavbarController: Initializing...');
-    return new NavbarController();
-}; 
