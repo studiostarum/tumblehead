@@ -48,7 +48,7 @@ class NavbarController {
         // This prevents the initial animation from playing when we don't want it
         this.navbar.style.opacity = this.isNavbarVisible ? '1' : '0';
         this.navbar.style.visibility = this.isNavbarVisible ? 'visible' : 'hidden';
-        this.navbar.style.transform = this.isNavbarVisible ? 'translateY(0)' : 'translateY(-1.25rem)';
+        this.navbar.style.transform = this.isNavbarVisible ? 'translateY(0)' : 'translateY(1.25rem)';
         
         // Force a reflow before setting data-state to ensure initial styles are applied
         this.navbar.offsetHeight;

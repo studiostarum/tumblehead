@@ -2,7 +2,7 @@
 [data-element="navbar"] {
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-1.25rem);
+    transform: translateY(1.25rem);
     pointer-events: none;
     will-change: transform, opacity, visibility;
 }
