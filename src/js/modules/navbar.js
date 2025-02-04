@@ -1,4 +1,4 @@
-import { throttle } from './utils.js';
+import { throttle, ScrollLocker } from './utils.js';
 import '../../styles/navbar.css';
 
 /**
@@ -26,6 +26,9 @@ class NavbarController {
         this.heroSection = document.querySelector('[data-section="hero"]');
         this.menuButton = document.querySelector('.menu-button');
         this.menuWrapper = document.querySelector('.nav-menu-wrapper');
+        
+        // Initialize scroll locker
+        this.scrollLocker = new ScrollLocker();
         
         console.log('NavbarController: Elements found:', {
             navbar: !!this.navbar,
@@ -55,6 +58,9 @@ class NavbarController {
             // Add transition properties
             this.menuButton.style.transition = 'transform 0.3s ease';
             this.menuWrapper.style.transition = 'opacity 0.3s ease';
+            
+            // Remove Finsweet attribute
+            this.menuButton.removeAttribute('fs-scrolldisable-element');
             
             // Add click event listener
             this.menuButton.addEventListener('click', this._handleMenuToggle.bind(this));
@@ -98,6 +104,10 @@ class NavbarController {
         if (this.menuButton) {
             this.menuButton.removeEventListener('click', this._handleMenuToggle);
         }
+        // Make sure to unlock scroll when destroying
+        if (this.scrollLocker && this.scrollLocker.isLocked) {
+            this.scrollLocker.unlock();
+        }
         console.log('NavbarController: Cleaned up event listeners');
     }
 
@@ -109,11 +119,7 @@ class NavbarController {
         if (event.key === 'Escape') {
             // Check if menu is visible by checking its opacity
             if (this.menuWrapper && this.menuWrapper.style.opacity === '1') {
-                // Trigger the Finsweet attribute click to properly close the menu
-                const menuButton = document.querySelector('[fs-scrolldisable-element="toggle"]');
-                if (menuButton) {
-                    menuButton.click();
-                }
+                this._handleMenuToggle();
                 console.log('NavbarController: Menu closed via Escape key');
             }
         }
@@ -160,12 +166,12 @@ class NavbarController {
             this.menuWrapper.offsetHeight;
             this.menuWrapper.style.opacity = '1';
             this.menuButton.setAttribute('data-state', 'open');
-            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+            this.scrollLocker.lock(); // Use our custom scroll locker
         } else {
             // Closing the menu
             this.menuWrapper.style.opacity = '0';
             this.menuButton.removeAttribute('data-state');
-            document.body.style.overflow = ''; // Restore scrolling
+            this.scrollLocker.unlock(); // Use our custom scroll locker
             
             // Wait for the transition to complete before hiding
             setTimeout(() => {

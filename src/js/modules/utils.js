@@ -43,4 +43,54 @@ export const throttle = (func, wait = 100) => {
     };
 
     return throttled;
-}; 
+};
+
+/**
+ * ScrollLocker utility class to manage scroll locking on the body
+ */
+export class ScrollLocker {
+    constructor() {
+        this.scrollPosition = 0;
+        this.isLocked = false;
+        this.originalStyle = {};
+    }
+
+    lock() {
+        if (this.isLocked) return;
+
+        // Store current scroll position and styles
+        this.scrollPosition = window.scrollY;
+        this.originalStyle = {
+            overflow: document.body.style.overflow,
+            position: document.body.style.position,
+            width: document.body.style.width,
+            height: document.body.style.height,
+            top: document.body.style.top
+        };
+
+        // Apply locking styles
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+        document.body.style.top = `-${this.scrollPosition}px`;
+
+        this.isLocked = true;
+    }
+
+    unlock() {
+        if (!this.isLocked) return;
+
+        // Restore original styles
+        document.body.style.overflow = this.originalStyle.overflow;
+        document.body.style.position = this.originalStyle.position;
+        document.body.style.width = this.originalStyle.width;
+        document.body.style.height = this.originalStyle.height;
+        document.body.style.top = this.originalStyle.top;
+
+        // Restore scroll position
+        window.scrollTo(0, this.scrollPosition);
+
+        this.isLocked = false;
+    }
+} 

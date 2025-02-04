@@ -14,22 +14,15 @@
     pointer-events: all;
 }
 
-/* Add styles for nav menu wrapper */
-.nav-menu-wrapper {
+.navbar {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    background-color: var(--dark);
-    z-index: 999;
+}
+
+.nav-menu-wrapper {
     transition: opacity 0.3s ease;
 }
 
 .menu-button {
-    position: relative;
-    z-index: 1000;
-    cursor: pointer;
     transition: transform 0.3s ease;
 }
 
