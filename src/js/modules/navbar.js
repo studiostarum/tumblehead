@@ -151,7 +151,7 @@ class NavbarController {
     _handleMenuToggle() {
         if (!this.menuButton || !this.menuWrapper) return;
 
-        const isMenuOpen = this.menuWrapper.style.display === 'block';
+        const isMenuOpen = this.menuWrapper.style.opacity === '1';
 
         if (!isMenuOpen) {
             // Opening the menu
@@ -159,11 +159,13 @@ class NavbarController {
             // Force a reflow to ensure the display change takes effect
             this.menuWrapper.offsetHeight;
             this.menuWrapper.style.opacity = '1';
-            this.menuButton.style.transform = 'rotate(45deg)';
+            this.menuButton.setAttribute('data-state', 'open');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
         } else {
             // Closing the menu
             this.menuWrapper.style.opacity = '0';
-            this.menuButton.style.transform = 'rotate(0deg)';
+            this.menuButton.removeAttribute('data-state');
+            document.body.style.overflow = ''; // Restore scrolling
             
             // Wait for the transition to complete before hiding
             setTimeout(() => {
