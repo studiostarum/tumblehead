@@ -2,7 +2,6 @@
 [data-element="navbar"] {
     opacity: 0;
     visibility: hidden;
-    transform: translateY(1.25rem);
     pointer-events: none;
     will-change: transform, opacity, visibility;
 }
@@ -33,21 +32,36 @@
 /* Menu animation states */
 .menu-button[data-state="open"] .menu-button-icon {
     transform: rotate(45deg);
+    transition: transform 0.3s ease;
+}
+
+.menu-button .menu-button-icon {
+    transform: rotate(0deg);
+    transition: transform 0.3s ease;
 }
 
 /* Nav menu wrapper animations */
 .nav-menu-wrapper {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
     transform: translateY(-1rem);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    will-change: opacity, transform;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.3s;
+    will-change: opacity, transform, visibility;
 }
 
 .nav-menu-wrapper[data-state="visible"] {
     opacity: 1;
+    visibility: visible;
     transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear;
 }
 
 .nav-menu-wrapper[data-state="hidden"] {
     opacity: 0;
+    visibility: hidden;
     transform: translateY(-1rem);
 } 

@@ -46,21 +46,16 @@ class NavbarController {
 
         // Set initial state based on whether there's a hero section
         console.log('NavbarController: Setting initial state');
-        
-        // Remove the manual style setting as it interferes with the CSS transitions
-        // Let CSS handle the initial state entirely
         this.navbar.setAttribute('data-state', this.isNavbarVisible ? 'visible' : 'hidden');
 
-        // Set initial states
+        // Set initial states for menu
         if (this.menuButton && this.menuWrapper) {
-            // Remove inline styles and use data attributes
+            // Remove any inline styles that might interfere with transitions
             this.menuWrapper.removeAttribute('style');
             this.menuWrapper.setAttribute('data-state', 'hidden');
             
-            // Remove Finsweet attribute
+            // Remove Finsweet attribute and add click listener
             this.menuButton.removeAttribute('fs-scrolldisable-element');
-            
-            // Add click event listener
             this.menuButton.addEventListener('click', this._handleMenuToggle.bind(this));
         }
 
