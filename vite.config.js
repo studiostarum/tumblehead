@@ -3,6 +3,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
     root: 'src',
+    publicDir: 'public',
     build: {
         outDir: '../dist',
         emptyOutDir: true,
@@ -44,7 +45,7 @@ export default defineConfig({
         }
     },
     server: {
-        open: true,
+        open: '/index.dev.html',
         port: 3000
     }
 }); 
