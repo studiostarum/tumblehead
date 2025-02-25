@@ -10,7 +10,8 @@
     "build": "npm run clean && vite build",
     "preview": "vite preview",
     "verify": "node scripts/verify-build.js",
-    "deploy": "npm run build && npm run verify && echo 'Ready to deploy dist/ folder to Cloudflare'"
+    "deploy": "npm run build && npm run verify && echo 'Ready to deploy dist/ folder to Cloudflare'",
+    "pages:build": "npm run build && npm run verify"
   },
   "keywords": [
     "webflow",
