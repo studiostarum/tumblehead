@@ -7,7 +7,7 @@ export default defineConfig({
         outDir: '../dist',
         emptyOutDir: true,
         rollupOptions: {
-            input: 'src/index.html',
+            input: resolve(__dirname, 'src/js/main.js'),
             output: {
                 entryFileNames: 'bundle.min.js',
                 assetFileNames: (assetInfo) => {
@@ -21,11 +21,11 @@ export default defineConfig({
             }
         },
         cssCodeSplit: false,
-        sourcemap: false,
+        sourcemap: true,
         minify: 'terser',
         terserOptions: {
             compress: {
-                drop_console: true,
+                drop_console: false,
                 passes: 2
             },
             mangle: true
@@ -33,7 +33,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            '@': resolve(__dirname, './src')
+            '@': resolve(__dirname, 'src')
         }
     },
     css: {

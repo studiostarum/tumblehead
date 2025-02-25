@@ -11,6 +11,7 @@ import '../styles/logo-loop.css';
  * Initialize all modules when DOM is ready
  */
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM ready, initializing modules...');
     initNavbar();
     initVideoAutoplay();
     initCustomScrollbar();

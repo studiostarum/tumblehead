@@ -1,132 +1,101 @@
-import { throttle } from './utils.js';
-import '../../styles/navbar.css';
+import { ScrollLocker } from './utils';
 
-/**
- * Navbar controller class
- */
-class NavbarController {
-    constructor() {
-        console.log('NavbarController: Constructor called');
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            console.log('NavbarController: DOM still loading, waiting...');
-            document.addEventListener('DOMContentLoaded', () => this._initialize());
-        } else {
-            console.log('NavbarController: DOM ready, initializing...');
-            this._initialize();
+const scrollLocker = new ScrollLocker();
+
+export function initNavbar() {
+    const navbar = document.querySelector('[data-element="navbar"]');
+    const menuButton = navbar.querySelector('.menu-button');
+    const menuWrapper = navbar.querySelector('.nav-menu-wrapper');
+    let isMenuOpen = false;
+
+    // Only setup hero intersection observer on home page
+    if (document.body.getAttribute('data-page') === 'home') {
+        const hero = document.querySelector('[data-element="hero"]');
+        if (hero) {
+            // Set initial state to hidden
+            navbar.setAttribute('data-state', 'hidden');
+            navbar.style.display = 'none';
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    // When hero is less than 10% visible, show navbar
+                    if (!entry.isIntersecting && entry.intersectionRatio < 0.1) {
+                        navbar.style.display = 'block';
+                        // Force a reflow
+                        navbar.offsetHeight;
+                        navbar.setAttribute('data-state', 'visible');
+                    } else {
+                        navbar.setAttribute('data-state', 'hidden');
+                        setTimeout(() => {
+                            if (navbar.getAttribute('data-state') === 'hidden') {
+                                navbar.style.display = 'none';
+                            }
+                        }, 0);
+                    }
+                });
+            }, {
+                threshold: [0, 0.1],
+                rootMargin: '-10% 0px 0px 0px' // Triggers slightly before the hero actually leaves viewport
+            });
+
+            observer.observe(hero);
         }
+    } else {
+        // On non-home pages, always show navbar
+        navbar.style.display = 'block';
+        navbar.setAttribute('data-state', 'visible');
     }
 
-    /**
-     * Initialize all elements and state
-     * @private
-     */
-    _initialize() {
-        this.navbar = document.querySelector('[data-element="navbar"]');
-        this.heroSection = document.querySelector('[data-section="hero"]');
-        this.menuWrapper = document.querySelector('.nav-menu-wrapper');
-        
-        console.log('NavbarController: Elements found:', {
-            navbar: !!this.navbar,
-            heroSection: !!this.heroSection,
-            menuWrapper: !!this.menuWrapper
-        });
-
-        if (!this.navbar) {
-            console.error('Navbar element not found');
-            return;
-        }
-
-        // Initialize state
-        this.isNavbarVisible = false;
-
-        // Set initial state using data attribute only
-        console.log('NavbarController: Setting initial hidden state');
-        this.navbar.setAttribute('data-state', 'hidden');
-
-        // Bind event handlers
-        this.handleScroll = throttle(this._handleScroll.bind(this), 100);
-        this.handleKeydown = this._handleKeydown.bind(this);
-
-        // Add keyboard listener for Escape key
-        document.addEventListener('keydown', this.handleKeydown);
-        console.log('NavbarController: Keyboard listener added');
-
-        // If no hero section, show navbar after a small delay
-        if (!this.heroSection) {
-            console.log('NavbarController: No hero section found, showing navbar after delay');
-            setTimeout(() => {
-                this.navbar.setAttribute('data-state', 'visible');
-                console.log('NavbarController: Navbar shown (no hero)');
-            }, 500);
-            return;
-        }
-
-        // Initial check for pages with hero section
-        console.log('NavbarController: Hero section found, checking initial scroll position');
-        this._handleScroll();
-        
-        // Add scroll listener only for pages with hero section
-        window.addEventListener('scroll', this.handleScroll, { passive: true });
-        console.log('NavbarController: Scroll listener added');
+    // Function to open menu
+    function openMenu() {
+        menuWrapper.style.display = 'block';
+        // Force a reflow
+        menuWrapper.offsetHeight;
+        menuButton.setAttribute('data-state', 'open');
+        menuWrapper.setAttribute('data-state', 'visible');
+        scrollLocker.lock();
+        isMenuOpen = true;
     }
 
-    /**
-     * Clean up event listeners
-     */
-    destroy() {
-        if (this.heroSection) {
-            window.removeEventListener('scroll', this.handleScroll);
-        }
-        document.removeEventListener('keydown', this.handleKeydown);
-        console.log('NavbarController: Cleaned up event listeners');
-    }
-
-    /**
-     * Handle keyboard events
-     * @private
-     */
-    _handleKeydown(event) {
-        if (event.key === 'Escape') {
-            // Check if menu is visible by checking its opacity
-            if (this.menuWrapper && this.menuWrapper.style.opacity === '1') {
-                // Trigger the Finsweet attribute click to properly close the menu
-                const menuButton = document.querySelector('[fs-scrolldisable-element="toggle"]');
-                if (menuButton) {
-                    menuButton.click();
-                }
-                console.log('NavbarController: Menu closed via Escape key');
+    // Function to close menu
+    function closeMenu() {
+        menuButton.setAttribute('data-state', '');
+        menuWrapper.setAttribute('data-state', 'hidden');
+        setTimeout(() => {
+            if (!isMenuOpen) {
+                menuWrapper.style.display = 'none';
             }
-        }
+        }, 0);
+        scrollLocker.unlock();
+        isMenuOpen = false;
     }
 
-    /**
-     * Handle scroll event to show/hide navbar
-     * @private
-     */
-    _handleScroll() {
-        if (!this.heroSection || !this.navbar) {
-            return;
+    // Toggle menu on button click
+    menuButton.addEventListener('click', () => {
+        if (isMenuOpen) {
+            closeMenu();
+        } else {
+            openMenu();
         }
+    });
 
-        // Get hero section's bottom position relative to viewport
-        const heroRect = this.heroSection.getBoundingClientRect();
-        const hasScrolledPastHero = heroRect.bottom <= 0;
-
-        // Update navbar visibility state
-        if (hasScrolledPastHero && !this.isNavbarVisible) {
-            this.navbar.setAttribute('data-state', 'visible');
-            this.isNavbarVisible = true;
-            console.log('NavbarController: Showing navbar after hero section');
-        } else if (!hasScrolledPastHero && this.isNavbarVisible) {
-            this.navbar.setAttribute('data-state', 'hidden');
-            this.isNavbarVisible = false;
-            console.log('NavbarController: Hiding navbar before hero section');
+    // Close menu on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMenuOpen) {
+            closeMenu();
         }
-    }
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (isMenuOpen && !navbar.contains(e.target)) {
+            closeMenu();
+        }
+    });
+
+    // Initialize menu state
+    menuWrapper.style.display = 'none';
+    menuWrapper.setAttribute('data-state', 'hidden');
+    menuButton.setAttribute('data-state', '');
+    isMenuOpen = false;
 }
-
-export const initNavbar = () => {
-    console.log('NavbarController: Initializing...');
-    return new NavbarController();
-}; 
