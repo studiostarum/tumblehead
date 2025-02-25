@@ -7,7 +7,7 @@ export default defineConfig({
         outDir: '../dist',
         emptyOutDir: true,
         rollupOptions: {
-            input: 'src/js/main.js',
+            input: 'src/index.html',
             output: {
                 entryFileNames: 'bundle.min.js',
                 assetFileNames: (assetInfo) => {
