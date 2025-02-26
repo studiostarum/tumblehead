@@ -13,14 +13,15 @@ export default defineConfig({
                 dev: resolve(__dirname, 'src/index.dev.html')
             },
             output: {
-                entryFileNames: 'assets/[name].[hash].js',
-                chunkFileNames: 'assets/[name].[hash].js',
+                entryFileNames: 'bundle.min.js',
+                chunkFileNames: 'bundle.min.js',
                 assetFileNames: (assetInfo) => {
                     if (assetInfo.name.endsWith('.css')) {
-                        return 'assets/[name].[hash].css';
+                        return 'bundle.min.css';
                     }
-                    return 'assets/[name].[hash][extname]';
-                }
+                    return 'assets/[name].[extname]';
+                },
+                manualChunks: () => 'bundle.min.js' // Force all JS into a single bundle
             }
         },
         cssCodeSplit: false,
