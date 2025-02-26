@@ -7,38 +7,158 @@ export function initNavbar() {
     const menuButton = navbar.querySelector('.menu-button');
     const menuWrapper = navbar.querySelector('.nav-menu-wrapper');
     let isMenuOpen = false;
+    
+    // Function to calculate scrollbar width
+    function getScrollbarWidth() {
+        return window.innerWidth - document.documentElement.clientWidth;
+    }
+    
+    // Function to prevent layout shift when scrollbar disappears
+    function preventLayoutShift() {
+        const scrollbarWidth = getScrollbarWidth();
+        
+        // Only add padding if scrollbar has width
+        if (scrollbarWidth > 0) {
+            // Store the current padding
+            const currentPadding = parseInt(document.body.style.paddingRight, 10) || 0;
+            
+            // Add padding to the body to compensate for scrollbar width
+            document.body.style.paddingRight = `${currentPadding + scrollbarWidth}px`;
+            
+            // Add padding to fixed elements that are aligned to the right
+            const fixedElements = document.querySelectorAll('.is-fixed-right, [data-element="navbar"]');
+            fixedElements.forEach(el => {
+                const elPadding = parseInt(window.getComputedStyle(el).paddingRight, 10) || 0;
+                el.style.paddingRight = `${elPadding + scrollbarWidth}px`;
+            });
+        }
+    }
+    
+    // Function to restore layout after scrollbar returns
+    function restoreLayout() {
+        // Remove the added padding from body
+        document.body.style.paddingRight = '';
+        
+        // Remove padding from fixed elements
+        const fixedElements = document.querySelectorAll('.is-fixed-right, [data-element="navbar"]');
+        fixedElements.forEach(el => {
+            el.style.paddingRight = '';
+        });
+    }
 
-    // Only setup hero intersection observer on home page
+    // Only setup intersection observer on home page
     if (document.body.getAttribute('data-page') === 'home') {
-        const hero = document.querySelector('[data-element="hero"]');
-        if (hero) {
+        // Look for the hero-multiply section instead of hero
+        const heroMultiply = document.querySelector('.hero-multiply');
+        if (heroMultiply) {
             // Set initial state to hidden
             navbar.setAttribute('data-state', 'hidden');
             navbar.style.display = 'none';
             
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    // When hero is less than 10% visible, show navbar
-                    if (!entry.isIntersecting && entry.intersectionRatio < 0.1) {
+            // Add CSS animation styles dynamically
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeInDown {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                [data-element="navbar"][data-state="visible"] {
+                    animation: fadeInDown 0.5s ease forwards;
+                }
+                
+                [data-element="navbar"] .navbar-container {
+                    transition: transform 0.3s ease;
+                }
+                
+                [data-element="navbar"][data-state="visible"] .navbar-container {
+                    transform: translateY(0);
+                }
+                
+                [data-element="navbar"][data-state="hidden"] .navbar-container {
+                    transform: translateY(-100%);
+                }
+                
+                /* Menu button and wrapper animations */
+                .menu-button {
+                    transition: transform 0.3s ease;
+                }
+                
+                .menu-button[data-state="open"] {
+                    transform: rotate(45deg);
+                }
+                
+                .nav-menu-wrapper {
+                    transition: opacity 0.3s ease;
+                    opacity: 0;
+                }
+                
+                .nav-menu-wrapper[data-state="visible"] {
+                    opacity: 1;
+                }
+                
+                .nav-menu-wrapper[data-state="hidden"] {
+                    opacity: 0;
+                }
+                
+                /* Add a class to handle body when scroll is locked */
+                body.scroll-locked {
+                    overflow: hidden;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Use scroll event instead of intersection observer for more precise control
+            let lastScrollY = window.scrollY;
+            let ticking = false;
+            
+            function updateNavbarVisibility() {
+                // Get the bottom position of the multiply section
+                const multiplyBottom = heroMultiply.getBoundingClientRect().bottom;
+                
+                // Show navbar only when we've scrolled completely past the multiply section
+                // This means the bottom of the multiply section is above the viewport
+                // Adding a small buffer of -50px to ensure we're definitely past it
+                if (multiplyBottom < -50) {
+                    if (navbar.getAttribute('data-state') !== 'visible') {
                         navbar.style.display = 'block';
                         // Force a reflow
                         navbar.offsetHeight;
                         navbar.setAttribute('data-state', 'visible');
-                    } else {
+                    }
+                } else {
+                    if (navbar.getAttribute('data-state') !== 'hidden') {
                         navbar.setAttribute('data-state', 'hidden');
                         setTimeout(() => {
                             if (navbar.getAttribute('data-state') === 'hidden') {
                                 navbar.style.display = 'none';
                             }
-                        }, 0);
+                        }, 500); // Increased timeout to match animation duration
                     }
-                });
-            }, {
-                threshold: [0, 0.1],
-                rootMargin: '-10% 0px 0px 0px' // Triggers slightly before the hero actually leaves viewport
-            });
-
-            observer.observe(hero);
+                }
+                
+                ticking = false;
+            }
+            
+            window.addEventListener('scroll', () => {
+                lastScrollY = window.scrollY;
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        updateNavbarVisibility();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            }, { passive: true });
+            
+            // Initial check
+            updateNavbarVisibility();
         }
     } else {
         // On non-home pages, always show navbar
@@ -48,30 +168,61 @@ export function initNavbar() {
 
     // Function to open menu
     function openMenu() {
+        // Apply padding before locking scroll to prevent layout shift
+        preventLayoutShift();
+        
+        // First make sure it's displayed
         menuWrapper.style.display = 'block';
-        // Force a reflow
+        
+        // Remove any inline opacity style to let CSS handle the transition
+        menuWrapper.style.removeProperty('opacity');
+        
+        // Force a reflow to ensure the display change takes effect before animation
         menuWrapper.offsetHeight;
+        
+        // Then trigger animations by changing data states
         menuButton.setAttribute('data-state', 'open');
         menuWrapper.setAttribute('data-state', 'visible');
+        
+        // Add class to body for additional styling if needed
+        document.body.classList.add('scroll-locked');
+        
         scrollLocker.lock();
         isMenuOpen = true;
     }
 
     // Function to close menu
     function closeMenu() {
+        // Make sure there's no inline opacity style
+        menuWrapper.style.removeProperty('opacity');
+        
+        // Start animations by changing data states
         menuButton.setAttribute('data-state', '');
         menuWrapper.setAttribute('data-state', 'hidden');
+        
+        // Wait for animations to complete before hiding
         setTimeout(() => {
-            if (!isMenuOpen) {
+            // Only hide if the menu is still in hidden state
+            if (menuWrapper.getAttribute('data-state') === 'hidden') {
                 menuWrapper.style.display = 'none';
+                scrollLocker.unlock();
+                
+                // Remove class from body
+                document.body.classList.remove('scroll-locked');
+                
+                // Restore layout after unlocking scroll
+                restoreLayout();
+                
+                isMenuOpen = false;
             }
-        }, 0);
-        scrollLocker.unlock();
-        isMenuOpen = false;
+        }, 300); // Match the CSS transition duration
     }
 
     // Toggle menu on button click
-    menuButton.addEventListener('click', () => {
+    menuButton.addEventListener('click', (e) => {
+        // Stop event propagation to prevent document click handler from firing
+        e.stopPropagation();
+        
         if (isMenuOpen) {
             closeMenu();
         } else {
@@ -88,13 +239,15 @@ export function initNavbar() {
 
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {
+        // Only close if the menu is open AND the click is outside the navbar
         if (isMenuOpen && !navbar.contains(e.target)) {
             closeMenu();
         }
     });
 
-    // Initialize menu state
+    // Initialize menu state - hidden with 0 opacity
     menuWrapper.style.display = 'none';
+    // Don't set inline opacity style, let CSS handle it
     menuWrapper.setAttribute('data-state', 'hidden');
     menuButton.setAttribute('data-state', '');
     isMenuOpen = false;
