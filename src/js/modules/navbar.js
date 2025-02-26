@@ -8,38 +8,11 @@ export function initNavbar() {
     const menuWrapper = navbar.querySelector('.nav-menu-wrapper');
     let isMenuOpen = false;
 
-    // Only setup hero intersection observer on home page
+    // Only setup initial state on home page
     if (document.body.getAttribute('data-page') === 'home') {
-        const hero = document.querySelector('[data-element="hero"]');
-        if (hero) {
-            // Set initial state to hidden
-            navbar.setAttribute('data-state', 'hidden');
-            navbar.style.display = 'none';
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    // When hero is less than 10% visible, show navbar
-                    if (!entry.isIntersecting && entry.intersectionRatio < 0.1) {
-                        navbar.style.display = 'block';
-                        // Force a reflow
-                        navbar.offsetHeight;
-                        navbar.setAttribute('data-state', 'visible');
-                    } else {
-                        navbar.setAttribute('data-state', 'hidden');
-                        setTimeout(() => {
-                            if (navbar.getAttribute('data-state') === 'hidden') {
-                                navbar.style.display = 'none';
-                            }
-                        }, 0);
-                    }
-                });
-            }, {
-                threshold: [0, 0.1],
-                rootMargin: '-10% 0px 0px 0px' // Triggers slightly before the hero actually leaves viewport
-            });
-
-            observer.observe(hero);
-        }
+        // Set initial state to hidden - visibility will be managed by hero-scroll-reveal.js
+        navbar.setAttribute('data-state', 'hidden');
+        navbar.style.display = 'none';
     } else {
         // On non-home pages, always show navbar
         navbar.style.display = 'block';
