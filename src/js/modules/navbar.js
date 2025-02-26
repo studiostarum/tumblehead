@@ -58,31 +58,29 @@ export function initNavbar() {
             // Add CSS animation styles dynamically
             const style = document.createElement('style');
             style.textContent = `
-                @keyframes fadeInDown {
+                @keyframes fadeIn {
                     from {
                         opacity: 0;
-                        transform: translateY(-20px);
                     }
                     to {
                         opacity: 1;
-                        transform: translateY(0);
                     }
                 }
                 
                 [data-element="navbar"][data-state="visible"] {
-                    animation: fadeInDown 0.5s ease forwards;
+                    animation: fadeIn 0.5s ease forwards;
                 }
                 
                 [data-element="navbar"] .navbar-container {
-                    transition: transform 0.3s ease;
+                    transition: opacity 0.3s ease;
                 }
                 
                 [data-element="navbar"][data-state="visible"] .navbar-container {
-                    transform: translateY(0);
+                    opacity: 1;
                 }
                 
                 [data-element="navbar"][data-state="hidden"] .navbar-container {
-                    transform: translateY(-100%);
+                    opacity: 0;
                 }
                 
                 /* Menu button and wrapper animations */
