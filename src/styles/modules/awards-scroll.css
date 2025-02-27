@@ -1,101 +1,19 @@
-/**
- * Awards list infinite scroll animation styles
- */
-
 .awards-list-section {
-    position: relative;
     overflow: hidden;
-    width: 100%;
-}
-
-.awards-list-component {
-    position: relative;
-    width: 100%;
-    overflow: visible;
-    cursor: pointer;
 }
 
 .awards-animation-container {
     display: flex;
-    flex-wrap: nowrap;
-    will-change: transform;
-    transition: transform 0.1s linear; /* Smooth out any potential jumps */
 }
 
 .awards-list-wrapper {
-    display: flex;
     flex-shrink: 0;
 }
 
 .awards-list {
     display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
 }
 
 .awards-image-wrapper {
     flex-shrink: 0;
-    padding: 0 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.3s ease;
 }
-
-.awards-image {
-    max-height: 5rem;
-    max-width: 100%;
-    object-fit: contain;
-    filter: grayscale(100%);
-    opacity: 0.7;
-    transition: filter 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
-}
-
-/* Hover effects */
-.awards-list-component:hover .awards-animation-container {
-    animation-play-state: paused;
-}
-
-.awards-image-wrapper:hover .awards-image {
-    filter: grayscale(0%);
-    opacity: 1;
-    transform: scale(1.05);
-}
-
-/* Add a subtle fade at the edges */
-.awards-list-section::before,
-.awards-list-section::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 4rem;
-    z-index: 1;
-    pointer-events: none;
-}
-
-.awards-list-section::before {
-    left: 0;
-    background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0));
-}
-
-.awards-list-section::after {
-    right: 0;
-    background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
-}
-
-/* Responsive adjustments */
-@media (max-width: 767px) {
-    .awards-image-wrapper {
-        padding: 0 1rem;
-    }
-    
-    .awards-image {
-        max-height: 4rem;
-    }
-    
-    .awards-list-section::before,
-    .awards-list-section::after {
-        width: 2rem;
-    }
-} 
