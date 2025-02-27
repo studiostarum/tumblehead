@@ -46,6 +46,63 @@ export function initNavbar() {
         });
     }
 
+    // Add CSS animation styles dynamically for all pages
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        [data-element="navbar"][data-state="visible"] {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        [data-element="navbar"] .navbar-container {
+            transition: opacity 0.3s ease;
+        }
+        
+        [data-element="navbar"][data-state="visible"] .navbar-container {
+            opacity: 1;
+        }
+        
+        [data-element="navbar"][data-state="hidden"] .navbar-container {
+            opacity: 0;
+        }
+        
+        /* Menu button and wrapper animations */
+        .menu-button {
+            transition: transform 0.3s ease;
+        }
+        
+        .menu-button[data-state="open"] {
+            transform: rotate(45deg);
+        }
+        
+        .nav-menu-wrapper {
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+        
+        .nav-menu-wrapper[data-state="visible"] {
+            opacity: 1;
+        }
+        
+        .nav-menu-wrapper[data-state="hidden"] {
+            opacity: 0;
+        }
+        
+        /* Add a class to handle body when scroll is locked */
+        body.scroll-locked {
+            overflow: hidden;
+        }
+    `;
+    document.head.appendChild(style);
+
     // Only setup intersection observer on home page
     if (document.body.getAttribute('data-page') === 'home') {
         // Look for the hero-multiply section instead of hero
@@ -54,63 +111,6 @@ export function initNavbar() {
             // Set initial state to hidden
             navbar.setAttribute('data-state', 'hidden');
             navbar.style.display = 'none';
-            
-            // Add CSS animation styles dynamically
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                    }
-                    to {
-                        opacity: 1;
-                    }
-                }
-                
-                [data-element="navbar"][data-state="visible"] {
-                    animation: fadeIn 0.5s ease forwards;
-                }
-                
-                [data-element="navbar"] .navbar-container {
-                    transition: opacity 0.3s ease;
-                }
-                
-                [data-element="navbar"][data-state="visible"] .navbar-container {
-                    opacity: 1;
-                }
-                
-                [data-element="navbar"][data-state="hidden"] .navbar-container {
-                    opacity: 0;
-                }
-                
-                /* Menu button and wrapper animations */
-                .menu-button {
-                    transition: transform 0.3s ease;
-                }
-                
-                .menu-button[data-state="open"] {
-                    transform: rotate(45deg);
-                }
-                
-                .nav-menu-wrapper {
-                    transition: opacity 0.3s ease;
-                    opacity: 0;
-                }
-                
-                .nav-menu-wrapper[data-state="visible"] {
-                    opacity: 1;
-                }
-                
-                .nav-menu-wrapper[data-state="hidden"] {
-                    opacity: 0;
-                }
-                
-                /* Add a class to handle body when scroll is locked */
-                body.scroll-locked {
-                    overflow: hidden;
-                }
-            `;
-            document.head.appendChild(style);
             
             // Use scroll event instead of intersection observer for more precise control
             let lastScrollY = window.scrollY;
