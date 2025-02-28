@@ -1,6 +1,7 @@
 import { ScrollLocker } from './utils';
 
-const scrollLocker = new ScrollLocker();
+// Remove the scrollLocker instance since we won't be using it
+// const scrollLocker = new ScrollLocker();
 
 export function initNavbar() {
     const navbar = document.querySelector('[data-element="navbar"]');
@@ -8,12 +9,12 @@ export function initNavbar() {
     const menuWrapper = navbar.querySelector('.nav-menu-wrapper');
     let isMenuOpen = false;
     
-    // Function to calculate scrollbar width
+    // Function to calculate scrollbar width - keeping this in case it's used elsewhere
     function getScrollbarWidth() {
         return window.innerWidth - document.documentElement.clientWidth;
     }
     
-    // Function to prevent layout shift when scrollbar disappears
+    // We'll keep these functions but won't call them
     function preventLayoutShift() {
         const scrollbarWidth = getScrollbarWidth();
         
@@ -96,10 +97,10 @@ export function initNavbar() {
             opacity: 0;
         }
         
-        /* Add a class to handle body when scroll is locked */
-        body.scroll-locked {
+        /* Remove the scroll-locked class styling */
+        /* body.scroll-locked {
             overflow: hidden;
-        }
+        } */
     `;
     document.head.appendChild(style);
 
@@ -166,8 +167,8 @@ export function initNavbar() {
 
     // Function to open menu
     function openMenu() {
-        // Apply padding before locking scroll to prevent layout shift
-        preventLayoutShift();
+        // Remove the scroll locking functionality
+        // preventLayoutShift();
         
         // First make sure it's displayed
         menuWrapper.style.display = 'block';
@@ -182,10 +183,10 @@ export function initNavbar() {
         menuButton.setAttribute('data-state', 'open');
         menuWrapper.setAttribute('data-state', 'visible');
         
-        // Add class to body for additional styling if needed
-        document.body.classList.add('scroll-locked');
+        // Remove the scroll locking
+        // document.body.classList.add('scroll-locked');
+        // scrollLocker.lock();
         
-        scrollLocker.lock();
         isMenuOpen = true;
     }
 
@@ -203,13 +204,11 @@ export function initNavbar() {
             // Only hide if the menu is still in hidden state
             if (menuWrapper.getAttribute('data-state') === 'hidden') {
                 menuWrapper.style.display = 'none';
-                scrollLocker.unlock();
                 
-                // Remove class from body
-                document.body.classList.remove('scroll-locked');
-                
-                // Restore layout after unlocking scroll
-                restoreLayout();
+                // Remove the scroll unlocking
+                // scrollLocker.unlock();
+                // document.body.classList.remove('scroll-locked');
+                // restoreLayout();
                 
                 isMenuOpen = false;
             }
