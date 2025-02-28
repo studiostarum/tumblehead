@@ -1,5 +1,7 @@
 .awards-list-section {
     overflow: hidden;
+    min-height: 30svh;
+    /* Ensures minimum height is maintained */
 }
 
 .awards-animation-container {
@@ -16,4 +18,10 @@
 
 .awards-image-wrapper {
     flex-shrink: 0;
+}
+
+/* Fix for when body is fixed by ScrollLocker */
+body.scroll-locked .awards-list-section {
+    height: auto;
+    min-height: 30svh;
 }
