@@ -2,6 +2,7 @@ import { initNavbar } from './modules/navbar';
 import { initCustomScrollbar } from './modules/custom-scrollbar';
 import { initHeroScrollReveal } from './modules/hero-scroll-reveal';
 import { initAwardsScroll } from './modules/awards-scroll';
+import { initVideoLightbox } from './modules/video-lightbox';
 
 /**
  * Initialize all modules when DOM is ready
@@ -12,4 +13,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initCustomScrollbar();
     initHeroScrollReveal();
     initAwardsScroll();
+    initVideoLightbox();
 }); 

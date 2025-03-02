@@ -4,6 +4,7 @@
 @import './modules/navbar.css';
 @import './modules/logo-loop.css';
 @import './modules/awards-scroll.css';
+@import './modules/video-lightbox.css';
 
 /* Global styles */
 :root {

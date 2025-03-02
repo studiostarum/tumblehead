@@ -1,0 +1,96 @@
+.portfolio4-gallery1_image-wrapper,
+.video-wrapper,
+.work-items-video {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+.portfolio4-gallery1_video,
+.portfolio4-header_video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    transition: all 0.3s ease;
+    opacity: 1;
+    z-index: 1;
+    padding: 0;
+}
+
+.video-play-button:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.video-play-button .play-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-play-button .play-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}
+
+/* Add hover effect to the container */
+.portfolio4-gallery1_image-wrapper:hover .video-play-button,
+.video-wrapper:hover .video-play-button,
+.work-items-video:hover .video-play-button {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* Dark overlay when hovering */
+.portfolio4-gallery1_image-wrapper::after,
+.video-wrapper::after,
+.work-items-video::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.3s ease;
+    pointer-events: none;
+}
+
+.portfolio4-gallery1_image-wrapper:hover::after,
+.video-wrapper:hover::after,
+.work-items-video:hover::after {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure video container has relative positioning */
+.work-items-video,
+.hero-project-video-wrapper {
+    position: relative;
+    overflow: hidden;
+} 
