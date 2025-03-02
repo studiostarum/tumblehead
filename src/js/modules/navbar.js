@@ -167,8 +167,9 @@ export function initNavbar() {
 
     // Function to open menu
     function openMenu() {
-        // Remove the scroll locking functionality
-        // preventLayoutShift();
+        // Calculate scrollbar width
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        document.documentElement.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`);
         
         // First make sure it's displayed
         menuWrapper.style.display = 'block';
@@ -183,10 +184,6 @@ export function initNavbar() {
         menuButton.setAttribute('data-state', 'open');
         menuWrapper.setAttribute('data-state', 'visible');
         
-        // Remove the scroll locking
-        // document.body.classList.add('scroll-locked');
-        // scrollLocker.lock();
-        
         isMenuOpen = true;
     }
 
@@ -199,17 +196,14 @@ export function initNavbar() {
         menuButton.setAttribute('data-state', '');
         menuWrapper.setAttribute('data-state', 'hidden');
         
+        // Remove scrollbar width variable
+        document.documentElement.style.removeProperty('--scrollbar-width');
+        
         // Wait for animations to complete before hiding
         setTimeout(() => {
             // Only hide if the menu is still in hidden state
             if (menuWrapper.getAttribute('data-state') === 'hidden') {
                 menuWrapper.style.display = 'none';
-                
-                // Remove the scroll unlocking
-                // scrollLocker.unlock();
-                // document.body.classList.remove('scroll-locked');
-                // restoreLayout();
-                
                 isMenuOpen = false;
             }
         }, 300); // Match the CSS transition duration
