@@ -93,4 +93,52 @@
 .hero-project-video-wrapper {
     position: relative;
     overflow: hidden;
+}
+
+/* Video lightbox styles */
+.video-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: none;
+}
+
+.video-lightbox-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 1200px;
+}
+
+.lightbox-video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.lightbox-close-button {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px;
+}
+
+/* Ensure play button is visible on all video elements */
+.work-items-video .video-play-button {
+    opacity: 0.8;
+}
+
+.work-items-video:hover .video-play-button {
+    opacity: 1;
 } 

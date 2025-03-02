@@ -55,11 +55,12 @@ export function initVideoLightbox() {
     // Add play buttons to work items videos
     const workItemsVideos = document.querySelectorAll('.work-items-video');
     workItemsVideos.forEach(wrapper => {
-        const video = wrapper.querySelector('.portfolio4-gallery1_video');
+        const video = wrapper.querySelector('video');
         const videoSrc = video?.getAttribute('data-src') || video?.src;
         
-        if (!video) return;
-        addPlayButton(wrapper, video, videoSrc, lightboxVideo, videoLightbox);
+        if (video) {
+            addPlayButton(wrapper, video, videoSrc, lightboxVideo, videoLightbox);
+        }
     });
 
     // Add play buttons to header videos
