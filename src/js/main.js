@@ -1,7 +1,7 @@
 import { initNavbar } from './modules/navbar';
 import { initCustomScrollbar } from './modules/custom-scrollbar';
 import { initHeroScrollReveal } from './modules/hero-scroll-reveal';
-import { initAwardsScroll } from './modules/awards-scroll';
+import { initLogoCarousel } from './modules/logo-carousel';
 import { initVideoLightbox } from './modules/video-lightbox';
 import { createIcons, Play } from 'lucide';
 
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavbar();
     initCustomScrollbar();
     initHeroScrollReveal();
-    initAwardsScroll();
+    initLogoCarousel();
     
     // Initialize Lucide icons first
     createIcons({

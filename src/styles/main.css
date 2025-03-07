@@ -2,22 +2,10 @@
 @import './modules/category-filters.css';
 @import './modules/project-grid.css';
 @import './modules/navbar.css';
-@import './modules/logo-loop.css';
-@import './modules/awards-scroll.css';
+@import './modules/logo-carousel.css';
 @import './modules/video-lightbox.css';
 
 /* Global styles */
 :root {
   --transition-standard: all 0.3s ease;
-}
-
-/* Hero scroll reveal styles */
-.hero-multiply {
-  position: relative;
-  z-index: 1;
-}
-
-.work-item-content {
-  opacity: 0;
-  transition: opacity 0.5s ease-in-out;
 }
