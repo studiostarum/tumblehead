@@ -3,8 +3,8 @@ import { initCustomScrollbar } from './modules/custom-scrollbar';
 import { initHeroScrollReveal } from './modules/hero-scroll-reveal';
 import { initLogoCarousel } from './modules/logo-carousel';
 import { initVideoLightbox } from './modules/video-lightbox';
-import { initFilterSystem } from './modules/filter-system';
 import { createIcons, Play } from 'lucide';
+import { setupFinsweetVideoIntegration } from './videoUtils';
 
 /**
  * Initialize all modules when DOM is ready
@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initCustomScrollbar();
     initHeroScrollReveal();
     initLogoCarousel();
-    initFilterSystem();
     
     // Initialize Lucide icons first
     createIcons({
@@ -26,4 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Then initialize video lightbox
     initVideoLightbox();
+
+    // Initialize video handling with Finsweet integration
+    setupFinsweetVideoIntegration();
 }); 
