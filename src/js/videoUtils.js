@@ -31,12 +31,24 @@ export function setupFinsweetVideoIntegration() {
   window.fsAttributes.push([
     'cmsfilter',
     async (filterInstances) => {
+      // Check if we have any filter instances
+      if (!filterInstances || !filterInstances.length) {
+        console.log('No filter instances found, skipping CMS filter setup');
+        return;
+      }
+
       // Wait for the first filter instance to be ready
       const [filterInstance] = filterInstances;
+      
+      if (!filterInstance || !filterInstance.listInstance) {
+        console.log('Filter instance not properly initialized, skipping setup');
+        return;
+      }
+
       console.log('Filter instance initialized:', filterInstance);
 
       // Reset any existing filter state
-      if (filterInstance && filterInstance.resetFilters) {
+      if (filterInstance.resetFilters) {
         await filterInstance.resetFilters();
       }
 

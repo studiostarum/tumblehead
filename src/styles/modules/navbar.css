@@ -20,6 +20,24 @@
     pointer-events: none;
 }
 
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+    width: 0.75rem;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.075);
+    border-radius: 99rem;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* Add nav menu wrapper styles */
 .nav-menu-wrapper {
     position: fixed;
@@ -34,15 +52,16 @@
     overflow-y: auto; /* Allow scrolling within menu if needed */
 }
 
-/* Prevent content shift when menu opens */
+/* When menu is open, lock scroll but preserve layout */
 body:has(.nav-menu-wrapper[data-state="visible"]) {
     overflow: hidden;
-    padding-right: var(--scrollbar-width, 0px); /* Compensate for removed scrollbar */
+    /* Use margin instead of padding to prevent double scrollbar */
+    margin-right: var(--scrollbar-width, 0.75rem);
 }
 
 /* Ensure fixed elements don't shift */
 [data-element="navbar"]:has(~ .nav-menu-wrapper[data-state="visible"]) {
-    padding-right: var(--scrollbar-width, 0px);
+    right: var(--scrollbar-width, 0.75rem);
 }
 
 .nav-menu-wrapper[data-state="visible"] {

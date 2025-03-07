@@ -95,6 +95,15 @@ export function initVideoLightbox() {
         });
     }
 
+    // Close lightbox when clicking outside the video
+    videoLightbox.addEventListener('click', (e) => {
+        // Check if click is on the lightbox background (not on the video or controls)
+        if (e.target === videoLightbox || e.target.classList.contains('video-lightbox-wrapper')) {
+            lightboxVideo.pause();
+            videoLightbox.style.display = 'none';
+        }
+    });
+
     // Close lightbox on escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && videoLightbox.style.display === 'block') {

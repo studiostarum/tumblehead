@@ -107,6 +107,12 @@
     display: none;
 }
 
+/* Prevent content shift when lightbox opens */
+body:has(.video-lightbox[style*="display: block"]) {
+    overflow: hidden;
+    padding-right: var(--scrollbar-width, 0px); /* Compensate for removed scrollbar */
+}
+
 .video-lightbox-container {
     position: absolute;
     top: 50%;
