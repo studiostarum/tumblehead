@@ -42,11 +42,11 @@ const DEBUG_MODE = false;
 
 // Add page load guard to prevent lightbox opening on page load
 const PAGE_LOAD_TIME = Date.now();
-const PAGE_LOAD_THRESHOLD = 2500; // ms to consider as initial page load period
+const PAGE_LOAD_THRESHOLD = 1500; // Reduced from 2500ms to be more responsive
 
 // Add visibility change tracking to prevent lightboxes from opening when switching tabs
 let TAB_SWITCHED_TIME = 0;
-const TAB_SWITCH_THRESHOLD = 1000; // ms to ignore events after tab switch
+const TAB_SWITCH_THRESHOLD = 800; // Reduced from 1000ms to be more responsive
 
 // Track document visibility changes
 document.addEventListener('visibilitychange', () => {
@@ -63,6 +63,11 @@ function isInitialPageLoad() {
 
 // Function to check if we just switched tabs
 function isRecentTabSwitch() {
+  // Only consider tab switches that happen after the initial page load
+  // This prevents the initial page load from being treated as a tab switch
+  if (Date.now() - PAGE_LOAD_TIME < 2000) {
+    return false;
+  }
   return (Date.now() - TAB_SWITCHED_TIME) < TAB_SWITCH_THRESHOLD;
 }
 
@@ -220,7 +225,10 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
   setTimeout(() => {
     isInitialSetup = false;
     logDebug(`Initial setup complete for ${container.id || 'unnamed container'}`);
-  }, 2000); // Increased timeout to ensure all initialization is complete
+  }, 1000); // Reduced from 2000ms to 1000ms to be more responsive
+  
+  // Add a click counter to track legitimate clicks
+  container.dataset.clickCount = '0';
   
   // Intercept ALL click and touch events in the container at document level
   // This ensures our handler runs before Plyr's internal handlers
@@ -228,9 +236,19 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     // Skip if clicking outside this container
     if (!container.contains(event.target)) return;
     
-    // Skip during initial setup, page load, after tab switch, or if autoplay is in progress
-    if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
-      logDebug('Skipping click/touch during initial setup, page load, tab switch, or autoplay');
+    // Increment click counter
+    const currentCount = parseInt(container.dataset.clickCount || '0');
+    container.dataset.clickCount = (currentCount + 1).toString();
+    
+    // Skip unwanted events, but be more permissive after the first click
+    if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
+      logDebug('First click during initial setup or page load, incrementing counter but not opening lightbox');
+      return;
+    }
+    
+    // Still block tab switch events regardless of click count
+    if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+      logDebug('Skipping click/touch during tab switch or autoplay');
       return;
     }
     
@@ -240,7 +258,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       event.preventDefault();
       
       // Open lightbox
-      logDebug('Container clicked/touched, opening lightbox');
+      logDebug(`Container clicked/touched (click #${currentCount+1}), opening lightbox`);
       openVideoLightbox(container, player, videoElement);
       
       // Mark that lightbox has been opened for this container
@@ -323,9 +341,19 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       // Disable default play behavior
       player.off('play');
       player.on('play', (event) => {
-        // Skip during initial setup, page load, tab switch, or if autoplay is in progress
-        if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
-          logDebug('Skipping lightbox open during initial setup, page load, tab switch, or autoplay');
+        // Increment click counter
+        const currentCount = parseInt(container.dataset.clickCount || '0');
+        container.dataset.clickCount = (currentCount + 1).toString();
+        
+        // Skip unwanted events, but be more permissive after the first click
+        if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
+          logDebug('First play during initial setup or page load, incrementing counter but not opening lightbox');
+          return;
+        }
+        
+        // Still block tab switch events regardless of click count
+        if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+          logDebug('Skipping lightbox open during tab switch or autoplay');
           return;
         }
         
@@ -333,6 +361,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
         player.pause();
         
         // Open lightbox instead
+        logDebug(`Play clicked (click #${currentCount+1}), opening lightbox`);
         openVideoLightbox(container, player, videoElement);
         
         // Mark that lightbox has been opened for this container
@@ -422,9 +451,19 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     // Prevent default play behavior
     player.off('play');
     player.on('play', (event) => {
-      // Skip during initial setup, page load, tab switch, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play event during initial setup, page load, tab switch, or autoplay');
+      // Increment click counter
+      const currentCount = parseInt(container.dataset.clickCount || '0');
+      container.dataset.clickCount = (currentCount + 1).toString();
+      
+      // Skip unwanted events, but be more permissive after the first click
+      if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
+        logDebug('First play during initial setup or page load, incrementing counter but not opening lightbox');
+        return;
+      }
+      
+      // Still block tab switch events regardless of click count
+      if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play event during tab switch or autoplay');
         return;
       }
       
@@ -432,7 +471,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       player.pause();
       
       // Open lightbox instead
-      logDebug('Play event fired, opening lightbox');
+      logDebug(`Play event fired (click #${currentCount+1}), opening lightbox`);
       openVideoLightbox(container, player, videoElement);
       
       // Mark that lightbox has been opened for this container
@@ -464,9 +503,19 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Handle play button click to open lightbox
     customPlayButton.addEventListener('click', (event) => {
-      // Skip during initial setup, page load, tab switch, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play button click during initial setup, page load, tab switch, or autoplay');
+      // Increment click counter
+      const currentCount = parseInt(container.dataset.clickCount || '0');
+      container.dataset.clickCount = (currentCount + 1).toString();
+      
+      // Skip unwanted events, but be more permissive after the first click
+      if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
+        logDebug('First play button click during initial setup or page load, incrementing counter but not opening lightbox');
+        return;
+      }
+      
+      // Still block tab switch events regardless of click count
+      if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play button click during tab switch or autoplay');
         return;
       }
       
@@ -475,7 +524,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       event.stopPropagation();
       
       // Open the lightbox
-      logDebug('Play button clicked, opening lightbox');
+      logDebug(`Play button clicked (click #${currentCount+1}), opening lightbox`);
       openVideoLightbox(container, player, videoElement);
       
       // Mark that lightbox has been opened for this container
@@ -486,8 +535,18 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Also prevent pause when clicking on the video
     videoElement.addEventListener('click', (event) => {
-      // Skip during initial setup, page load, tab switch, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) return;
+      // Increment click counter
+      const currentCount = parseInt(container.dataset.clickCount || '0');
+      container.dataset.clickCount = (currentCount + 1).toString();
+      
+      // Skip unwanted events, but be more permissive after the first click
+      if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
+        logDebug('First video element click during initial setup or page load, incrementing counter but not opening lightbox');
+        return;
+      }
+      
+      // Still block tab switch events regardless of click count
+      if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) return;
       
       if (container.classList.contains('preview-mode')) {
         // Prevent default behavior (pausing)
@@ -495,7 +554,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
         event.stopPropagation();
         
         // Open the lightbox
-        logDebug('Video element clicked, opening lightbox');
+        logDebug(`Video element clicked (click #${currentCount+1}), opening lightbox`);
         openVideoLightbox(container, player, videoElement);
         
         // Mark that lightbox has been opened for this container
