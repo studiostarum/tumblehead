@@ -55,6 +55,7 @@
 .video-container.preview-mode {
   cursor: pointer;
   background-color: #000;
+  border-radius: .75rem;
   /* Dark background for video container */
 }
 
