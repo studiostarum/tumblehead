@@ -554,6 +554,8 @@ body.scroll-locked {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   cursor: pointer !important;
+  -webkit-appearance: none !important; /* Required for Safari */
+  background: transparent !important;
 }
 
 .video-lightbox-container .plyr--full-ui input[type=range]::-webkit-slider-thumb {
@@ -562,6 +564,9 @@ body.scroll-locked {
   margin-top: -3px !important;
   cursor: pointer !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  transform: scale(1) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  will-change: transform, box-shadow !important;
 }
 
 .video-lightbox-container .plyr--full-ui input[type=range]::-moz-range-thumb {
@@ -569,6 +574,9 @@ body.scroll-locked {
   width: 16px !important;
   cursor: pointer !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  transform: scale(1) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  will-change: transform, box-shadow !important;
 }
 
 .video-lightbox-container .plyr--full-ui input[type=range]::-ms-thumb {
@@ -576,6 +584,9 @@ body.scroll-locked {
   width: 16px !important;
   cursor: pointer !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  transform: scale(1) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  will-change: transform, box-shadow !important;
 }
 
 /* Increase the clickable area of the progress container */
@@ -599,9 +610,47 @@ body.scroll-locked {
   }
   
   .video-lightbox-container .plyr__progress__container {
-    padding: 10px 0 !important;
-    margin: -10px 0 !important;
+    margin-top: -15px !important;
+    margin-bottom: -15px !important;
+    padding-top: 15px !important;
+    padding-bottom: 15px !important;
   }
+}
+
+/* Fix Firefox range slider appearance */
+.video-lightbox-container .plyr--full-ui input[type=range]::-moz-range-progress {
+  background-color: var(--plyr-range-fill-background) !important;
+  height: 10px !important;
+  border-radius: 5px !important;
+}
+
+/* Fix track color in all browsers */
+.video-lightbox-container .plyr__progress__buffer {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Fix range slider issues in Firefox and Safari */
+.video-lightbox-container .plyr--full-ui input[type=range] {
+  -webkit-appearance: none !important; /* Required for Safari */
+  background: transparent !important;
+}
+
+/* Improve range slider hit area in mobile */
+@media (max-width: 767px) {
+  .video-lightbox-container .plyr__progress__container {
+    margin-top: -15px !important;
+    margin-bottom: -15px !important;
+    padding-top: 15px !important;
+    padding-bottom: 15px !important;
+  }
+}
+
+/* Prevent any conflicting animations or transitions */
+.video-lightbox-container .plyr__progress,
+.video-lightbox-container .plyr__progress * {
+  will-change: contents !important;
+  animation-delay: 0s !important;
+  transition-delay: 0s !important;
 }
 
 /* Better hover indicators for progress bar */

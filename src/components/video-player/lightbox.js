@@ -689,6 +689,9 @@ function openLightbox(container, originalPlayer) {
   // Preload the video to avoid thumbnail generation
   preloadVideoSource(videoSrc);
   
+  // Lock scroll position first before any DOM manipulations
+  lockScroll();
+  
   // Initialize the lightbox if needed
   const { backdrop, closeButton } = initLightboxPlayer();
   
@@ -696,44 +699,7 @@ function openLightbox(container, originalPlayer) {
   const lightboxContainer = document.querySelector('.video-lightbox-container');
   if (!lightboxContainer) return;
   
-  // Get the mobile controls menu
-  const mobileControlsMenu = lightboxContainer.querySelector('.mobile-controls-menu');
-  if (mobileControlsMenu) {
-    mobileControlsMenu.classList.remove('active');
-  }
-  
-  // Remove any poster attribute to prevent thumbnail
-  if (lightboxPlayer && lightboxPlayer.elements && lightboxPlayer.elements.original) {
-    lightboxPlayer.elements.original.removeAttribute('poster');
-  }
-  
-  // Always start from the beginning (0) instead of using the original player's current time
-  const currentTime = 0;
-  
-  // Set the source and poster for the lightbox video
-  const lightboxVideo = lightboxContainer.querySelector('video');
-  if (!lightboxVideo) return;
-
-  // Configure the video source using our shared utility function
-  configureVideoSource(lightboxVideo, videoSrc);
-  
-  // Ensure video is fully visible
-  ensureVideoVisibility(lightboxVideo);
-  
-  // Try to play the video immediately before showing the lightbox
-  try {
-    // Always set the time to 0 to start from the beginning
-    lightboxVideo.currentTime = 0;
-    lightboxVideo.muted = false; // Start unmuted
-    lightboxVideo.volume = 1; // Set volume to 100%
-  } catch (e) {
-    console.log('Error with lightbox pre-init:', e);
-  }
-  
-  // Lock scroll position
-  lockScroll();
-  
-  // Show the lightbox
+  // Show the lightbox UI first before attempting to load or play video
   lightboxContainer.style.display = 'block';
   lightboxContainer.classList.add('lightbox-mode');
   
@@ -741,221 +707,305 @@ function openLightbox(container, originalPlayer) {
   backdrop.classList.add('active');
   closeButton.classList.add('active');
   
-  // Update the lightbox player source and play
-  if (lightboxPlayer) {
-    // Remove any poster element if it exists
-    if (lightboxPlayer.elements && lightboxPlayer.elements.poster) {
-      lightboxPlayer.elements.poster.remove();
-    }
-    
-    lightboxPlayer.source = {
-      type: 'video',
-      sources: [
-        {
-          src: videoSrc,
-          type: videoSrc.endsWith('.webm') ? 'video/webm' : 'video/mp4'
-        }
-      ]
-    };
-    
-    // Immediately ensure controls are visible
-    if (lightboxPlayer.elements) {
-      // Force display of controls
-      if (lightboxPlayer.elements.controls) {
-        lightboxPlayer.elements.controls.style.display = 'flex';
-        lightboxPlayer.elements.controls.style.visibility = 'visible';
-        lightboxPlayer.elements.controls.style.opacity = '1';
-        lightboxPlayer.elements.controls.style.pointerEvents = 'auto';
-      }
-      
-      // Make sure individual controls are visible
-      const controlsToShow = [
-        'progress', 'play', 'mute', 'volume', 'fullscreen', 
-        'current-time', 'duration', 'settings'
-      ];
-      
-      controlsToShow.forEach(controlName => {
-        const control = lightboxPlayer.elements.controls?.querySelector(`.plyr__control[data-plyr="${controlName}"], .plyr__${controlName}`);
-        if (control) {
-          control.style.display = 'flex';
-          control.style.visibility = 'visible';
-          control.style.opacity = '1';
-        }
-      });
-      
-      // Specifically reapply our mute button fix in case it was lost
-      if (lightboxPlayer.elements.buttons && lightboxPlayer.elements.buttons.mute) {
-        const muteButton = lightboxPlayer.elements.buttons.mute[0];
-        if (muteButton) {
-          // Replace the mute button with a fresh one
-          const newMuteButton = muteButton.cloneNode(true);
-          muteButton.parentNode.replaceChild(newMuteButton, muteButton);
-          
-          // Add new handler
-          newMuteButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            
-            // Directly toggle the mute state
-            if (lightboxPlayer.muted) {
-              lightboxPlayer.muted = false;
-              lightboxPlayer.volume = Math.max(0.5, lightboxPlayer.volume);
-              console.log('Lightbox player unmuted via button');
-            } else {
-              lightboxPlayer.muted = true;
-              console.log('Lightbox player muted via button');
-            }
-            
-            // Force update UI as well
-            setTimeout(() => {
-              if (lightboxPlayer.muted) {
-                newMuteButton.setAttribute('aria-label', 'Unmute');
-                newMuteButton.classList.add('plyr__control--pressed');
-              } else {
-                newMuteButton.setAttribute('aria-label', 'Mute');
-                newMuteButton.classList.remove('plyr__control--pressed');
-              }
-            }, 10);
-          });
-        }
-      }
-      
-      // Specifically fix settings button behavior
-      const settingsButton = lightboxPlayer.elements.controls?.querySelector('.plyr__control[data-plyr="settings"]');
-      if (settingsButton) {
-        // Remove any existing click handlers first
-        const newSettingsButton = settingsButton.cloneNode(true);
-        settingsButton.parentNode.replaceChild(newSettingsButton, settingsButton);
-        
-        // Add our toggle implementation
-        newSettingsButton.addEventListener('click', (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          
-          // Find the menu container
-          const settingsMenu = document.querySelector('.plyr__menu__container');
-          if (settingsMenu) {
-            // Toggle the menu
-            if (settingsMenu.classList.contains('plyr__menu__container--open')) {
-              // Close the menu
-              settingsMenu.classList.remove('plyr__menu__container--open');
-              settingsMenu.style.display = 'none';
-            } else {
-              // Open the menu
-              settingsMenu.classList.add('plyr__menu__container--open');
-              settingsMenu.style.display = 'block';
-              settingsMenu.style.visibility = 'visible';
-              settingsMenu.style.opacity = '1';
-              settingsMenu.style.zIndex = '30000';
-              
-              // Position correctly
-              const rect = newSettingsButton.getBoundingClientRect();
-              settingsMenu.style.bottom = (window.innerHeight - rect.top + 5) + 'px';
-              settingsMenu.style.right = (window.innerWidth - rect.right + rect.width/2) + 'px';
-            }
-          }
-        }, true); // Use capturing
-      }
-    }
-    
-    // Play with a slight delay to allow animation, 
-    // and start from the beginning of the video
-    setTimeout(() => {
-      // Always set to time 0 to start from the beginning
-      lightboxPlayer.currentTime = 0;
-      
-      // Start unmuted with 100% volume
-      lightboxPlayer.muted = false;
-      lightboxPlayer.volume = 1;
-      
-      // Ensure controls are visible and enabled in lightbox
-      if (lightboxPlayer.elements && lightboxPlayer.elements.controls) {
-        lightboxPlayer.elements.controls.style.display = 'flex';
-        lightboxPlayer.elements.controls.style.opacity = '1';
-        lightboxPlayer.elements.controls.style.visibility = 'visible';
-        lightboxPlayer.elements.controls.style.pointerEvents = 'auto';
-      }
-      
-      // Make sure the big play button is visible
-      if (lightboxPlayer.elements.buttons && lightboxPlayer.elements.buttons.play) {
-        Array.from(lightboxPlayer.elements.buttons.play).forEach(btn => {
-          btn.style.display = 'flex';
-          btn.style.opacity = '1';
-          btn.style.visibility = 'visible';
-        });
-      }
-
-      // Ensure the large play button is visible
-      const largePlayButton = lightboxPlayer.elements.buttons?.['play-large']?.[0];
-      if (largePlayButton) {
-        largePlayButton.style.display = 'flex';
-        largePlayButton.style.opacity = '1';
-        largePlayButton.style.visibility = 'visible';
-        largePlayButton.style.zIndex = '10';
-      }
-      
-      // Ensure the video element itself is visible
-      if (lightboxPlayer.elements.original) {
-        ensureVideoVisibility(lightboxPlayer.elements.original);
-      }
-      
-      // Ensure mute button functionality works
-      const muteButton = lightboxPlayer.elements.buttons?.mute?.[0];
-      if (muteButton) {
-        // Force the mute button to be updated correctly
-        setTimeout(() => {
-          if (lightboxPlayer.muted) {
-            muteButton.setAttribute('aria-label', 'Unmute');
-            muteButton.setAttribute('title', 'Unmute');
-          } else {
-            muteButton.setAttribute('aria-label', 'Mute');
-            muteButton.setAttribute('title', 'Mute');
-          }
-        }, 450);
-      }
-    }, 400); // Match animation duration
+  // Get the mobile controls menu
+  const mobileControlsMenu = lightboxContainer.querySelector('.mobile-controls-menu');
+  if (mobileControlsMenu) {
+    mobileControlsMenu.classList.remove('active');
   }
   
-  // Listen for ESC key
-  document.addEventListener('keydown', handleEscKey);
+  // Wait for the DOM operations to complete and animation to start
+  // before attempting any video operations
+  requestAnimationFrame(() => {
+    // Remove any poster attribute to prevent thumbnail
+    if (lightboxPlayer && lightboxPlayer.elements && lightboxPlayer.elements.original) {
+      lightboxPlayer.elements.original.removeAttribute('poster');
+    }
+    
+    // Set the source and poster for the lightbox video
+    const lightboxVideo = lightboxContainer.querySelector('video');
+    if (!lightboxVideo) return;
 
-  // After playback is attempted, clean up
-  setTimeout(() => {
-    // Check one more time for any poster elements and remove them
-    const anyPosters = document.querySelectorAll('.video-lightbox-container .plyr__poster, .lightbox-video[poster]');
-    anyPosters.forEach(poster => {
-      console.log('Cleanup: removing lightbox poster element');
-      if (poster.hasAttribute && poster.hasAttribute('poster')) {
-        poster.removeAttribute('poster');
-      } else if (poster.remove) {
-        poster.remove();
+    // Configure the video source using our shared utility function
+    configureVideoSource(lightboxVideo, videoSrc);
+    
+    // Ensure video is fully visible
+    ensureVideoVisibility(lightboxVideo);
+    
+    // Allow the video element to stabilize in the DOM before attempting to modify it
+    setTimeout(() => {
+      try {
+        // Set basic video properties
+        lightboxVideo.currentTime = 0;
+        lightboxVideo.muted = false;
+        lightboxVideo.volume = 1;
+      } catch (e) {
+        console.log('Error with lightbox video setup:', e);
       }
-    });
-  }, 500);
-
-  // Add click-to-play functionality to the video container
-  const videoInner = lightboxContainer.querySelector('.video-inner');
-  if (videoInner) {
-    videoInner.addEventListener('click', (e) => {
-      // Only handle clicks directly on the container, not on controls
-      if (e.target === videoInner || e.target === lightboxVideo) {
-        // Toggle play/pause
-        if (lightboxPlayer.playing) {
-          lightboxPlayer.pause();
-        } else {
-          lightboxPlayer.play();
+      
+      // Update the lightbox player source and play
+      if (lightboxPlayer) {
+        // Remove any poster element if it exists
+        if (lightboxPlayer.elements && lightboxPlayer.elements.poster) {
+          lightboxPlayer.elements.poster.remove();
         }
+        
+        // First set up the source and wait for it to load
+        const sourcePromise = new Promise((resolve) => {
+          // Listen for the source to be ready before attempting to play
+          const onceReady = () => {
+            lightboxPlayer.off('ready', onceReady);
+            lightboxPlayer.off('loadeddata', onceReady);
+            resolve();
+          };
+          
+          lightboxPlayer.once('ready', onceReady);
+          lightboxPlayer.once('loadeddata', onceReady);
+          
+          // Set source after setting up listeners
+          lightboxPlayer.source = {
+            type: 'video',
+            sources: [
+              {
+                src: videoSrc,
+                type: videoSrc.endsWith('.webm') ? 'video/webm' : 'video/mp4'
+              }
+            ]
+          };
+        });
+        
+        // Configure the player UI
+        if (lightboxPlayer.elements) {
+          // Force display of controls
+          if (lightboxPlayer.elements.controls) {
+            lightboxPlayer.elements.controls.style.display = 'flex';
+            lightboxPlayer.elements.controls.style.visibility = 'visible';
+            lightboxPlayer.elements.controls.style.opacity = '1';
+            lightboxPlayer.elements.controls.style.pointerEvents = 'auto';
+          }
+          
+          // Make sure individual controls are visible
+          const controlsToShow = [
+            'progress', 'play', 'mute', 'volume', 'fullscreen', 
+            'current-time', 'duration', 'settings'
+          ];
+          
+          controlsToShow.forEach(controlName => {
+            const control = lightboxPlayer.elements.controls?.querySelector(`.plyr__control[data-plyr="${controlName}"], .plyr__${controlName}`);
+            if (control) {
+              control.style.display = 'flex';
+              control.style.visibility = 'visible';
+              control.style.opacity = '1';
+            }
+          });
+          
+          // Specifically reapply our mute button fix in case it was lost
+          if (lightboxPlayer.elements.buttons && lightboxPlayer.elements.buttons.mute) {
+            const muteButton = lightboxPlayer.elements.buttons.mute[0];
+            if (muteButton) {
+              // Replace the mute button with a fresh one
+              const newMuteButton = muteButton.cloneNode(true);
+              muteButton.parentNode.replaceChild(newMuteButton, muteButton);
+              
+              // Add new handler
+              newMuteButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                // Directly toggle the mute state
+                if (lightboxPlayer.muted) {
+                  lightboxPlayer.muted = false;
+                  lightboxPlayer.volume = Math.max(0.5, lightboxPlayer.volume);
+                  console.log('Lightbox player unmuted via button');
+                } else {
+                  lightboxPlayer.muted = true;
+                  console.log('Lightbox player muted via button');
+                }
+                
+                // Force update UI as well
+                setTimeout(() => {
+                  if (lightboxPlayer.muted) {
+                    newMuteButton.setAttribute('aria-label', 'Unmute');
+                    newMuteButton.classList.add('plyr__control--pressed');
+                  } else {
+                    newMuteButton.setAttribute('aria-label', 'Mute');
+                    newMuteButton.classList.remove('plyr__control--pressed');
+                  }
+                }, 10);
+              });
+            }
+          }
+          
+          // Update settings button behavior (same as before)
+          const settingsButton = lightboxPlayer.elements.controls?.querySelector('.plyr__control[data-plyr="settings"]');
+          if (settingsButton) {
+            // Remove any existing click handlers first
+            const newSettingsButton = settingsButton.cloneNode(true);
+            settingsButton.parentNode.replaceChild(newSettingsButton, settingsButton);
+            
+            // Add our toggle implementation
+            newSettingsButton.addEventListener('click', (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              
+              // Find the menu container
+              const settingsMenu = document.querySelector('.plyr__menu__container');
+              if (settingsMenu) {
+                // Toggle the menu
+                if (settingsMenu.classList.contains('plyr__menu__container--open')) {
+                  // Close the menu
+                  settingsMenu.classList.remove('plyr__menu__container--open');
+                  settingsMenu.style.display = 'none';
+                } else {
+                  // Open the menu
+                  settingsMenu.classList.add('plyr__menu__container--open');
+                  settingsMenu.style.display = 'block';
+                  settingsMenu.style.visibility = 'visible';
+                  settingsMenu.style.opacity = '1';
+                  settingsMenu.style.zIndex = '30000';
+                  
+                  // Position correctly
+                  const rect = newSettingsButton.getBoundingClientRect();
+                  settingsMenu.style.bottom = (window.innerHeight - rect.top + 5) + 'px';
+                  settingsMenu.style.right = (window.innerWidth - rect.right + rect.width/2) + 'px';
+                }
+              }
+            }, true); // Use capturing
+          }
+        }
+        
+        // Wait for animation + source loading to complete before attempting to play
+        setTimeout(() => {
+          // Wait for source to be ready
+          sourcePromise.then(() => {
+            console.log('Lightbox video source ready, preparing for user interaction');
+            
+            // Set up current time and volume but don't auto-play
+            lightboxPlayer.currentTime = 0;
+            lightboxPlayer.muted = false;
+            lightboxPlayer.volume = 1;
+            
+            // Ensure controls are visible and enabled
+            if (lightboxPlayer.elements && lightboxPlayer.elements.controls) {
+              lightboxPlayer.elements.controls.style.display = 'flex';
+              lightboxPlayer.elements.controls.style.opacity = '1';
+              lightboxPlayer.elements.controls.style.visibility = 'visible';
+              lightboxPlayer.elements.controls.style.pointerEvents = 'auto';
+            }
+            
+            // Make sure play button is visible for user interaction
+            if (lightboxPlayer.elements.buttons && lightboxPlayer.elements.buttons.play) {
+              Array.from(lightboxPlayer.elements.buttons.play).forEach(btn => {
+                btn.style.display = 'flex';
+                btn.style.opacity = '1';
+                btn.style.visibility = 'visible';
+              });
+            }
+
+            // Ensure the large play button is visible 
+            const largePlayButton = lightboxPlayer.elements.buttons?.['play-large']?.[0];
+            if (largePlayButton) {
+              largePlayButton.style.display = 'flex';
+              largePlayButton.style.opacity = '1';
+              largePlayButton.style.visibility = 'visible';
+              largePlayButton.style.zIndex = '10';
+            }
+            
+            // Ensure the video element itself is visible
+            if (lightboxPlayer.elements.original) {
+              ensureVideoVisibility(lightboxPlayer.elements.original);
+            }
+            
+            // Update mute button state
+            const muteButton = lightboxPlayer.elements.buttons?.mute?.[0];
+            if (muteButton) {
+              setTimeout(() => {
+                if (lightboxPlayer.muted) {
+                  muteButton.setAttribute('aria-label', 'Unmute');
+                  muteButton.setAttribute('title', 'Unmute');
+                } else {
+                  muteButton.setAttribute('aria-label', 'Mute');
+                  muteButton.setAttribute('title', 'Mute');
+                }
+              }, 50);
+            }
+          }).catch(err => {
+            console.error('Error preparing lightbox video:', err);
+          });
+        }, 400); // Match animation duration
       }
-    });
-  }
+      
+      // Listen for ESC key
+      document.addEventListener('keydown', handleEscKey);
+
+      // Add click-to-play functionality to the video container
+      const videoInner = lightboxContainer.querySelector('.video-inner');
+      if (videoInner) {
+        videoInner.addEventListener('click', (e) => {
+          // Only handle clicks directly on the container, not on controls
+          if (e.target === videoInner || e.target === lightboxVideo) {
+            // Toggle play/pause safely with error handling
+            try {
+              if (lightboxPlayer) {
+                if (lightboxPlayer.playing) {
+                  lightboxPlayer.pause();
+                } else {
+                  const playPromise = lightboxPlayer.play();
+                  if (playPromise !== undefined) {
+                    playPromise.catch(err => {
+                      console.warn('Error during play:', err);
+                      // If autoplay is blocked, show play button prominently
+                      if (lightboxPlayer.elements && 
+                          lightboxPlayer.elements.buttons && 
+                          lightboxPlayer.elements.buttons['play-large']) {
+                        const bigPlayBtn = lightboxPlayer.elements.buttons['play-large'][0];
+                        if (bigPlayBtn) {
+                          bigPlayBtn.style.transform = 'scale(1.2)';
+                          bigPlayBtn.style.opacity = '1';
+                          setTimeout(() => {
+                            bigPlayBtn.style.transform = '';
+                          }, 300);
+                        }
+                      }
+                    });
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn('Error toggling play state:', err);
+            }
+          }
+        });
+      }
+      
+      // After all setup is complete, clean up any poster elements
+      setTimeout(() => {
+        const anyPosters = document.querySelectorAll('.video-lightbox-container .plyr__poster, .lightbox-video[poster]');
+        anyPosters.forEach(poster => {
+          console.log('Cleanup: removing lightbox poster element');
+          if (poster.hasAttribute && poster.hasAttribute('poster')) {
+            poster.removeAttribute('poster');
+          } else if (poster.remove) {
+            poster.remove();
+          }
+        });
+      }, 500);
+    }, 100); // Short delay to allow DOM to stabilize
+  });
   
   // Listen for play and pause events to update UI appropriately
   lightboxPlayer.on('play', () => {
     // Video is now playing
+    console.log('Lightbox video playing');
   });
   
   lightboxPlayer.on('pause', () => {
     // Video is now paused
+    console.log('Lightbox video paused');
+  });
+  
+  // Handle play errors
+  lightboxPlayer.on('error', (event) => {
+    console.error('Lightbox player error:', event);
   });
 }
 
