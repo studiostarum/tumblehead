@@ -37,9 +37,23 @@ const players = new Map();
 // Store lightbox references
 const lightboxes = new Map();
 
-// Debug helper function - remove in production
+// Debug mode - set to false to disable all console logs
+const DEBUG_MODE = false;
+
+// Add page load guard to prevent lightbox opening on page load
+const PAGE_LOAD_TIME = Date.now();
+const PAGE_LOAD_THRESHOLD = 2500; // ms to consider as initial page load period
+
+// Debug helper function that only logs when DEBUG_MODE is true
 function logDebug(message, data) {
-  console.log(`%c[Plyr Video] ${message}`, 'background: #008080; color: white; padding: 2px 6px; border-radius: 2px;', data || '');
+  if (DEBUG_MODE) {
+    console.log(`%c[Plyr Video] ${message}`, 'background: #008080; color: white; padding: 2px 6px; border-radius: 2px;', data || '');
+  }
+}
+
+// Function to check if we're in the initial page load period
+function isInitialPageLoad() {
+  return (Date.now() - PAGE_LOAD_TIME) < PAGE_LOAD_THRESHOLD;
 }
 
 /**
@@ -160,7 +174,9 @@ export function initializePlyrVideos() {
       
       logDebug(`Successfully initialized container ${index}`);
     } catch (error) {
-      console.error('Error initializing Plyr:', error);
+      if (DEBUG_MODE) {
+        console.error('Error initializing Plyr:', error);
+      }
     }
   });
 }
@@ -187,7 +203,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
   setTimeout(() => {
     isInitialSetup = false;
     logDebug(`Initial setup complete for ${container.id || 'unnamed container'}`);
-  }, 1000); // Increase timeout to ensure all initialization is complete
+  }, 2000); // Increased timeout to ensure all initialization is complete
   
   // Set up Plyr's native controls or custom button based on option
   if (usePlyrButton) {
@@ -245,10 +261,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       // Prevent Plyr's default play behavior
       player.off('play');
       player.on('play', (event) => {
-        // Skip during initial setup to prevent lightbox opening on page load
-        // Also skip if autoplay is in progress
-        if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
-          logDebug('Skipping lightbox open during initial setup or autoplay');
+        // Skip during initial setup, page load, or if autoplay is in progress
+        if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
+          logDebug('Skipping lightbox open during initial setup, page load, or autoplay');
           return;
         }
         
@@ -268,14 +283,13 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       
       // Capture all clicks on container or Plyr button to open lightbox
       container.addEventListener('click', (event) => {
-        // Skip during initial setup to prevent lightbox opening on page load
-        // Also skip if autoplay is in progress
-        if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
-          logDebug('Skipping container click during initial setup or autoplay');
+        // Skip during initial setup, page load, or if autoplay is in progress
+        if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
+          logDebug('Skipping container click during initial setup, page load, or autoplay');
           return;
         }
         
-        // Always open lightbox regardless of what was clicked
+        // Prevent any other click handlers from firing
         event.preventDefault();
         event.stopPropagation();
         
@@ -291,10 +305,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       // Also prevent plyr control click default behavior
       if (plyrControls) {
         plyrControls.addEventListener('click', (event) => {
-          // Skip during initial setup to prevent lightbox opening on page load
-          // Also skip if autoplay is in progress
-          if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
-            logDebug('Skipping plyr controls click during initial setup or autoplay');
+          // Skip during initial setup, page load, or if autoplay is in progress
+          if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
+            logDebug('Skipping plyr controls click during initial setup, page load, or autoplay');
             return;
           }
           
@@ -390,10 +403,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     // Prevent default play behavior
     player.off('play');
     player.on('play', (event) => {
-      // Skip during initial setup to prevent lightbox opening on page load
-      // Also skip if autoplay is in progress
-      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play event during initial setup or autoplay');
+      // Skip during initial setup, page load, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play event during initial setup, page load, or autoplay');
         return;
       }
       
@@ -433,10 +445,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Capture all clicks on container to open lightbox
     container.addEventListener('click', (event) => {
-      // Skip during initial setup to prevent lightbox opening on page load
-      // Also skip if autoplay is in progress
-      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping container click during initial setup or autoplay');
+      // Skip during initial setup, page load, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping container click during initial setup, page load, or autoplay');
         return;
       }
       
@@ -456,8 +467,8 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Prevent double-click behavior
     container.addEventListener('dblclick', (event) => {
-      // Skip during initial setup or if autoplay is in progress
-      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
+      // Skip during initial setup, page load, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) return;
       
       // Prevent default double-click behavior (like entering fullscreen)
       event.preventDefault();
@@ -469,9 +480,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Handle play button click to open lightbox
     customPlayButton.addEventListener('click', (event) => {
-      // Skip during initial setup or if autoplay is in progress
-      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play button click during initial setup or autoplay');
+      // Skip during initial setup, page load, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play button click during initial setup, page load, or autoplay');
         return;
       }
       
@@ -491,8 +502,8 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Also prevent pause when clicking on the video
     videoElement.addEventListener('click', (event) => {
-      // Skip during initial setup or if autoplay is in progress
-      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
+      // Skip during initial setup, page load, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) return;
       
       if (container.classList.contains('preview-mode')) {
         // Prevent default behavior (pausing)
@@ -843,7 +854,9 @@ export function reinitializeVideoPlayers() {
     try {
       player.destroy();
     } catch (e) {
-      console.error('Error destroying player:', e);
+      if (DEBUG_MODE) {
+        console.error('Error destroying player:', e);
+      }
     }
     
     // Remove initialization attribute to allow reinitializing
@@ -965,17 +978,27 @@ function setupCMSIntegration() {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initVideoPlayer);
+document.addEventListener('DOMContentLoaded', initVideoPlayer, { once: true });
 
-// Initialize when Webflow page loads/changes
+// Initialize when Webflow page loads/changes - but only once per session
+let webflowInitialized = false;
 if (window.Webflow) {
   window.Webflow.push(() => {
-    initVideoPlayer();
+    if (!webflowInitialized) {
+      webflowInitialized = true;
+      initVideoPlayer();
+    }
   });
 }
 
-// Initialize on any Webflow interaction that might affect the page
-window.addEventListener('Webflow.ready', initVideoPlayer);
+// Initialize on any Webflow interaction that might affect the page - but only once
+let webflowReadyInitialized = false;
+window.addEventListener('Webflow.ready', () => {
+  if (!webflowReadyInitialized) {
+    webflowReadyInitialized = true;
+    initVideoPlayer();
+  }
+});
 
 // Expose globally
 window.initializePlyrVideos = initializePlyrVideos;
@@ -986,5 +1009,6 @@ window.reinitializeVideoPlayers = reinitializeVideoPlayers;
 export default {
   initVideoPlayer,
   initializePlyrVideos,
-  reinitializeVideoPlayers
+  reinitializeVideoPlayers,
+  logDebug
 };

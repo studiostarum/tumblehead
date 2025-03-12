@@ -6,23 +6,38 @@
  * and handling CMS-specific events like pagination and filtering.
  */
 
-import { initVideoPlayer, initializePlyrVideos } from '.';
+import videoPlayer from '.';
+const { initVideoPlayer, initializePlyrVideos, logDebug } = videoPlayer;
+
+// Debug mode - set to false to disable all console logs
+const DEBUG_MODE = false;
+
+// Flag to prevent multiple initializations during page load
+let hasInitialized = false;
 
 /**
  * Initialize all videos when Webflow page loads
  */
 function initOnWebflowLoad() {
-  // Initialize on DOM ready
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing Plyr videos for Webflow');
-    initVideoPlayer();
-  });
+  // Initialize only once during page load
+  if (hasInitialized) {
+    logDebug('Plyr videos already initialized, skipping duplicate initialization');
+    return;
+  }
   
-  // Initialize on Webflow page change (if using Webflow interactions)
+  hasInitialized = true;
+  
+  // Initialize on DOM ready - with single execution guarantee
+  document.addEventListener('DOMContentLoaded', () => {
+    logDebug('Initializing Plyr videos for Webflow');
+    initVideoPlayer();
+  }, { once: true });
+  
+  // Initialize on Webflow page change (if using Webflow interactions) - with single execution guarantee
   window.addEventListener('Webflow.ready', () => {
-    console.log('Webflow ready, initializing Plyr videos');
+    logDebug('Webflow ready, initializing Plyr videos');
     initializePlyrVideos();
-  });
+  }, { once: true });
 }
 
 /**
