@@ -1,7 +1,10 @@
 import { ScrollLocker } from './utils';
 import { createIcons, Play } from 'lucide';
+import Plyr from 'plyr';
+import 'plyr/dist/plyr.css';
 
 const scrollLocker = new ScrollLocker();
+let lightboxPlayer = null;
 
 function addPlayButton(wrapper, video, videoSrc, lightboxVideo, videoLightbox) {
     if (!wrapper.querySelector('.video-play-button')) {
@@ -28,7 +31,24 @@ function addPlayButton(wrapper, video, videoSrc, lightboxVideo, videoLightbox) {
             
             // Show lightbox
             videoLightbox.style.display = 'block';
-            lightboxVideo.play();
+            
+            // Refresh Plyr when source changes
+            if (lightboxPlayer) {
+                lightboxPlayer.source = {
+                    type: 'video',
+                    sources: [
+                        {
+                            src: videoSrc || video.src,
+                            type: 'video/mp4',
+                        },
+                    ],
+                };
+                
+                // Play video after a short delay to allow Plyr to initialize
+                setTimeout(() => {
+                    lightboxPlayer.play();
+                }, 100);
+            }
         };
 
         wrapper.addEventListener('click', openLightbox);
@@ -41,6 +61,30 @@ export function initVideoLightbox() {
     const lightboxVideo = videoLightbox?.querySelector('video');
     
     if (!videoLightbox || !lightboxVideo) return;
+    
+    // Initialize Plyr for the lightbox video
+    lightboxPlayer = new Plyr(lightboxVideo, {
+        controls: [
+            'play-large',
+            'play',
+            'progress',
+            'current-time',
+            'mute',
+            'volume',
+            'fullscreen'
+        ],
+        ratio: '16:9',
+        resetOnEnd: true,
+        clickToPlay: true,
+        keyboard: { focused: true, global: true },
+        tooltips: { controls: true, seek: true }
+    });
+    
+    // Listen for Plyr events
+    lightboxPlayer.on('ended', () => {
+        // Close lightbox when video ends
+        videoLightbox.style.display = 'none';
+    });
 
     // Add play buttons to all portfolio gallery videos
     const portfolioWrappers = document.querySelectorAll('.portfolio4-gallery1_image-wrapper');
@@ -90,16 +134,20 @@ export function initVideoLightbox() {
     const closeButton = videoLightbox.querySelector('[data-lightbox-close]');
     if (closeButton) {
         closeButton.addEventListener('click', () => {
-            lightboxVideo.pause();
+            if (lightboxPlayer) {
+                lightboxPlayer.pause();
+            }
             videoLightbox.style.display = 'none';
         });
     }
 
     // Close lightbox when clicking outside the video
     videoLightbox.addEventListener('click', (e) => {
-        // Check if click is on the lightbox background (not on the video or controls)
+        // Check if click is on the lightbox background (not on the video, controls, or Plyr UI)
         if (e.target === videoLightbox || e.target.classList.contains('video-lightbox-wrapper')) {
-            lightboxVideo.pause();
+            if (lightboxPlayer) {
+                lightboxPlayer.pause();
+            }
             videoLightbox.style.display = 'none';
         }
     });
@@ -107,7 +155,9 @@ export function initVideoLightbox() {
     // Close lightbox on escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && videoLightbox.style.display === 'block') {
-            lightboxVideo.pause();
+            if (lightboxPlayer) {
+                lightboxPlayer.pause();
+            }
             videoLightbox.style.display = 'none';
         }
     });
@@ -136,5 +186,12 @@ export function initVideoLightbox() {
     window.addEventListener('beforeunload', () => {
         observer.disconnect();
         scrollLocker.unlock();
+        if (lightboxPlayer) {
+            lightboxPlayer.destroy();
+        }
     });
+    
+    return {
+        player: lightboxPlayer
+    };
 }

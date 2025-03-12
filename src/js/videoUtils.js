@@ -1,20 +1,68 @@
 /**
  * Video initialization and management utilities
  */
+import Plyr from 'plyr';
+
+// Track initialized players to prevent duplicates
+const initializedVideos = new Set();
+const players = [];
 
 /**
- * Initialize or reinitialize videos with lazy loading
+ * Initialize or reinitialize videos with lazy loading using Plyr
  */
 export function initializeVideos() {
   const videos = document.querySelectorAll('video[data-lazy-load="true"]');
   console.log('Initializing videos:', videos.length);
+  
   videos.forEach(video => {
-    if (!video.hasAttribute('data-loaded')) {
-      video.src = video.getAttribute('data-src');
-      video.setAttribute('data-loaded', 'true');
-      video.play().catch(function(error) {
-        console.log("Video play failed:", error);
-      });
+    // Only initialize videos that haven't been processed yet
+    if (!initializedVideos.has(video)) {
+      // If video has a data-src attribute, set it as the source
+      if (video.getAttribute('data-src') && !video.src) {
+        video.src = video.getAttribute('data-src');
+        video.setAttribute('data-loaded', 'true');
+      }
+      
+      // Create a Plyr instance for the video
+      try {
+        const player = new Plyr(video, {
+          controls: [
+            'play',
+            'progress',
+            'current-time',
+            'mute',
+            'volume',
+            'fullscreen'
+          ],
+          clickToPlay: true,
+          muted: video.hasAttribute('muted'),
+          autoplay: video.hasAttribute('autoplay')
+        });
+        
+        players.push(player);
+        initializedVideos.add(video);
+        
+        // Handle video visibility for better performance
+        if (typeof IntersectionObserver !== 'undefined') {
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                if (player && video.hasAttribute('autoplay')) {
+                  player.play().catch(err => console.log('Auto play failed:', err));
+                }
+              } else {
+                if (player && !player.paused) {
+                  player.pause();
+                }
+              }
+            });
+          }, { threshold: 0.1 });
+          
+          observer.observe(video);
+        }
+      } catch (error) {
+        console.error('Error initializing Plyr:', error);
+      }
     }
   });
 }
@@ -58,7 +106,8 @@ export function setupFinsweetVideoIntegration() {
         
         // Only initialize videos if we have items
         if (renderedItems.length > 0) {
-          setTimeout(initializeVideos, 100);
+          // Wait a bit to ensure DOM is updated
+          setTimeout(initializeVideos, 200);
         }
       });
 
@@ -72,5 +121,14 @@ export function setupFinsweetVideoIntegration() {
   // Add a global error handler for Finsweet
   window.addEventListener('fs-cmsfilter-error', (event) => {
     console.error('Finsweet CMS Filter error:', event.detail);
+  });
+  
+  // Clean up Plyr instances on page unload
+  window.addEventListener('beforeunload', () => {
+    players.forEach(player => {
+      if (player && typeof player.destroy === 'function') {
+        player.destroy();
+      }
+    });
   });
 } 

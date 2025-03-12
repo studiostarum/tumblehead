@@ -21,6 +21,8 @@ export function initInfiniteScroll(selector, options = {}) {
     let currentPosition = 0;
     let isAnimating = true;
     let animationFrameId = null;
+    let totalWidth = 0;
+    let neededDuplicates = 0;
     
     // Remove any inline transform from the component that might interfere
     component.style.transform = 'none';
@@ -42,43 +44,51 @@ export function initInfiniteScroll(selector, options = {}) {
     
     const originalWrappers = component.querySelectorAll(wrapperSelector);
     
-    // Move all existing wrappers into the animation container
-    originalWrappers.forEach(wrapper => {
-        animationContainer.appendChild(wrapper.cloneNode(true));
-    });
+    function setupCarousel() {
+        // Clear the animation container
+        animationContainer.innerHTML = '';
+        
+        // Move all existing wrappers into the animation container
+        originalWrappers.forEach(wrapper => {
+            animationContainer.appendChild(wrapper.cloneNode(true));
+        });
+        
+        // Calculate total width of all wrappers
+        totalWidth = 0;
+        const wrappers = animationContainer.querySelectorAll(wrapperSelector);
+        wrappers.forEach(wrapper => {
+            totalWidth += wrapper.offsetWidth;
+        });
+        
+        // Calculate needed duplicates based on current window width
+        const visibleWidth = window.innerWidth;
+        neededDuplicates = Math.ceil((visibleWidth * 2) / totalWidth) + 1;
+        
+        // Create duplicates before the original content
+        for (let i = 0; i < neededDuplicates; i++) {
+            wrappers.forEach(wrapper => {
+                animationContainer.insertBefore(wrapper.cloneNode(true), animationContainer.firstChild);
+            });
+        }
+        
+        // Create duplicates after the original content
+        for (let i = 0; i < neededDuplicates; i++) {
+            wrappers.forEach(wrapper => {
+                animationContainer.appendChild(wrapper.cloneNode(true));
+            });
+        }
+        
+        // Set initial position to show the middle set of items
+        currentPosition = -totalWidth * neededDuplicates;
+        animationContainer.style.transform = `translateX(${currentPosition}px)`;
+    }
     
     // Clear the component and insert the animation container
     component.innerHTML = '';
     component.appendChild(animationContainer);
     
-    // Calculate total width of all wrappers
-    let totalWidth = 0;
-    const wrappers = animationContainer.querySelectorAll(wrapperSelector);
-    wrappers.forEach(wrapper => {
-        totalWidth += wrapper.offsetWidth;
-    });
-    
-    // Create enough duplicates to fill twice the screen width
-    const visibleWidth = window.innerWidth;
-    const neededDuplicates = Math.ceil((visibleWidth * 2) / totalWidth) + 1;
-    
-    // Create duplicates before the original content
-    for (let i = 0; i < neededDuplicates; i++) {
-        wrappers.forEach(wrapper => {
-            animationContainer.insertBefore(wrapper.cloneNode(true), animationContainer.firstChild);
-        });
-    }
-    
-    // Create duplicates after the original content
-    for (let i = 0; i < neededDuplicates; i++) {
-        wrappers.forEach(wrapper => {
-            animationContainer.appendChild(wrapper.cloneNode(true));
-        });
-    }
-    
-    // Set initial position to show the middle set of items
-    currentPosition = -totalWidth * neededDuplicates;
-    animationContainer.style.transform = `translateX(${currentPosition}px)`;
+    // Initial setup
+    setupCarousel();
     
     function animate() {
         if (!isAnimating) return;
@@ -117,17 +127,25 @@ export function initInfiniteScroll(selector, options = {}) {
     // Start animation
     animationFrameId = requestAnimationFrame(animate);
     
-    // Handle window resize
+    // Handle window resize with debouncing
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        totalWidth = 0;
-        const currentWrappers = animationContainer.querySelectorAll(wrapperSelector);
-        currentWrappers.forEach(wrapper => {
-            totalWidth += wrapper.offsetWidth;
-        });
+        // Clear the previous timeout
+        if (resizeTimeout) {
+            clearTimeout(resizeTimeout);
+        }
         
-        // Reset position on resize to prevent jumps
-        currentPosition = -totalWidth * neededDuplicates;
-        animationContainer.style.transform = `translateX(${currentPosition}px)`;
+        // Set a new timeout to prevent multiple rapid executions
+        resizeTimeout = setTimeout(() => {
+            // Pause animation during resize
+            pauseAnimation();
+            
+            // Recalculate and rebuild carousel
+            setupCarousel();
+            
+            // Resume animation
+            resumeAnimation();
+        }, 250); // Wait for 250ms after last resize event
     });
     
     // Return control functions
@@ -139,6 +157,9 @@ export function initInfiniteScroll(selector, options = {}) {
             document.removeEventListener('visibilitychange', () => {
                 document.hidden ? pauseAnimation() : resumeAnimation();
             });
+            if (resizeTimeout) {
+                clearTimeout(resizeTimeout);
+            }
         }
     };
 }

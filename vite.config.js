@@ -10,10 +10,17 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, 'src/index.html'),
-                dev: resolve(__dirname, 'src/index.dev.html')
+                dev: resolve(__dirname, 'src/index.dev.html'),
+                plyrEmbed: resolve(__dirname, 'src/js/plyr-embed.js')
             },
             output: {
-                entryFileNames: 'bundle.min.js',
+                entryFileNames: (chunkInfo) => {
+                    // Separate output for plyr embed
+                    if (chunkInfo.name === 'plyrEmbed') {
+                        return 'plyr-embed.min.js';
+                    }
+                    return 'bundle.min.js';
+                },
                 chunkFileNames: 'bundle.min.js',
                 assetFileNames: (assetInfo) => {
                     if (assetInfo.name.endsWith('.css')) {
@@ -21,7 +28,13 @@ export default defineConfig({
                     }
                     return 'assets/[name].[extname]';
                 },
-                manualChunks: () => 'bundle.min.js' // Force all JS into a single bundle
+                manualChunks: (id) => {
+                    // Keep plyr-embed separate from main bundle
+                    if (id.includes('plyr-embed')) {
+                        return 'plyr-embed';
+                    }
+                    return 'bundle.min.js'; // Force all other JS into a single bundle
+                }
             }
         },
         cssCodeSplit: false,

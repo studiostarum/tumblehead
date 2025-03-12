@@ -4,6 +4,7 @@
 @import './modules/navbar.css';
 @import './modules/logo-carousel.css';
 @import './modules/video-lightbox.css';
+@import './modules/video-player.css';
 
 /* Global styles */
 :root {
