@@ -32,14 +32,9 @@ tumblehead/
 │   │   ├── project-grid/
 │   │   └── video-player/
 │   │       ├── index.js       # Main component exports
-│   │       ├── lightbox.js    # Lightbox functionality
 │   │       └── styles.css     # Component styles
-│   ├── integrations/    # Third-party integrations
-│   │   └── webflow/     # Webflow-specific code
-│   │       └── plyr.js  # Webflow-Plyr integration
 │   ├── styles/          # Global styles
 │   │   ├── main.css     # Main stylesheet
-│   │   └── variables.css # CSS variables
 │   ├── utils/           # Utility functions
 │   │   ├── dom.js       # DOM manipulation utilities
 │   │   ├── scroll.js    # Scroll utilities
@@ -47,7 +42,6 @@ tumblehead/
 │   ├── index.dev.html   # Development HTML template
 │   ├── index.html       # Production HTML template
 │   ├── main.js          # Main application entry point
-│   └── webflow-plyr.js  # Webflow integration entry point
 ├── .gitignore
 ├── package.json
 ├── README.md

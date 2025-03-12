@@ -2,1174 +2,310 @@
  * Video Player Component Styles
  */
 
-:root {
-  --plyr-color-main: black;
-  --plyr-control-radius: 4px;
-  --plyr-video-control-background-hover: rgba(255, 73, 77, 0.2);
-  --plyr-video-control-color: #ffffff;
-  --plyr-video-control-color-hover: #ffffff;
-  --plyr-audio-control-color: #ffffff;
-  --plyr-audio-control-color-hover: #ffffff;
-  --plyr-control-spacing: 8px;
-  --plyr-range-fill-background: #49ff95;
-  --plyr-range-thumb-background: #ffffff;
-  --plyr-video-controls-background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75));
-
-  /* Animation durations */
-  --animation-duration: 0.4s;
-}
-
-/* Webflow-compatible video container styles */
+/* Video Container */
 .video-container {
   position: relative;
   width: 100%;
-  padding-top: 56.25%;
-  /* 16:9 Aspect Ratio */
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  background: #000;
   overflow: hidden;
-  transition: transform var(--animation-duration) ease,
-    box-shadow var(--animation-duration) ease;
+  border-radius: 8px; /* Add rounded corners */
 }
 
-.video-inner {
+.video-container video,
+.video-container .plyr {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
 }
 
-.video-inner video,
-.plyr video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  will-change: opacity;
-  /* Optimize for animations */
-  z-index: 2;
-}
+/* Preview Mode Styles */
 
-/* Preview mode styles */
-.video-container.preview-mode {
+/* Base styles for preview mode */
+.preview-mode {
   cursor: pointer;
-  background-color: #000;
-  border-radius: .75rem;
-  /* Dark background for video container */
 }
 
-.video-container.preview-mode .video-inner,
-.video-container.preview-mode .plyr {
-  z-index: 2;
+.preview-mode .plyr--hide-controls {
+  cursor: pointer;
 }
 
-/* CRITICAL: Global poster removal styles */
-.plyr__poster,
-.video-container .plyr__poster,
-.video-container.preview-mode .plyr__poster,
-.plyr--paused .plyr__poster,
-.plyr--stopped .plyr__poster,
-.plyr__video-wrapper::before,
-[poster],
-video[poster],
-video::-webkit-media-poster-frame,
-::-webkit-media-controls-poster {
-  display: none !important;
+/* Hide Plyr's controls in preview mode unless explicitly enabled */
+.preview-mode .plyr__control--overlaid {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  z-index: -999 !important;
-  width: 0 !important;
-  height: 0 !important;
-  position: absolute !important;
-  left: -9999px !important;
-  background-image: none !important;
 }
 
-/* Make video visible immediately */
-video,
-.plyr video,
-.video-container video,
-.video-container.preview-mode .video-inner video,
-.video-container.preview-mode .plyr video {
+/* Allow Plyr's native button when the option is enabled */
+.preview-mode[data-using-plyr-button="true"] .plyr__control--overlaid {
   opacity: 1 !important;
   visibility: visible !important;
-  display: block !important;
-  z-index: 10 !important;
+  pointer-events: auto !important;
 }
 
-/* Enhanced play button for browsers without autoplay support */
-html[data-can-autoplay="false"] .preview-play-button {
-  transform: translate(-50%, -50%) scale(1.1);
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(255, 255, 255, 0.3);
-  opacity: 1 !important;
-}
-
-.video-container.preview-mode .video-inner video,
-.video-container.preview-mode .plyr video {
-  object-fit: cover;
-  opacity: 1 !important;
-  /* Force video to be visible */
-  visibility: visible !important;
-  /* Ensure video is visible */
-  transition: opacity 0.3s ease-in-out;
-  z-index: 10 !important; /* Increase z-index to ensure it's above poster */
-  display: block !important;
-  /* Ensure display is not none */
-}
-
-/* Override any Plyr styles that might hide the video */
-.plyr--video .plyr__video-wrapper {
-  opacity: 1 !important;
-  visibility: visible !important;
-  z-index: 3;
-}
-
-/* Make sure when video is playing it stays visible */
-.video-container.preview-mode.video-playing .video-inner video,
-.video-container.preview-mode.video-playing .plyr video {
-  opacity: 1 !important;
-  visibility: visible !important;
-  z-index: 10;
-  /* Ensure it's on top when playing */
-}
-
-.video-container.preview-mode .plyr--video {
-  pointer-events: none;
-  /* Prevent interaction with video in preview mode */
-  opacity: 1 !important;
-  /* Force player to be visible */
-}
-
-.video-container.preview-mode .plyr__controls {
-  display: none !important;
-  /* Hide controls in preview mode */
-}
-
-/* For browsers without autoplay support, make button prominent */
-html:not([data-can-autoplay="true"]) .video-container.preview-mode .preview-play-button {
-  opacity: 1 !important;
-  transform: translate(-50%, -50%) scale(1.2) !important;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Centered play button for preview mode */
-.preview-play-button {
+/* Add a subtle overlay on hover for better visibility */
+.preview-mode:hover:before {
+  content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
-  background: var(--plyr-color-main);
-  color: white;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.3s ease,
-    background-color 0.3s ease,
-    opacity 0.3s ease,
-    box-shadow 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  opacity: 0.9;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(243, 233, 233, 0.25);
+  z-index: 2;
+  /* Keep below our custom button */
+  pointer-events: none;
+  transition: background-color 0.3s ease;
 }
 
-/* In video-playing state, hide the play button */
-.video-container.video-playing .preview-play-button {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.8);
+/* ===== SHARED BUTTON STYLES ===== */
+/* This ensures all play buttons (preview, Plyr native, and lightbox) share consistent styling */
+
+/* Base styles for all play buttons */
+.plyr__control--overlaid,
+.preview-play-button {
+  --base-button-size: 48px;
+  width: var(--base-button-size) !important;
+  height: var(--base-button-size) !important;
+  min-width: var(--base-button-size) !important;
+  min-height: var(--base-button-size) !important;
+  max-width: var(--base-button-size) !important;
+  max-height: var(--base-button-size) !important;
+  box-sizing: border-box !important;
+  
+  /* Force perfect circle with multiple approaches for browser compatibility */
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1 !important;
+  
+  /* Center absolutely */
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  
+  /* Center content */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  /* Appearance */
+  background: rgba(0, 0, 0, 0.7) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  z-index: 9999 !important;
+  
+  /* Animation - enhanced for smoother transitions */
+  transition: transform 0.3s ease, 
+              background-color 0.3s ease, 
+              opacity 0.4s ease, 
+              visibility 0.4s ease !important;
 }
 
-/* Show the play button prominently when hovering over the video */
-.video-container.preview-mode:hover .preview-play-button {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1.1);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
-}
-
+/* Hover state for all buttons */
+.plyr__control--overlaid:hover,
 .preview-play-button:hover {
-  transform: translate(-50%, -50%) scale(1.2);
-  background: var(--plyr-color-main);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.8) !important;
+  transform: translate(-50%, -50%) scale(1.1) !important;
 }
 
+/* SVG icon styling for all buttons */
+.plyr__control--overlaid svg,
 .preview-play-button svg {
-  width: 24px;
-  height: 24px;
+  width: 40% !important;
+  height: 40% !important;
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform: none !important;
+  margin: 0 !important;
+  margin-left: 10% !important; /* Visual centering of the triangle */
 }
 
-/* Lightbox transition styles */
-.video-lightbox-backdrop {
+/* Special case for plyr native button in preview mode */
+.preview-mode[data-using-plyr-button="true"] .plyr__control--overlaid {
+  transform: translate(-50%, -50%) scale(1.0) !important;
+}
+
+.preview-mode[data-using-plyr-button="true"] .plyr__control--overlaid:hover {
+  transform: translate(-50%, -50%) scale(1.1) !important;
+}
+
+/* Larger buttons in lightbox */
+.video-lightbox .plyr__control--overlaid,
+.plyr-lightbox .plyr__control--overlaid {
+  --base-button-size: 64px !important;
+}
+
+/* Button state classes for fade animations */
+.plyr__control--overlaid.is-visible,
+.preview-play-button.is-visible {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: transform 0.3s ease, 
+              background-color 0.3s ease, 
+              opacity 0.4s ease, 
+              visibility 0s linear 0s !important;
+}
+
+.plyr__control--overlaid.is-hidden,
+.preview-play-button.is-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: transform 0.3s ease, 
+              background-color 0.3s ease, 
+              opacity 0.4s ease, 
+              visibility 0s linear 0.4s !important;
+}
+
+/* Hide the centered play button when the video is playing */
+.video-lightbox.is-playing .plyr__control--overlaid,
+.plyr-lightbox.is-playing .plyr__control--overlaid {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity 0.4s ease, visibility 0s linear 0.4s !important;
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+  .plyr__control--overlaid,
+  .preview-play-button {
+    --base-button-size: 42px !important;
+  }
+  
+  .video-lightbox .plyr__control--overlaid,
+  .plyr-lightbox .plyr__control--overlaid {
+    --base-button-size: 56px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .plyr__control--overlaid,
+  .preview-play-button {
+    --base-button-size: 36px !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) !important;
+  }
+  
+  .video-lightbox .plyr__control--overlaid,
+  .plyr-lightbox .plyr__control--overlaid {
+    --base-button-size: 48px !important;
+  }
+}
+
+/* ===== LIGHTBOX STYLES ===== */
+
+/* Video Lightbox */
+.video-lightbox,
+.plyr-lightbox {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0);
-  z-index: 9998;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
-  transition: all var(--animation-duration) ease;
-  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.video-lightbox-backdrop.active {
+.video-lightbox.is-visible,
+.plyr-lightbox.show {
   opacity: 1;
-  background: rgba(0, 0, 0, 1);
-  pointer-events: all;
-  animation: fadeIn var(--animation-duration) ease forwards;
+  visibility: visible;
 }
 
-.video-lightbox-backdrop.closing {
+.video-lightbox.is-closing {
   opacity: 0;
-  animation: fadeOut var(--animation-duration) ease forwards;
-  pointer-events: none;
+  visibility: visible;
+  transition: opacity 0.3s ease;
 }
 
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-@keyframes fadeOut {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-/* Styles for scroll locking */
-body.scroll-locked {
-  /* These will be added dynamically by JS */
-  /* The important properties for avoiding content shift are:
-   * - position: fixed
-   * - width: 100%
-   * - padding-right (added dynamically to compensate for scrollbar)
-   */
-}
-
-/* Lightbox container */
-.video-lightbox-container {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.video-lightbox-inner {
+  position: relative;
   width: 90%;
   max-width: 1200px;
-  height: 0;
-  padding-top: 0;
-  padding-bottom: calc(90% * 9 / 16);
-  /* Maintain 16:9 aspect ratio */
-  max-height: 90vh;
-  z-index: 9999;
-  border-radius: 8px;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+
+.video-lightbox.is-visible .video-lightbox-inner {
+  transform: scale(1);
+}
+
+.video-lightbox-content {
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  display: none;
+  border-radius: .75rem;
 }
 
-.video-lightbox-container.lightbox-mode {
-  display: block;
-  animation: scaleIn var(--animation-duration) ease forwards;
-  height: auto;
-  aspect-ratio: 16/9;
-  padding-bottom: 0;
-}
-
-@media (max-width: 768px) {
-  .video-lightbox-container {
-    width: 95%;
-    padding-bottom: calc(95% * 9 / 16);
-  }
-}
-
-/* Ensure video fills the wrapper */
-.video-lightbox-container .video-inner {
+.video-lightbox-content .plyr,
+.plyr-lightbox .plyr {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.video-lightbox-container video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.plyr-lightbox .plyr {
+  width: 80%;
+  max-width: 1280px;
 }
 
-/* Close button for lightbox */
-.lightbox-close {
+/* Close button styles */
+.video-lightbox-close,
+.plyr-lightbox .close-button {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0;
-  z-index: 10000;
-  transition: opacity 0.3s ease, background-color 0.2s ease;
-  pointer-events: none;
-}
-
-.lightbox-close.active {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.lightbox-close:hover {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.lightbox-close svg {
-  width: 20px;
-  height: 20px;
-  color: white;
-}
-
-/* Scale-in animation for lightbox mode */
-@keyframes scaleIn {
-  0% {
-    transform: translate(-50%, -50%) scale(0.9);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-}
-
-/* Scale-out animation for lightbox closing */
-@keyframes scaleOut {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(0.9);
-    opacity: 0;
-  }
-}
-
-.video-lightbox-container.lightbox-closing {
-  animation: scaleOut var(--animation-duration) ease forwards;
-  transform-origin: center center;
-  will-change: transform, opacity;
-  /* Ensure it stays on top during the closing animation */
-  z-index: 9999;
-}
-
-/* Make sure Plyr container doesn't apply its own transform during our animation */
-.video-lightbox-container.lightbox-closing .plyr,
-.video-lightbox-container.lightbox-closing .plyr__video-wrapper,
-.video-lightbox-container.lightbox-closing video,
-.video-lightbox-container.lightbox-closing .video-inner {
-  transition: none !important;
-  animation: none !important;
-  transform: none !important;
-  will-change: auto !important;
-}
-
-/* Force all Plyr elements to have no transition during closing */
-.video-lightbox-container.lightbox-closing * {
-  transition: none !important;
-  animation: none !important;
-}
-
-/* Make player mobile-friendly */
-.plyr--video {
-  width: 100%;
-  height: auto;
-  max-height: 90vh;
-  aspect-ratio: 16/9;
-}
-
-/* Fix for mobile portrait mode */
-@media (max-width: 767px) and (orientation: portrait) {
-  .plyr--video {
-    max-height: 50vh;
-  }
-}
-
-/* Fullscreen improvements */
-.plyr--fullscreen-active {
-  background: #000;
-}
-
-/* Better touch controls for mobile */
-@media (max-width: 767px) {
-  .plyr__control--overlaid {
-    padding: 16px;
-  }
-
-  .plyr__control {
-    padding: 10px;
-  }
-
-  .plyr__controls {
-    padding: 12px 10px 10px;
-  }
-}
-
-/* Fade in controls on hover */
-.plyr__controls {
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
-}
-
-.plyr:hover .plyr__controls,
-.plyr:focus .plyr__controls,
-.plyr--paused .plyr__controls {
-  opacity: 1;
-}
-
-/* Custom play button styling */
-.plyr__control--overlaid {
-  background: rgba(255, 73, 77, 0.8);
+  z-index: 100000;
   transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.plyr__control--overlaid:hover {
-  background: rgba(255, 73, 77, 1);
-  transform: scale(1.1);
-}
-
-/* Loading state */
-.plyr--loading .plyr__controls {
-  display: none;
-}
-
-/* Error state styling */
-.video-container.video-error::after {
-  content: 'Video cannot be played';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 10px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  z-index: 5;
-}
-
-.video-container.video-error .preview-play-button {
-  background: rgba(200, 0, 0, 0.9);
-}
-
-.video-container.video-error .preview-play-button:hover {
-  background: rgba(220, 0, 0, 1);
-}
-
-/* Lightbox-specific video player styles */
-.video-lightbox-container .plyr__controls {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  z-index: 10 !important;
-  position: absolute !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  background: rgba(0, 0, 0, 0.75) !important;
-  border-radius: 0 0 8px 8px !important;
-  padding: 15px !important;
-  margin: 0 !important;
-}
-
-.video-lightbox-container .plyr--hide-controls .plyr__controls {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  transform: none !important;
-}
-
-.video-lightbox-container .plyr--playing .plyr__controls {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 0.8 !important;
-}
-
-.video-lightbox-container .plyr__control {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-.video-lightbox-container .plyr__progress__container {
-  flex: 2 !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  margin: 0 10px;
-}
-
-.video-lightbox-container .plyr__time {
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-.video-lightbox-container .plyr__volume {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-.video-lightbox-container .plyr__control[data-plyr="fullscreen"] {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Make sure player in lightbox is interactable */
-.video-lightbox-container.lightbox-mode .plyr {
-  pointer-events: auto !important;
-  z-index: 10000;
-}
-
-/* Responsive controls in lightbox */
-.video-lightbox-container .plyr--video .plyr__controls {
-  padding: 15px;
-  background: var(--plyr-video-controls-background);
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-  bottom: 0;
-  color: #fff;
-  position: absolute;
+.video-lightbox-close {
+  top: -40px;
   right: 0;
-  left: 0;
-  transition: opacity 0.4s ease;
-  z-index: 5;
-  display: flex !important;
+  font-size: 30px;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s ease, opacity 0.3s ease;
 }
 
-/* Progress bar in lightbox */
-.video-lightbox-container .plyr--full-ui input[type=range] {
-  height: 10px !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  cursor: pointer !important;
-  -webkit-appearance: none !important; /* Required for Safari */
-  background: transparent !important;
+.plyr-lightbox .close-button {
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
 }
 
-.video-lightbox-container .plyr--full-ui input[type=range]::-webkit-slider-thumb {
-  height: 16px !important;
-  width: 16px !important;
-  margin-top: -3px !important;
-  cursor: pointer !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-  transform: scale(1) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-  will-change: transform, box-shadow !important;
-}
-
-.video-lightbox-container .plyr--full-ui input[type=range]::-moz-range-thumb {
-  height: 16px !important;
-  width: 16px !important;
-  cursor: pointer !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-  transform: scale(1) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-  will-change: transform, box-shadow !important;
-}
-
-.video-lightbox-container .plyr--full-ui input[type=range]::-ms-thumb {
-  height: 16px !important;
-  width: 16px !important;
-  cursor: pointer !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-  transform: scale(1) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-  will-change: transform, box-shadow !important;
-}
-
-/* Increase the clickable area of the progress container */
-.video-lightbox-container .plyr__progress__container {
-  position: relative !important;
-  padding: 8px 0 !important;
-  margin: -8px 0 !important;
-  cursor: pointer !important;
-}
-
-/* Make the progress bar easier to click on mobile */
-@media (max-width: 767px) {
-  .video-lightbox-container .plyr--full-ui input[type=range] {
-    height: 12px !important;
-  }
-  
-  .video-lightbox-container .plyr--full-ui input[type=range]::-webkit-slider-thumb {
-    height: 18px !important;
-    width: 18px !important;
-    margin-top: -3px !important;
-  }
-  
-  .video-lightbox-container .plyr__progress__container {
-    margin-top: -15px !important;
-    margin-bottom: -15px !important;
-    padding-top: 15px !important;
-    padding-bottom: 15px !important;
-  }
-}
-
-/* Fix Firefox range slider appearance */
-.video-lightbox-container .plyr--full-ui input[type=range]::-moz-range-progress {
-  background-color: var(--plyr-range-fill-background) !important;
-  height: 10px !important;
-  border-radius: 5px !important;
-}
-
-/* Fix track color in all browsers */
-.video-lightbox-container .plyr__progress__buffer {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Fix range slider issues in Firefox and Safari */
-.video-lightbox-container .plyr--full-ui input[type=range] {
-  -webkit-appearance: none !important; /* Required for Safari */
-  background: transparent !important;
-}
-
-/* Improve range slider hit area in mobile */
-@media (max-width: 767px) {
-  .video-lightbox-container .plyr__progress__container {
-    margin-top: -15px !important;
-    margin-bottom: -15px !important;
-    padding-top: 15px !important;
-    padding-bottom: 15px !important;
-  }
-}
-
-/* Prevent any conflicting animations or transitions */
-.video-lightbox-container .plyr__progress,
-.video-lightbox-container .plyr__progress * {
-  will-change: contents !important;
-  animation-delay: 0s !important;
-  transition-delay: 0s !important;
-}
-
-/* Better hover indicators for progress bar */
-.video-lightbox-container .plyr__progress__container:hover .plyr__progress input[type=range] {
-  height: 12px !important;
-}
-
-.video-lightbox-container .plyr__progress__container:hover .plyr__progress input[type=range]::-webkit-slider-thumb {
-  transform: scale(1.2) !important;
-}
-
-/* Fix time tooltips to always be on top */
-.video-lightbox-container .plyr__tooltip {
-  z-index: 15 !important;
-  background: rgba(0, 0, 0, 0.8) !important;
-  color: white !important;
-  font-weight: bold !important;
-  padding: 6px 10px !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
-  pointer-events: none !important;
-}
-
-/* Ensure that controls are on the top layer */
-.video-lightbox-container .plyr__controls {
-  z-index: 10 !important;
-}
-
-/* Give a hover state to the control bar to indicate interactivity */
-.video-lightbox-container .plyr__controls:hover {
-  background: rgba(0, 0, 0, 0.85) !important;
-}
-
-/* Control spacing in lightbox */
-.video-lightbox-container .plyr__controls .plyr__control {
-  margin-right: 5px;
-}
-
-/* Make sure interactive controls are clickable */
-.video-lightbox-container .plyr__control,
-.video-lightbox-container .plyr__menu,
-.video-lightbox-container .plyr__progress,
-.video-lightbox-container .plyr__time,
-.video-lightbox-container .plyr__volume {
-  pointer-events: auto !important;
-}
-
-/* Control overlay play button visibility */
-.video-lightbox-container .plyr__control--overlaid {
-  background: rgba(255, 73, 77, 0.8);
-  border-radius: 100%;
-  color: #fff;
-  display: flex !important;
-  left: 50%;
+.video-lightbox.is-visible .video-lightbox-close {
   opacity: 1;
-  padding: 25px;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  transition: 0.3s;
-  z-index: 2;
+  transform: scale(1);
+  transition-delay: 0.2s;
 }
 
-.video-lightbox-container .plyr__control--overlaid:hover {
-  background: rgba(255, 73, 77, 1);
-  transform: translate(-50%, -50%) scale(1.1);
-}
-
-/* Ensure lightbox video has native controls as backup */
-video.lightbox-video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
-  background-color: black !important;
-}
-
-video.lightbox-video::-webkit-media-controls {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-video.lightbox-video::-webkit-media-controls-enclosure {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Target the actual Plyr instance in the lightbox */
-.video-lightbox-container .plyr {
-  z-index: 10000 !important;
-  pointer-events: auto !important;
-}
-
-/* Make sure all controls in the lightbox are interactive */
-.video-lightbox-container * {
-  pointer-events: auto !important;
-}
-
-/* Fix settings popover in lightbox */
-.video-lightbox-container .plyr__menu {
-  position: relative !important;
-  display: inline-block !important;
-}
-
-/* Ensure the menu popup is visible and positioned above everything */
-.video-lightbox-container .plyr__menu__container {
-  position: absolute !important;
-  bottom: 100% !important;
-  right: 0 !important;
-  z-index: 20000 !important;
-  overflow: visible !important;
-  background: rgba(28, 28, 28, 0.9) !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
-  padding: 8px !important;
-  margin-bottom: 10px !important;
-  pointer-events: auto !important;
-  display: block !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  transform: none !important;
-  width: auto !important;
-  min-width: 200px !important;
-}
-
-/* Settings menu is hidden by default, only show when active */
-.video-lightbox-container .plyr__menu__container.plyr__menu__container--open {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-.video-lightbox-container .plyr__menu__container:not(.plyr__menu__container--open) {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-/* Fix menu animations */
-.video-lightbox-container .plyr__menu__container {
-  animation: plyr-popup 0.2s ease !important;
-}
-
-@keyframes plyr-popup {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Menu items */
-.video-lightbox-container .plyr__menu__container .plyr__control {
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  padding: 8px 12px !important;
-  font-size: 14px !important;
-  color: #fff !important;
-  background: transparent !important;
-  border: 0 !important;
-  border-radius: 3px !important;
-  cursor: pointer !important;
-  margin: 2px 0 !important;
-  text-align: left !important;
-}
-
-.video-lightbox-container .plyr__menu__container .plyr__control:hover {
-  background: rgba(255, 73, 77, 0.6) !important;
-}
-
-/* Submenu indicators and positioning */
-.video-lightbox-container .plyr__menu__container .plyr__menu__back {
-  margin: 5px 0 10px !important;
-  padding: 8px 10px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
-  font-weight: 500 !important;
-}
-
-/* Make sure arrow icon is visible */
-.video-lightbox-container .plyr__menu__container [data-plyr="back"] svg {
-  margin-right: 10px !important;
-  width: 12px !important;
-  height: 12px !important;
-}
-
-/* Better layering for player elements */
-.video-lightbox-container .plyr__video-wrapper {
-  z-index: 1 !important;
-}
-
-.video-lightbox-container .plyr__control--overlaid {
-  z-index: 2 !important;
-}
-
-.video-lightbox-container .plyr__controls {
-  z-index: 3 !important;
-}
-
-.video-lightbox-container .plyr__menu__container {
-  z-index: 5 !important;
-}
-
-/* Force all interactive elements in the player to be clickable */
-.video-lightbox-container .plyr__control,
-.video-lightbox-container .plyr__menu,
-.video-lightbox-container .plyr__menu *,
-.video-lightbox-container .plyr__menu__container,
-.video-lightbox-container .plyr__menu__container *,
-.video-lightbox-container button,
-.video-lightbox-container input {
-  pointer-events: auto !important;
-  user-select: auto !important;
-}
-
-/* Make the settings button clearly interactive */
-.video-lightbox-container .plyr__control[data-plyr="settings"] {
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  border-radius: 4px !important;
-  transition: background-color 0.2s !important;
-  cursor: pointer !important;
-}
-
-.video-lightbox-container .plyr__control[data-plyr="settings"]:hover {
-  background-color: var(--plyr-color-main) !important;
-  transform: scale(1.1) !important;
-}
-
-/* Add a active/selected state to show when menu is open */
-.video-lightbox-container .plyr__control[data-plyr="settings"].active,
-.video-lightbox-container .plyr__menu__container.plyr__menu__container--open+.plyr__control[data-plyr="settings"] {
-  background-color: var(--plyr-color-main) !important;
-  transform: scale(1.1) !important;
-}
-
-/* More aggressive poster hiding to prevent even momentary flash */
-.video-container video::-webkit-media-poster-frame {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-.plyr__poster,
-.plyr__video-wrapper::before {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  background-image: none !important;
-  background: transparent !important;
-}
-
-/* Hide the poster immediately, even before JS runs */
-video[poster] {
-  object-fit: contain !important;
-  background: transparent !important;
-}
-
-video::-webkit-media-controls-poster {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-/* Force the video element to be visible during loading */
-.plyr--loading video,
-.plyr video {
-  visibility: visible !important;
-  opacity: 1 !important;
-  object-fit: cover !important;
-  z-index: 10 !important;
-}
-
-.video-container .plyr--paused:not(.plyr--stopped) .plyr__poster {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-/* Replace Plyr's poster handling */
-.plyr--paused .plyr__poster {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-/* Specific poster/thumbnail hiding rules for lightbox mode */
-.video-lightbox-container video,
-.video-lightbox-container .plyr video {
-  object-fit: contain;
-  width: 100% !important;
-  height: 100% !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-  z-index: 10 !important;
-  background: transparent !important;
-}
-
-.video-lightbox-container .plyr__poster,
-.video-lightbox-container video::-webkit-media-poster-frame,
-.video-lightbox-container video[poster] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  height: 0 !important;
-  width: 0 !important;
-  position: absolute !important;
-  z-index: -100 !important;
-  background-image: none !important;
-  background: transparent !important;
-}
-
-/* Force video to be visible during loading in lightbox */
-.video-lightbox-container .plyr--loading video,
-.video-lightbox-container.lightbox-mode video {
-  visibility: visible !important;
-  opacity: 1 !important;
-  z-index: 10 !important;
-}
-
-/* Prevent any animations that might show poster */
-.video-lightbox-container .plyr__video-wrapper::before,
-.video-lightbox-container .plyr__video-wrapper::after,
-.video-lightbox-container .plyr::before,
-.video-lightbox-container .plyr::after {
-  display: none !important;
-  content: none !important;
-}
-
-/* Remove the default Plyr video fill during loading */
-.video-lightbox-container .plyr--video .plyr__video-wrapper {
-  background: transparent !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Override autoplay-related animations */
-.video-lightbox-container video,
-.video-lightbox-container .plyr__video-wrapper {
-  animation: none !important;
-  transition: none !important;
-}
-
-/* Override any player styles that might show poster */
-.plyr--stopped.plyr__poster-enabled .plyr__poster {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-/* Hide the large center play button in the lightbox */
-.video-lightbox-container .plyr__control--overlaid,
-.video-lightbox-container .plyr__control[data-plyr="play-large"] {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-
-/* Style the big play button that's added by Plyr */
-.video-lightbox-container .plyr__control--overlaid {
-  display: none !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* Override hover states */
-.video-lightbox-container .plyr__control--overlaid:hover {
-  background: transparent !important;
-  transform: none !important;
-}
-
-/* Hide play button when playing */
-.video-lightbox-container .plyr--playing .plyr__control--overlaid {
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-/* Force the plyr to fill the container in lightbox mode */
-.video-lightbox-container .plyr {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100% !important;
-  height: 100% !important;
-  overflow: hidden;
-}
-
-.video-lightbox-container .plyr__video-wrapper {
-  width: 100% !important;
-  height: 100% !important;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-/* Mobile menu for controls */
-@media (max-width: 640px) {
-  .video-lightbox-container .plyr__controls {
-    flex-wrap: wrap;
-    padding: 10px !important;
-  }
-
-  .video-lightbox-container .plyr__progress__container {
-    flex: 1 1 100% !important;
-    margin-bottom: 8px;
-    order: -1;
-  }
-
-  /* Create a more compact control layout */
-  .video-lightbox-container .plyr__volume {
-    margin-left: auto;
-  }
-}
-
-/* Add a play state class that can be toggled - make it more prominent */
-.video-lightbox-container.ready-to-play::after {
-  content: '';
-  display: none;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* Make the container itself clickable to play the video */
-.video-lightbox-container .video-inner {
-  cursor: pointer;
-}
-
-/* Mobile-friendly big play button in lightbox */
-@media (max-width: 640px) {
-  .video-lightbox-container .plyr__control--overlaid {
-    width: 60px !important;
-    height: 60px !important;
-    padding: 20px !important;
-  }
-  
-  .video-lightbox-container .plyr__control--overlaid svg {
-    width: 25px !important;
-    height: 25px !important;
-  }
-  
-  .video-lightbox-container.ready-to-play::after {
-    display: none;
-  }
-}
-
-/* Progress enhancer overlay */
-.progress-enhancer {
-  position: absolute;
-  top: -10px;
-  bottom: -10px;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  cursor: pointer;
-}
-
-/* Emphasize the progress bar visually to indicate it's interactive */
-.video-lightbox-container .plyr__progress input[type="range"] {
-  background: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Create a thicker track for easier visibility */
-.video-lightbox-container .plyr--full-ui input[type=range]::-webkit-slider-runnable-track {
-  height: 10px !important;
-  border-radius: 5px !important;
-  background: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3)) !important;
-}
-
-.video-lightbox-container .plyr--full-ui input[type=range]::-moz-range-track {
-  height: 10px !important;
-  border-radius: 5px !important;
-  background: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3)) !important;
-}
-
-.video-lightbox-container .plyr--full-ui input[type=range]::-ms-track {
-  height: 10px !important;
-  border-radius: 5px !important;
-  background: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3)) !important;
-}
-
-/* Make the time indicators larger and more readable */
-.video-lightbox-container .plyr__time {
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  padding: 0 5px !important;
-}
-
-/* Ensure controls don't fade out in the lightbox */
-.video-lightbox-container .plyr--video.plyr--hide-controls .plyr__controls {
-  transform: none !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
+.video-lightbox-close:hover,
+.plyr-lightbox .close-button:hover {
+  transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.9);
 }

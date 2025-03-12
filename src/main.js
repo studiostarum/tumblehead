@@ -8,6 +8,9 @@
 // Import main CSS file
 import './styles/main.css';
 
+// Import Webflow integration
+import './components/video-player/plyr';
+
 // Import components
 import { initNavbar } from './components/navbar';
 import { initLogoCarousel } from './components/logo-carousel';

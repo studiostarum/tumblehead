@@ -1,603 +1,990 @@
-/**
- * Video Player Component
- * 
- * Main entry point for the video player functionality.
- * This file exports the primary functions for initializing and controlling
- * the video player component.
- */
+// Import video player styles
+import './styles.css';
 
+// Import Plyr and its styles
 import Plyr from 'plyr';
 import 'plyr/dist/plyr.css';
-import { createIcons, Play, X } from 'lucide';
-import { initLightbox } from './lightbox';
-import { findVideoContainer } from '../../utils/dom';
-import './styles.css'; // Import video player component styles
 
-// =====================================================
-// Shared Utilities (used by both index.js and lightbox.js)
-// =====================================================
+// Default options for Plyr video player
+const DEFAULT_OPTIONS = {
+  autoplay: false,
+  muted: false,
+  controls: [
+    'play-large',
+    'play',
+    'progress',
+    'current-time',
+    'volume',
+    'fullscreen'
+  ],
+  loadSprite: true,
+  iconUrl: 'https://cdn.plyr.io/3.7.8/plyr.svg',
+  blankVideo: 'https://cdn.plyr.io/static/blank.mp4',
+  keyboard: { focused: true, global: true },
+  tooltips: { controls: true, seek: true },
+  captions: { active: true, update: true },
+  fullscreen: { 
+    enabled: true, 
+    fallback: true, 
+    iosNative: true,
+    container: null
+  },
+  storage: { enabled: true, key: 'plyr' }
+};
 
-/**
- * Create a simplified mutation observer to remove poster elements
- * @returns {MutationObserver} Configured mutation observer
- */
-export function createPosterRemovalObserver() {
-  return new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.addedNodes && mutation.addedNodes.length) {
-        for (let i = 0; i < mutation.addedNodes.length; i++) {
-          const node = mutation.addedNodes[i];
-          // If the added node is a poster element, remove it
-          if (node.classList && 
-              (node.classList.contains('plyr__poster') || 
-               node.getAttribute('data-poster') || 
-               node.hasAttribute('poster'))) {
-            // Completely hide and remove the poster
-            if (node.style) {
-              node.style.display = 'none';
-              node.style.opacity = '0';
-              node.style.visibility = 'hidden';
-            }
-            
-            // Try to remove it from the DOM
-            try {
-              if (node.parentNode) {
-                node.parentNode.removeChild(node);
-              }
-            } catch (err) {
-              // Silent error handling
-            }
-          }
-          
-          // For other nodes that might contain poster elements
-          if (node.querySelectorAll) {
-            const posters = node.querySelectorAll('.plyr__poster, [poster], [data-poster]');
-            posters.forEach(poster => {
-              // Hide the poster
-              if (poster.style) {
-                poster.style.display = 'none';
-                poster.style.opacity = '0';
-                poster.style.visibility = 'hidden';
-              }
-              
-              // Remove from DOM
-              try {
-                if (poster.parentNode) {
-                  poster.parentNode.removeChild(poster);
-                }
-              } catch (err) {
-                // Silent error handling
-              }
-            });
-          }
-          
-          // Also handle video elements directly to remove poster attributes
-          if (node.tagName === 'VIDEO') {
-            node.removeAttribute('poster');
-            node.removeAttribute('data-poster');
-          }
-        }
-      }
-      
-      // Check for attribute changes that might set a poster
-      if (mutation.type === 'attributes' && 
-          (mutation.attributeName === 'poster' || mutation.attributeName === 'data-poster') && 
-          mutation.target.hasAttribute(mutation.attributeName)) {
-        mutation.target.removeAttribute(mutation.attributeName);
-      }
-      
-      // Handle style attribute changes that might affect poster display
-      if (mutation.type === 'attributes' && 
-          mutation.attributeName === 'style' && 
-          mutation.target.classList && 
-          mutation.target.classList.contains('plyr__poster')) {
-        // Hide poster completely
-        mutation.target.style.display = 'none';
-        mutation.target.style.opacity = '0';
-        mutation.target.style.visibility = 'hidden';
-        
-        // Try to remove it from the DOM
-        try {
-          if (mutation.target.parentNode) {
-            mutation.target.parentNode.removeChild(mutation.target);
-          }
-        } catch (err) {
-          // Silent error handling
-        }
-      }
-    });
-  });
+// Store initialized players
+const players = new Map();
+// Store lightbox references
+const lightboxes = new Map();
+
+// Debug helper function - remove in production
+function logDebug(message, data) {
+  console.log(`%c[Plyr Video] ${message}`, 'background: #008080; color: white; padding: 2px 6px; border-radius: 2px;', data || '');
 }
 
 /**
- * Preload a video source to improve loading performance
- * @param {string} videoSrc URL of the video to preload
- */
-export function preloadVideoSource(videoSrc) {
-  if (!videoSrc) return;
-  
-  // Create a prefetch request to warm up the browser cache
-  const prefetch = document.createElement('link');
-  prefetch.rel = 'prefetch';
-  prefetch.href = videoSrc;
-  document.head.appendChild(prefetch);
-}
-
-/**
- * Configure a video source element
- * @param {HTMLVideoElement} video The video element to configure
- * @param {string} videoSrc The source URL for the video
- */
-export function configureVideoSource(video, videoSrc) {
-  if (!video || !videoSrc) return;
-  
-  // ALWAYS remove poster attribute to ensure no thumbnail shows
-  video.removeAttribute('poster');
-  video.removeAttribute('data-poster');
-  video.style.backgroundImage = 'none';
-  video.style.background = 'transparent';
-  
-  // Create source element if it doesn't exist
-  if (!video.querySelector('source')) {
-    const source = document.createElement('source');
-    source.src = videoSrc;
-    
-    // Try to determine type from URL
-    if (videoSrc.endsWith('.mp4')) {
-      source.type = 'video/mp4';
-    } else if (videoSrc.endsWith('.webm')) {
-      source.type = 'video/webm';
-    } else if (videoSrc.endsWith('.mov')) {
-      source.type = 'video/quicktime';
-    } else {
-      source.type = 'video/mp4'; // Default to mp4
-    }
-    
-    video.appendChild(source);
-    video.src = videoSrc; // Also set src directly as a fallback
-  } else {
-    // If source exists but needs updating
-    const source = video.querySelector('source');
-    if (source.src !== videoSrc) {
-      source.src = videoSrc;
-      video.src = videoSrc; // Also update video.src directly
-    }
-  }
-  
-  // Force video to load
-  video.load();
-}
-
-/**
- * Ensure video element is properly visible
- * @param {HTMLVideoElement} video The video element
- */
-export function ensureVideoVisibility(video) {
-  if (!video) return;
-  
-  // Make sure the video is fully visible
-  video.style.opacity = '1';
-  video.style.visibility = 'visible';
-  video.style.display = 'block';
-  video.style.backgroundColor = 'transparent';
-  video.style.position = 'relative';
-  video.style.zIndex = '5';
-  
-  // Safari and some browsers need this hint
-  video.setAttribute('playsinline', '');
-  video.setAttribute('webkit-playsinline', '');
-}
-
-// Use the shared observer
-const preventPosterObserver = createPosterRemovalObserver();
-
-// Track initialized players to prevent duplicates
-const initializedVideos = new Set();
-const players = [];
-
-/**
- * Initialize a video element with Plyr
- * @param {HTMLVideoElement} video Video element to initialize
- * @returns {Plyr} Initialized Plyr instance
- */
-function initializeVideoPlayer(video) {
-  if (initializedVideos.has(video)) {
-    return players.find(p => p.elements.original === video);
-  }
-  
-  // Force setting currentTime to 0 before anything else happens
-  video.currentTime = 0;
-  
-  // Set standard video attributes
-  video.muted = true;
-  video.preload = 'auto';
-  video.loop = true; // Enable looping
-  video.autoplay = true; // Enable autoplay
-  video.setAttribute('playsinline', '');
-  video.setAttribute('webkit-playsinline', '');
-  
-  // Try to play the video immediately
-  const playVideo = async () => {
-    try {
-      // Ensure video is visible
-      video.style.opacity = '1';
-      video.style.visibility = 'visible';
-      await video.play();
-    } catch (e) {
-      // Silent handling of play failures
-      console.log('Initial autoplay failed, retrying...');
-      setTimeout(playVideo, 100);
-    }
-  };
-  
-  // Try to play immediately and also after a short delay
-  playVideo();
-  setTimeout(playVideo, 100);
-  
-  // Initialize observer for poster removal
-  preventPosterObserver.observe(document.body, { 
-    childList: true, 
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['poster', 'style', 'data-poster', 'src', 'data-src', 'class']
-  });
-  
-  // Initialize Plyr with simplified options
-  const plyrOptions = {
-    controls: [
-      'play',
-      'progress',
-      'current-time',
-      'mute',
-      'volume',
-      'fullscreen',
-    ],
-    resetOnEnd: false, // Prevent reset at end
-    clickToPlay: true,
-    muted: true,
-    autoplay: true,
-    loop: { active: true }, // Enable looping
-    disablePictureInPicture: true,
-    loadSprite: false,
-    previewThumbnails: {
-      enabled: false,
-    },
-    poster: null,
-    tooltips: { controls: false, seek: false },
-    thumbnails: { enabled: false }
-  };
-  
-  // Create Plyr instance
-  const player = new Plyr(video, plyrOptions);
-  
-  // Remove poster element after player is ready
-  player.on('ready', () => {
-    if (player.elements && player.elements.poster) {
-      // Hide poster completely
-      player.elements.poster.style.display = 'none';
-      player.elements.poster.style.opacity = '0';
-      player.elements.poster.style.visibility = 'hidden';
-      
-      // Try to remove the poster element if possible
-      try {
-        if (player.elements.poster.parentNode) {
-          player.elements.poster.parentNode.removeChild(player.elements.poster);
-        }
-      } catch (err) {
-        // Silent error handling
-      }
-    }
-    
-    // Remove poster attribute from the video element
-    if (player.elements && player.elements.original) {
-      player.elements.original.removeAttribute('poster');
-    }
-  });
-  
-  // Set initialized status
-  video.setAttribute('data-plyr-initialized', 'true');
-  initializedVideos.add(video);
-  players.push(player);
-  
-  return player;
-}
-
-/**
- * Debug function to inspect video element status
- * @param {HTMLVideoElement} video The video element to inspect
- * @param {Plyr} player The Plyr instance
- */
-function debugVideoStatus(video, player) {
-  if (!video || !player) return;
-  
-  console.group('Video Player Debug Info');
-  console.log('Video element:', video);
-  console.log('Video src:', video.src);
-  console.log('Video currentSrc:', video.currentSrc);
-  console.log('Source elements:', video.querySelectorAll('source'));
-  console.log('Video readyState:', video.readyState);
-  console.log('Video paused state:', video.paused);
-  console.log('Video error:', video.error);
-  console.log('Video networkState:', video.networkState);
-  console.log('Plyr playing state:', player.playing);
-  console.log('Plyr error:', player.error);
-  console.groupEnd();
-}
-
-/**
- * Initialize all videos with data-plyr="true" attribute
+ * Initialize Plyr videos with preview mode and lightbox functionality
  */
 export function initializePlyrVideos() {
-  // Select all videos with data-plyr="true" that haven't been initialized yet
-  const videos = document.querySelectorAll('video[data-plyr="true"]:not([data-plyr-initialized])');
+  // Find all video containers with data-plyr attribute
+  const videoContainers = document.querySelectorAll('.video-container');
   
-  console.log('Found videos to initialize:', videos.length);
+  logDebug(`Found ${videoContainers.length} video containers`);
   
-  videos.forEach(video => {
-    // Handle data-src attribute
-    if (video.getAttribute('data-src') && !video.src) {
-      const videoSrc = video.getAttribute('data-src');
-      
-      // Only set src if it's a valid URL
-      if (videoSrc && (videoSrc.startsWith('http') || videoSrc.startsWith('//') || videoSrc.startsWith('/'))) {
-        console.log('Setting video source:', videoSrc);
-        
-        // Set important attributes for better loading
-        video.preload = 'auto';
-        video.setAttribute('playsinline', '');
-        video.setAttribute('webkit-playsinline', '');
-        video.setAttribute('autoplay', '');
-        video.setAttribute('muted', '');
-        
-        // Configure the video source using our utility function
-        configureVideoSource(video, videoSrc);
-      }
+  videoContainers.forEach((container, index) => {
+    const videoElement = container.querySelector('video[data-plyr="true"]');
+    
+    if (!videoElement) {
+      logDebug(`Container ${index} has no video element with data-plyr="true"`);
+      return;
     }
     
-    const player = initializeVideoPlayer(video);
+    // Skip if already initialized
+    if (container.hasAttribute('data-plyr-initialized')) {
+      logDebug(`Container ${index} already initialized`);
+      return;
+    }
     
-    // Find container and add preview mode
-    const videoContainer = findVideoContainer(video);
-    if (videoContainer) {
-      // Fix for common black screen issue
-      video.addEventListener('loadedmetadata', () => {
-        // Ensure video is visible using our utility function
-        ensureVideoVisibility(video);
-        console.log('Video metadata loaded, fixing visibility');
-      });
+    // Check if this is a preview mode setup
+    const isPreviewMode = videoElement.getAttribute('data-preview-mode') === 'true';
+    const shouldAutoplay = videoElement.getAttribute('data-autoplay') === 'true';
+    const shouldMute = videoElement.getAttribute('data-muted') === 'true';
+    const videoSrc = videoElement.getAttribute('data-src');
+    const posterSrc = videoElement.getAttribute('data-poster');
+    const usePlyrButton = videoElement.getAttribute('data-use-plyr-button') === 'true';
+    
+    logDebug(`Container ${index} configuration:`, { 
+      isPreviewMode, 
+      shouldAutoplay, 
+      shouldMute, 
+      usePlyrButton,
+      videoSrc: videoSrc ? 'set' : 'not set',
+      posterSrc: posterSrc ? 'set' : 'not set'
+    });
+    
+    // Set up video properties
+    if (videoSrc) {
+      videoElement.src = videoSrc;
+    }
+    
+    if (posterSrc) {
+      videoElement.poster = posterSrc;
+    }
+    
+    // Set muted state before autoplay to allow autoplay in browsers
+    if (shouldMute) {
+      videoElement.muted = true;
+    }
+    
+    // Create custom Plyr options for preview mode
+    const playerOptions = { ...DEFAULT_OPTIONS };
+    
+    // If in preview mode, modify controls to prevent default click behavior
+    if (isPreviewMode) {
+      // For preview mode, hide most controls and only keep essentials
+      playerOptions.controls = ['play-large'];
       
-      // Setup preview and lightbox integration
-      setupPreviewMode(videoContainer, player);
+      if (!usePlyrButton) {
+        playerOptions.clickToPlay = false; // Disable default click-to-play behavior
+        playerOptions.dblclickToToggleFullscreen = false; // Disable double-click to fullscreen
+      }
       
-      // Debug video status after initialization
-      debugVideoStatus(video, player);
+      // Disable autoplay in preview mode to prevent lightbox from opening automatically
+      playerOptions.autoplay = false;
+    } else {
+      // For non-preview mode, respect the autoplay attribute
+      playerOptions.autoplay = shouldAutoplay;
+    }
+    
+    logDebug(`Initializing Plyr for container ${index}`);
+    
+    // Initialize Plyr with options
+    try {
+      const player = new Plyr(videoElement, playerOptions);
       
-      // Add error handling for video
-      video.addEventListener('error', (e) => {
-        console.error('Video error occurred:', e, video.error);
+      // Store reference to player
+      players.set(container, player);
+      
+      // Mark as initialized
+      container.setAttribute('data-plyr-initialized', 'true');
+      
+      // Set up preview mode
+      if (isPreviewMode) {
+        setupPreviewMode(container, player, videoElement, usePlyrButton);
         
-        // Show error state in the UI
-        videoContainer.classList.add('video-error');
-        videoContainer.classList.remove('video-playing');
-        
-        // Make play button visible
-        const playButton = videoContainer.querySelector('.preview-play-button');
-        if (playButton) {
-          playButton.style.opacity = '1';
+        // Apply autoplay for preview mode separately after setup
+        // This ensures event handlers are in place before autoplay happens
+        if (shouldAutoplay && shouldMute) {
+          // Only attempt autoplay if muted (browser restrictions)
+          setTimeout(() => {
+            if (!container.hasAttribute('data-lightbox-opened')) {
+              logDebug(`Attempting to autoplay for container ${index}`);
+              
+              // Add a flag to prevent lightbox from opening during initial autoplay
+              container.setAttribute('data-autoplay-in-progress', 'true');
+              
+              player.muted = true;
+              player.play().catch((error) => {
+                logDebug(`Autoplay prevented by browser for container ${index}`, error);
+              }).finally(() => {
+                // Remove the autoplay flag after playback starts or fails
+                setTimeout(() => {
+                  container.removeAttribute('data-autoplay-in-progress');
+                  logDebug(`Autoplay flag removed for container ${index}`);
+                }, 100);
+              });
+            }
+          }, 300);
         }
-      });
+      }
+      
+      logDebug(`Successfully initialized container ${index}`);
+    } catch (error) {
+      console.error('Error initializing Plyr:', error);
     }
   });
 }
 
 /**
- * Set up preview mode for a video container
- * @param {HTMLElement} container The video container element
+ * Set up preview mode with lightbox functionality
+ * @param {HTMLElement} container The video container
  * @param {Plyr} player The Plyr instance
+ * @param {HTMLVideoElement} videoElement The video element
+ * @param {boolean} usePlyrButton Whether to use Plyr's native play button
  */
-function setupPreviewMode(container, player) {
-  // Initial state: preview mode
+function setupPreviewMode(container, player, videoElement, usePlyrButton = false) {
+  // Add preview mode class
   container.classList.add('preview-mode');
   
-  // Ensure we're at frame 0
-  if (player.media) {
-    player.media.currentTime = 0;
+  // Remove any existing play button first
+  const existingButton = container.querySelector('.preview-play-button');
+  if (existingButton) {
+    existingButton.remove();
   }
   
-  // Mark as playing immediately
-  container.classList.add('video-playing');
+  // Flag to prevent initial play event from opening lightbox
+  let isInitialSetup = true;
+  setTimeout(() => {
+    isInitialSetup = false;
+    logDebug(`Initial setup complete for ${container.id || 'unnamed container'}`);
+  }, 1000); // Increase timeout to ensure all initialization is complete
   
-  // Configure video for preview mode
-  if (player.media) {
-    // Set essential attributes for autoplay
-    player.media.muted = true;
-    player.media.loop = true;
-    player.media.autoplay = true;
-    player.media.playsinline = true;
-    player.media.setAttribute('webkit-playsinline', '');
-    player.media.currentTime = 0;
+  // Set up Plyr's native controls or custom button based on option
+  if (usePlyrButton) {
+    logDebug(`Setting up Plyr native button for ${container.id || 'unnamed container'}`);
     
-    // Function to handle playback
-    const playVideo = async () => {
-      try {
-        // Ensure video is visible
-        player.media.style.opacity = '1';
-        player.media.style.visibility = 'visible';
-        
-        // Attempt to play
-        await player.media.play();
-        
-        // If successful, ensure the video stays visible
-        player.media.style.opacity = '1';
-        player.media.style.visibility = 'visible';
-      } catch (error) {
-        console.log('Preview autoplay failed, retrying...');
-        // Retry after a short delay
-        setTimeout(playVideo, 100);
-      }
-    };
-
-    // Try to play immediately
-    playVideo();
-    
-    // Also try to play when metadata is loaded
-    player.media.addEventListener('loadedmetadata', playVideo);
-    
-    // Ensure video stays playing after seeking or buffering
-    player.media.addEventListener('seeked', playVideo);
-    player.media.addEventListener('waiting', () => {
-      setTimeout(playVideo, 100);
-    });
-  }
-  
-  // Disable any poster
-  if (player.elements) {
-    // Remove poster from original video element
-    if (player.elements.original) {
-      player.elements.original.removeAttribute('poster');
-      player.elements.original.removeAttribute('data-poster');
-      player.elements.original.style.backgroundImage = 'none';
-    }
-    
-    // Remove poster element
-    if (player.elements.poster) {
-      player.elements.poster.style.display = 'none';
-      player.elements.poster.style.opacity = '0';
-      player.elements.poster.style.visibility = 'hidden';
+    // Use Plyr's native play button - make sure it's visible
+    const plyrControls = container.querySelector('.plyr__control--overlaid');
+    if (plyrControls) {
+      // Force button to be visible and properly circular
+      plyrControls.style.opacity = '1';
+      plyrControls.style.visibility = 'visible';
+      plyrControls.style.pointerEvents = 'auto';
       
-      try {
-        if (player.elements.poster.parentNode) {
-          player.elements.poster.parentNode.removeChild(player.elements.poster);
+      // Ensure proper positioning and circular shape
+      plyrControls.style.top = '50%';
+      plyrControls.style.left = '50%';
+      plyrControls.style.transform = 'translate(-50%, -50%)';
+      plyrControls.style.margin = '0';
+      
+      // Force fixed dimensions for consistent circular shape
+      const buttonSize = window.innerWidth <= 480 ? '36px' : 
+                         window.innerWidth <= 768 ? '42px' : '48px';
+                         
+      plyrControls.style.width = buttonSize;
+      plyrControls.style.height = buttonSize;
+      plyrControls.style.minWidth = buttonSize;
+      plyrControls.style.minHeight = buttonSize;
+      plyrControls.style.maxWidth = buttonSize;
+      plyrControls.style.maxHeight = buttonSize;
+      plyrControls.style.borderRadius = '50%';
+      plyrControls.style.padding = '0';
+      plyrControls.style.boxSizing = 'border-box';
+      
+      // Center the icon inside
+      plyrControls.style.display = 'flex';
+      plyrControls.style.alignItems = 'center';
+      plyrControls.style.justifyContent = 'center';
+      
+      // Fix icon position if needed
+      const iconSvg = plyrControls.querySelector('svg');
+      if (iconSvg) {
+        iconSvg.style.position = 'relative';
+        iconSvg.style.width = '40%';
+        iconSvg.style.height = '40%';
+        iconSvg.style.margin = '0';
+        iconSvg.style.marginLeft = '10%'; // Visually center the triangle
+        iconSvg.style.top = '0';
+        iconSvg.style.left = '0';
+        iconSvg.style.transform = 'none';
+      }
+      
+      // Set data attribute for tracking
+      container.setAttribute('data-using-plyr-button', 'true');
+      
+      // Prevent Plyr's default play behavior
+      player.off('play');
+      player.on('play', (event) => {
+        // Skip during initial setup to prevent lightbox opening on page load
+        // Also skip if autoplay is in progress
+        if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
+          logDebug('Skipping lightbox open during initial setup or autoplay');
+          return;
         }
-      } catch (err) {
-        // Silent error handling
+        
+        // Prevent video from playing
+        player.pause();
+        
+        // Open lightbox instead
+        openVideoLightbox(container, player, videoElement);
+        
+        // Mark that lightbox has been opened for this container
+        container.setAttribute('data-lightbox-opened', 'true');
+        
+        // Prevent bubbling
+        event.stopPropagation();
+        return false;
+      });
+      
+      // Capture all clicks on container or Plyr button to open lightbox
+      container.addEventListener('click', (event) => {
+        // Skip during initial setup to prevent lightbox opening on page load
+        // Also skip if autoplay is in progress
+        if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
+          logDebug('Skipping container click during initial setup or autoplay');
+          return;
+        }
+        
+        // Always open lightbox regardless of what was clicked
+        event.preventDefault();
+        event.stopPropagation();
+        
+        logDebug('Container clicked, opening lightbox');
+        openVideoLightbox(container, player, videoElement);
+        
+        // Mark that lightbox has been opened for this container
+        container.setAttribute('data-lightbox-opened', 'true');
+        
+        return false;
+      }, true); // Use capture phase to get event before other handlers
+      
+      // Also prevent plyr control click default behavior
+      if (plyrControls) {
+        plyrControls.addEventListener('click', (event) => {
+          // Skip during initial setup to prevent lightbox opening on page load
+          // Also skip if autoplay is in progress
+          if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
+            logDebug('Skipping plyr controls click during initial setup or autoplay');
+            return;
+          }
+          
+          event.preventDefault();
+          event.stopPropagation();
+          
+          logDebug('Plyr controls clicked, opening lightbox');
+          openVideoLightbox(container, player, videoElement);
+          
+          // Mark that lightbox has been opened for this container
+          container.setAttribute('data-lightbox-opened', 'true');
+          
+          return false;
+        }, true);
       }
+    } else {
+      logDebug('ERROR: No plyr controls found in container');
+    }
+  } else {
+    logDebug(`Setting up custom play button for ${container.id || 'unnamed container'}`);
+    
+    // Use custom button approach
+    // Forcefully hide Plyr's native controls
+    const plyrControls = container.querySelector('.plyr__control--overlaid');
+    if (plyrControls) {
+      plyrControls.style.opacity = '0';
+      plyrControls.style.visibility = 'hidden';
+      plyrControls.style.pointerEvents = 'none';
     }
     
-    // Disable preview thumbnails
-    if (player.config) {
-      player.config.previewThumbnails = { enabled: false };
-      player.config.resetOnEnd = false; // Prevent reset at end
-      player.config.loop = { active: true }; // Enable looping
-    }
-  }
-  
-  // Add play button if not already there
-  if (!container.getAttribute('data-has-preview-button')) {
-    const playButton = addPreviewPlayButton(container);
+    // Create play button
+    const customPlayButton = document.createElement('button');
+    customPlayButton.className = 'preview-play-button';
+    customPlayButton.setAttribute('aria-label', 'Play video');
     
-    // Click to open lightbox
-    playButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      initLightbox.openLightbox(container, player);
+    // Play icon SVG - using more contrasting/visible version with proper centering
+    customPlayButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" 
+           fill="white" stroke="white" stroke-width="2" 
+           stroke-linecap="round" stroke-linejoin="round"
+           style="width: 40%; height: 40%; margin-left: 10%; position: relative;">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+    `;
+    
+    // Store the container reference on the button for event handling
+    customPlayButton.dataset.containerRef = container.id || `plyr-container-${Math.random().toString(36).substr(2, 9)}`;
+    if (!container.id) {
+      container.id = customPlayButton.dataset.containerRef;
+    }
+    
+    // Calculate button size based on screen width
+    const buttonSize = window.innerWidth <= 480 ? '36px' : 
+                       window.innerWidth <= 768 ? '42px' : '48px';
+    
+    // Force button to be visible and on top by setting inline styles with proper centering
+    customPlayButton.style.position = 'absolute';
+    customPlayButton.style.top = '50%';
+    customPlayButton.style.left = '50%';
+    customPlayButton.style.transform = 'translate(-50%, -50%)';
+    customPlayButton.style.zIndex = '9999';
+    customPlayButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    customPlayButton.style.color = 'white';
+    customPlayButton.style.borderRadius = '50%';
+    customPlayButton.style.display = 'flex';
+    customPlayButton.style.alignItems = 'center';
+    customPlayButton.style.justifyContent = 'center';
+    customPlayButton.style.cursor = 'pointer';
+    customPlayButton.style.opacity = '1';
+    customPlayButton.style.visibility = 'visible';
+    customPlayButton.style.boxShadow = '0 0 0 4px rgba(255, 255, 255, 0.4)';
+    customPlayButton.style.padding = '0';
+    customPlayButton.style.margin = '0';
+    
+    // Force fixed dimensions for consistent circular shape
+    customPlayButton.style.width = buttonSize;
+    customPlayButton.style.height = buttonSize;
+    customPlayButton.style.minWidth = buttonSize;
+    customPlayButton.style.minHeight = buttonSize;
+    customPlayButton.style.maxWidth = buttonSize;
+    customPlayButton.style.maxHeight = buttonSize;
+    customPlayButton.style.boxSizing = 'border-box';
+    
+    // Add to the container to maintain proper event context
+    container.appendChild(customPlayButton);
+    
+    // Set attribute for tracking
+    container.setAttribute('data-has-preview-button', 'true');
+    
+    // Ensure the play button has the visible class when added to the container
+    customPlayButton.classList.add('is-visible');
+    
+    // Prevent default play behavior
+    player.off('play');
+    player.on('play', (event) => {
+      // Skip during initial setup to prevent lightbox opening on page load
+      // Also skip if autoplay is in progress
+      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play event during initial setup or autoplay');
+        return;
+      }
+      
+      // Prevent video from playing
+      player.pause();
+      
+      // Open lightbox instead
+      logDebug('Play event fired, opening lightbox');
+      openVideoLightbox(container, player, videoElement);
+      
+      // Mark that lightbox has been opened for this container
+      container.setAttribute('data-lightbox-opened', 'true');
+      
+      // Prevent bubbling
+      event.stopPropagation();
+      return false;
     });
     
-    // Container click also opens lightbox
-    container.addEventListener('click', (e) => {
+    // Handle visual feedback for play button with proper fade animation
+    player.on('play', () => {
+      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
+      const playButtonElem = container.querySelector('.preview-play-button');
+      if (playButtonElem) {
+        playButtonElem.classList.remove('is-visible');
+        playButtonElem.classList.add('is-hidden');
+      }
+    });
+    
+    player.on('pause', () => {
+      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
+      const playButtonElem = container.querySelector('.preview-play-button');
+      if (playButtonElem) {
+        playButtonElem.classList.add('is-visible');
+        playButtonElem.classList.remove('is-hidden');
+      }
+    });
+    
+    // Capture all clicks on container to open lightbox
+    container.addEventListener('click', (event) => {
+      // Skip during initial setup to prevent lightbox opening on page load
+      // Also skip if autoplay is in progress
+      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping container click during initial setup or autoplay');
+        return;
+      }
+      
+      // Prevent any other click handlers from firing
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Open the lightbox
+      logDebug('Container clicked, opening lightbox');
+      openVideoLightbox(container, player, videoElement);
+      
+      // Mark that lightbox has been opened for this container
+      container.setAttribute('data-lightbox-opened', 'true');
+      
+      return false;
+    }, true); // Use capture phase to get event before other handlers
+    
+    // Prevent double-click behavior
+    container.addEventListener('dblclick', (event) => {
+      // Skip during initial setup or if autoplay is in progress
+      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
+      
+      // Prevent default double-click behavior (like entering fullscreen)
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Don't do anything special on double-click, just prevent default
+      return false;
+    }, true); // Use capture phase to get event before Plyr handlers
+    
+    // Handle play button click to open lightbox
+    customPlayButton.addEventListener('click', (event) => {
+      // Skip during initial setup or if autoplay is in progress
+      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play button click during initial setup or autoplay');
+        return;
+      }
+      
+      // Prevent any other click handlers from firing
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Open the lightbox
+      logDebug('Play button clicked, opening lightbox');
+      openVideoLightbox(container, player, videoElement);
+      
+      // Mark that lightbox has been opened for this container
+      container.setAttribute('data-lightbox-opened', 'true');
+      
+      return false;
+    }, true); // Use capture phase to get event before other handlers
+    
+    // Also prevent pause when clicking on the video
+    videoElement.addEventListener('click', (event) => {
+      // Skip during initial setup or if autoplay is in progress
+      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
+      
       if (container.classList.contains('preview-mode')) {
-        e.preventDefault();
-        initLightbox.openLightbox(container, player);
+        // Prevent default behavior (pausing)
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Open the lightbox
+        logDebug('Video element clicked, opening lightbox');
+        openVideoLightbox(container, player, videoElement);
+        
+        // Mark that lightbox has been opened for this container
+        container.setAttribute('data-lightbox-opened', 'true');
+        
+        return false;
       }
-    });
+    }, true); // Use capture phase to get event before Plyr handlers
   }
 }
 
 /**
- * Add a play button to preview mode
- * @param {HTMLElement} container The container to add the button to
- * @returns {HTMLButtonElement} The created play button
+ * Open video in lightbox
+ * @param {HTMLElement} container The video container
+ * @param {Plyr} player The Plyr instance
+ * @param {HTMLVideoElement} videoElement The video element
  */
-function addPreviewPlayButton(container) {
-  const playButton = document.createElement('button');
-  playButton.className = 'preview-play-button';
-  playButton.setAttribute('aria-label', 'Play video');
-  playButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+function openVideoLightbox(container, player, videoElement) {
+  logDebug(`Opening lightbox for ${container.id || 'unnamed container'}`);
   
-  container.appendChild(playButton);
-  
-  // Track previews with buttons
-  container.setAttribute('data-has-preview-button', 'true');
-  
-  return playButton;
+  // Create lightbox if it doesn't exist
+  if (!lightboxes.has(container)) {
+    logDebug('Creating new lightbox');
+    const lightbox = document.createElement('div');
+    lightbox.className = 'video-lightbox';
+    lightbox.setAttribute('tabindex', '-1'); // Make focusable
+    
+    const lightboxInner = document.createElement('div');
+    lightboxInner.className = 'video-lightbox-inner';
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'video-lightbox-close';
+    closeButton.setAttribute('aria-label', 'Close video');
+    closeButton.innerHTML = '&times;';
+    
+    const lightboxContent = document.createElement('div');
+    lightboxContent.className = 'video-lightbox-content';
+    
+    // Clone the video element for the lightbox
+    const lightboxVideo = videoElement.cloneNode(true);
+    
+    // Ensure lightbox video is not muted
+    lightboxVideo.muted = false;
+    
+    // Reset to beginning of video
+    lightboxVideo.currentTime = 0;
+    
+    // Disable autoplay for lightbox video
+    lightboxVideo.autoplay = false;
+    
+    // Ensure preview mode is not active for lightbox video
+    lightboxVideo.removeAttribute('data-preview-mode');
+    
+    // Append elements
+    lightboxContent.appendChild(lightboxVideo);
+    lightboxInner.appendChild(closeButton);
+    lightboxInner.appendChild(lightboxContent);
+    lightbox.appendChild(lightboxInner);
+    document.body.appendChild(lightbox);
+    
+    // Initialize Plyr on lightbox video with full controls
+    const lightboxPlayerOptions = {
+      ...DEFAULT_OPTIONS,
+      muted: false,
+      autoplay: false, // Ensure no autoplay in the lightbox
+      clickToPlay: true, // Make sure clicking the video plays/pauses
+      controls: [
+        'play-large', // Ensure the large play button is visible
+        'play',
+        'progress',
+        'current-time',
+        'mute',
+        'volume',
+        'fullscreen'
+      ]
+    };
+    
+    const lightboxPlayer = new Plyr(lightboxVideo, lightboxPlayerOptions);
+    
+    // Ensure Plyr controls are visible
+    setTimeout(() => {
+      const plyrControls = lightbox.querySelector('.plyr__control--overlaid');
+      if (plyrControls) {
+        logDebug('Setting up lightbox play button styles');
+        
+        // Apply visible class instead of direct styles for better animations
+        plyrControls.classList.add('is-visible');
+        plyrControls.classList.remove('is-hidden');
+        
+        // Ensure proper centering and circular shape
+        plyrControls.style.top = '50%';
+        plyrControls.style.left = '50%';
+        plyrControls.style.transform = 'translate(-50%, -50%)';
+        plyrControls.style.margin = '0';
+        
+        // Force fixed dimensions for consistent circular shape
+        const buttonSize = window.innerWidth <= 480 ? '48px' : 
+                           window.innerWidth <= 768 ? '56px' : '64px';
+                           
+        plyrControls.style.width = buttonSize;
+        plyrControls.style.height = buttonSize;
+        plyrControls.style.minWidth = buttonSize;
+        plyrControls.style.minHeight = buttonSize;
+        plyrControls.style.maxWidth = buttonSize;
+        plyrControls.style.maxHeight = buttonSize;
+        plyrControls.style.borderRadius = '50%';
+        plyrControls.style.padding = '0';
+        plyrControls.style.boxSizing = 'border-box';
+        
+        // Center the icon inside
+        plyrControls.style.display = 'flex';
+        plyrControls.style.alignItems = 'center';
+        plyrControls.style.justifyContent = 'center';
+        
+        // Fix icon position if needed
+        const iconSvg = plyrControls.querySelector('svg');
+        if (iconSvg) {
+          iconSvg.style.position = 'relative';
+          iconSvg.style.width = '40%';
+          iconSvg.style.height = '40%';
+          iconSvg.style.margin = '0';
+          iconSvg.style.marginLeft = '10%'; // Visually center the triangle
+          iconSvg.style.top = '0';
+          iconSvg.style.left = '0';
+          iconSvg.style.transform = 'none';
+        }
+      } else {
+        logDebug('WARNING: No Plyr controls found in lightbox');
+      }
+    }, 100);
+    
+    // Handle play/pause state to toggle the visibility of the centered play button
+    lightboxPlayer.on('play', () => {
+      const plyrControls = lightbox.querySelector('.plyr__control--overlaid');
+      if (plyrControls) {
+        // Use classes for better fade animation
+        plyrControls.classList.remove('is-visible');
+        plyrControls.classList.add('is-hidden');
+      }
+      // Add a class to track playing state
+      lightbox.classList.add('is-playing');
+    });
+    
+    lightboxPlayer.on('pause', () => {
+      const plyrControls = lightbox.querySelector('.plyr__control--overlaid');
+      if (plyrControls) {
+        // Use classes for better fade animation
+        plyrControls.classList.add('is-visible');
+        plyrControls.classList.remove('is-hidden');
+      }
+      // Remove playing state class
+      lightbox.classList.remove('is-playing');
+    });
+    
+    // Also handle controls when video ends
+    lightboxPlayer.on('ended', () => {
+      const plyrControls = lightbox.querySelector('.plyr__control--overlaid');
+      if (plyrControls) {
+        // Use classes for better fade animation
+        plyrControls.classList.add('is-visible');
+        plyrControls.classList.remove('is-hidden');
+      }
+      // Remove playing state class
+      lightbox.classList.remove('is-playing');
+    });
+    
+    // Store lightbox reference
+    lightboxes.set(container, {
+      element: lightbox,
+      player: lightboxPlayer
+    });
+    
+    // Lock scrolling
+    document.body.style.overflow = 'hidden';
+    
+    // Handle lightbox close
+    closeButton.addEventListener('click', () => {
+      closeVideoLightbox(container);
+    });
+    
+    // Close on escape key
+    lightbox.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeVideoLightbox(container);
+      }
+    });
+    
+    // Close when clicking outside video
+    lightbox.addEventListener('click', (event) => {
+      if (event.target === lightbox) {
+        closeVideoLightbox(container);
+      }
+    });
+    
+    // First set display to flex
+    lightbox.style.display = 'flex';
+    
+    // Force a reflow/repaint before adding the visible class
+    void lightbox.offsetWidth;
+    
+    // Then add the visible class to trigger animation
+    lightbox.classList.add('is-visible');
+    
+    // Set focus on lightbox for keyboard navigation
+    setTimeout(() => {
+      lightbox.focus();
+    }, 300); // Wait for animation to complete
+    
+    // Reset to beginning of video but don't play
+    lightboxPlayer.currentTime = 0;
+  } else {
+    // Show existing lightbox
+    logDebug('Opening existing lightbox');
+    const { element, player: lightboxPlayer } = lightboxes.get(container);
+    
+    // First set display to flex
+    element.style.display = 'flex';
+    
+    // Force a reflow/repaint
+    void element.offsetWidth;
+    
+    // Remove closing class if it exists
+    element.classList.remove('is-closing');
+    
+    // Then add the visible class to trigger animation
+    element.classList.add('is-visible');
+    
+    // Lock scrolling
+    document.body.style.overflow = 'hidden';
+    
+    // Focus after animation completes
+    setTimeout(() => {
+      element.focus();
+    }, 300);
+    
+    // Reset to beginning of video but don't play
+    lightboxPlayer.currentTime = 0;
+    lightboxPlayer.pause();
+    
+    // Ensure Plyr controls are visible initially
+    setTimeout(() => {
+      const plyrControls = element.querySelector('.plyr__control--overlaid');
+      if (plyrControls) {
+        logDebug('Updating existing lightbox play button styles');
+        
+        // Ensure proper centering and circular shape
+        plyrControls.style.top = '50%';
+        plyrControls.style.left = '50%';
+        plyrControls.style.transform = 'translate(-50%, -50%)';
+        plyrControls.style.margin = '0';
+        
+        // Force fixed dimensions for consistent circular shape
+        const buttonSize = window.innerWidth <= 480 ? '48px' : 
+                           window.innerWidth <= 768 ? '56px' : '64px';
+                           
+        plyrControls.style.width = buttonSize;
+        plyrControls.style.height = buttonSize;
+        plyrControls.style.minWidth = buttonSize;
+        plyrControls.style.minHeight = buttonSize;
+        plyrControls.style.maxWidth = buttonSize;
+        plyrControls.style.maxHeight = buttonSize;
+        plyrControls.style.borderRadius = '50%';
+        plyrControls.style.padding = '0';
+        plyrControls.style.boxSizing = 'border-box';
+        
+        // Center the icon inside
+        plyrControls.style.display = 'flex';
+        plyrControls.style.alignItems = 'center';
+        plyrControls.style.justifyContent = 'center';
+        
+        // Fix icon position if needed
+        const iconSvg = plyrControls.querySelector('svg');
+        if (iconSvg) {
+          iconSvg.style.position = 'relative';
+          iconSvg.style.width = '40%';
+          iconSvg.style.height = '40%';
+          iconSvg.style.margin = '0';
+          iconSvg.style.marginLeft = '10%'; // Visually center the triangle
+          iconSvg.style.top = '0';
+          iconSvg.style.left = '0';
+          iconSvg.style.transform = 'none';
+        }
+        
+        // Only show if not currently playing - use classes for better fade animation
+        if (lightboxPlayer.paused) {
+          plyrControls.classList.add('is-visible');
+          plyrControls.classList.remove('is-hidden');
+        } else {
+          plyrControls.classList.remove('is-visible');
+          plyrControls.classList.add('is-hidden');
+        }
+      } else {
+        logDebug('WARNING: No Plyr controls found in existing lightbox');
+      }
+    }, 100);
+  }
 }
 
 /**
- * Initialize all Plyr videos
+ * Close video lightbox
+ * @param {HTMLElement} container The video container
+ */
+function closeVideoLightbox(container) {
+  logDebug(`Closing lightbox for ${container.id || 'unnamed container'}`);
+  
+  if (lightboxes.has(container)) {
+    const { element, player } = lightboxes.get(container);
+    
+    // Pause lightbox video immediately
+    player.pause();
+    
+    // Add closing class to trigger closing animation
+    element.classList.remove('is-visible');
+    element.classList.add('is-closing');
+    
+    // Wait for animation to complete before hiding
+    setTimeout(() => {
+      // Hide lightbox
+      element.style.display = 'none';
+      
+      // Remove closing class
+      element.classList.remove('is-closing');
+      
+      // Unlock scrolling
+      document.body.style.overflow = '';
+      
+      logDebug('Lightbox closed');
+    }, 300); // Match the CSS transition duration
+  }
+}
+
+/**
+ * Reinitialize all video players - useful after dynamic content changes
+ */
+export function reinitializeVideoPlayers() {
+  logDebug('Reinitializing all video players');
+  
+  // Destroy existing players to prevent duplicates
+  players.forEach((player, container) => {
+    try {
+      player.destroy();
+    } catch (e) {
+      console.error('Error destroying player:', e);
+    }
+    
+    // Remove initialization attribute to allow reinitializing
+    container.removeAttribute('data-plyr-initialized');
+  });
+  
+  // Clear players map
+  players.clear();
+  
+  // Reinitialize
+  setTimeout(() => {
+    initializePlyrVideos();
+  }, 100);
+}
+
+/**
+ * Initialize the video player with Webflow CMS integration
  */
 export function initVideoPlayer() {
-  // Initialize Lucide icons
-  createIcons({
-    icons: {
-      Play,
-      X
+  // Initialize videos immediately
+  initializePlyrVideos();
+  
+  // Set up CMS integration for Webflow
+  setupCMSIntegration();
+}
+
+/**
+ * Setup CMS integration for dynamic content
+ */
+function setupCMSIntegration() {
+  // Webflow's native pagination
+  const paginationLinks = document.querySelectorAll('.w-pagination-wrapper a');
+  paginationLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      // Wait for new content to load
+      setTimeout(initializePlyrVideos, 500);
+    });
+  });
+  
+  // Webflow's load more button
+  const loadMoreButton = document.querySelector('.w-pagination-next');
+  if (loadMoreButton) {
+    loadMoreButton.addEventListener('click', () => {
+      // Wait for new content to load
+      setTimeout(initializePlyrVideos, 500);
+    });
+  }
+  
+  // Finsweet CMS Filter integration
+  if (window.fsAttributes) {
+    window.fsAttributes = window.fsAttributes || [];
+    window.fsAttributes.push([
+      'cmsfilter',
+      (filterInstances) => {
+        if (!filterInstances || !filterInstances.length) return;
+        
+        const [filterInstance] = filterInstances;
+        if (!filterInstance || !filterInstance.listInstance) return;
+        
+        // The `renderitems` event runs whenever the list renders items after filtering
+        filterInstance.listInstance.on('renderitems', () => {
+          setTimeout(initializePlyrVideos, 100);
+        });
+      },
+    ]);
+  }
+  
+  // Finsweet CMS Load integration for "load more" functionality
+  if (window.fsAttributes) {
+    window.fsAttributes.push([
+      'cmsload',
+      (loadInstances) => {
+        if (!loadInstances || !loadInstances.length) return;
+        
+        const [loadInstance] = loadInstances;
+        if (!loadInstance) return;
+        
+        // Initialize when new items are loaded
+        loadInstance.on('afterload', () => {
+          setTimeout(initializePlyrVideos, 100);
+        });
+      },
+    ]);
+  }
+  
+  // MutationObserver fallback for other dynamic content changes
+  const observer = new MutationObserver((mutations) => {
+    let shouldInit = false;
+    
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE && 
+              (node.querySelector('video[data-plyr="true"]') || 
+               node.querySelector('[data-plyr-provider]'))) {
+            shouldInit = true;
+            break;
+          }
+        }
+        if (shouldInit) break;
+      }
+    }
+    
+    if (shouldInit) {
+      setTimeout(initializePlyrVideos, 100);
     }
   });
   
-  // Check for autoplay support
-  checkAutoplaySupport().then(canAutoplay => {
-    // Store autoplay capability as a data attribute for CSS targeting
-    document.documentElement.setAttribute('data-can-autoplay', canAutoplay.toString());
+  // Start observing the document with the configured parameters
+  observer.observe(document.body, { 
+    childList: true, 
+    subtree: true 
   });
-  
-  // Initialize players
-  initializePlyrVideos();
-  
-  // Initialize lightbox
-  initLightbox.init();
   
   // Clean up on page unload
   window.addEventListener('beforeunload', () => {
-    players.forEach(player => {
-      if (player && typeof player.destroy === 'function') {
-        player.destroy();
-      }
-    });
+    observer.disconnect();
   });
 }
 
-/**
- * Test if browser supports autoplay
- * @returns {Promise<boolean>} Whether autoplay is supported
- */
-async function checkAutoplaySupport() {
-  // Create a test video element
-  const video = document.createElement('video');
-  video.muted = true;
-  video.style.width = '1px';
-  video.style.height = '1px';
-  video.style.position = 'fixed';
-  video.style.opacity = '0.01';
-  video.style.pointerEvents = 'none';
-  
-  // Use a short test video or fallback to empty source
-  video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAFNtZGF0AAAAFm1tb292AAAAbW12aGQAAAAAAAAAAAAAAAAAAAA+QAAAAAAAEAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAABLbHZjMgAAABxtdmhkAAAAD1lzPwIAAAD/AAAAQAAAAAAAAA5tZGlhAAAAIG1kaGQAAAAAAAAAAAAAAAAAAAAA0AAAAAAAAQAAAAAAAVAJAgAA';
-  
-  // Append to DOM temporarily
-  document.body.appendChild(video);
-  
-  try {
-    // Try to play
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      const result = await playPromise
-        .then(() => true)
-        .catch(() => false);
-      
-      // Clean up
-      document.body.removeChild(video);
-      return result;
-    }
-    
-    // Fallback for browsers that don't return a promise
-    document.body.removeChild(video);
-    return false;
-  } catch (error) {
-    // Clean up
-    document.body.removeChild(video);
-    return false;
-  }
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initVideoPlayer);
+
+// Initialize when Webflow page loads/changes
+if (window.Webflow) {
+  window.Webflow.push(() => {
+    initVideoPlayer();
+  });
 }
 
-// Expose for external use
-export { players, initializedVideos }; 
+// Initialize on any Webflow interaction that might affect the page
+window.addEventListener('Webflow.ready', initVideoPlayer);
+
+// Expose globally
+window.initializePlyrVideos = initializePlyrVideos;
+window.initVideoPlayer = initVideoPlayer;
+window.reinitializeVideoPlayers = reinitializeVideoPlayers;
+
+// Export for usage in other files
+export default {
+  initVideoPlayer,
+  initializePlyrVideos,
+  reinitializeVideoPlayers
+};

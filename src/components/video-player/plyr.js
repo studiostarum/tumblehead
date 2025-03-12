@@ -6,7 +6,7 @@
  * and handling CMS-specific events like pagination and filtering.
  */
 
-import { initVideoPlayer, initializePlyrVideos } from '../../components/video-player';
+import { initVideoPlayer, initializePlyrVideos } from '.';
 
 /**
  * Initialize all videos when Webflow page loads

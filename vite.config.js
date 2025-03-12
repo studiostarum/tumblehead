@@ -49,8 +49,6 @@ export default defineConfig(({ command }) => {
             rollupOptions: {
                 input: {
                     main: resolve(__dirname, 'src/index.html'),
-                    webflowPlyr: resolve(__dirname, 'src/webflow-plyr.js')
-                    // index.dev.html intentionally excluded from production builds
                 },
                 output: {
                     entryFileNames: (chunkInfo) => {
