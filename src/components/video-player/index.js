@@ -205,6 +205,51 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     logDebug(`Initial setup complete for ${container.id || 'unnamed container'}`);
   }, 2000); // Increased timeout to ensure all initialization is complete
   
+  // Intercept ALL click and touch events in the container at document level
+  // This ensures our handler runs before Plyr's internal handlers
+  const preventDefaultClickHandler = (event) => {
+    // Skip if clicking outside this container
+    if (!container.contains(event.target)) return;
+    
+    // Skip during initial setup, page load, or if autoplay is in progress
+    if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
+      logDebug('Skipping click/touch during initial setup, page load, or autoplay');
+      return;
+    }
+    
+    if (container.classList.contains('preview-mode')) {
+      // Stop propagation and prevent default
+      event.stopPropagation();
+      event.preventDefault();
+      
+      // Open lightbox
+      logDebug('Container clicked/touched, opening lightbox');
+      openVideoLightbox(container, player, videoElement);
+      
+      // Mark that lightbox has been opened for this container
+      container.setAttribute('data-lightbox-opened', 'true');
+      
+      return false;
+    }
+  };
+  
+  // Apply the click and touch handlers at capture phase
+  container.addEventListener('click', preventDefaultClickHandler, true);
+  container.addEventListener('touchend', preventDefaultClickHandler, true);
+  
+  // Completely disable Plyr's click-to-play for preview mode
+  if (container.classList.contains('preview-mode')) {
+    // This will run immediately after player creation
+    player.elements.container.style.pointerEvents = 'none';
+    
+    // The "play-large" button should still be clickable though
+    const plyrButton = container.querySelector('.plyr__control--overlaid');
+    if (plyrButton) {
+      plyrButton.style.pointerEvents = 'auto';
+      plyrButton.style.zIndex = '100';
+    }
+  }
+  
   // Set up Plyr's native controls or custom button based on option
   if (usePlyrButton) {
     logDebug(`Setting up Plyr native button for ${container.id || 'unnamed container'}`);
@@ -258,7 +303,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       // Set data attribute for tracking
       container.setAttribute('data-using-plyr-button', 'true');
       
-      // Prevent Plyr's default play behavior
+      // Disable default play behavior
       player.off('play');
       player.on('play', (event) => {
         // Skip during initial setup, page load, or if autoplay is in progress
@@ -280,49 +325,6 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
         event.stopPropagation();
         return false;
       });
-      
-      // Capture all clicks on container or Plyr button to open lightbox
-      container.addEventListener('click', (event) => {
-        // Skip during initial setup, page load, or if autoplay is in progress
-        if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
-          logDebug('Skipping container click during initial setup, page load, or autoplay');
-          return;
-        }
-        
-        // Prevent any other click handlers from firing
-        event.preventDefault();
-        event.stopPropagation();
-        
-        logDebug('Container clicked, opening lightbox');
-        openVideoLightbox(container, player, videoElement);
-        
-        // Mark that lightbox has been opened for this container
-        container.setAttribute('data-lightbox-opened', 'true');
-        
-        return false;
-      }, true); // Use capture phase to get event before other handlers
-      
-      // Also prevent plyr control click default behavior
-      if (plyrControls) {
-        plyrControls.addEventListener('click', (event) => {
-          // Skip during initial setup, page load, or if autoplay is in progress
-          if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
-            logDebug('Skipping plyr controls click during initial setup, page load, or autoplay');
-            return;
-          }
-          
-          event.preventDefault();
-          event.stopPropagation();
-          
-          logDebug('Plyr controls clicked, opening lightbox');
-          openVideoLightbox(container, player, videoElement);
-          
-          // Mark that lightbox has been opened for this container
-          container.setAttribute('data-lightbox-opened', 'true');
-          
-          return false;
-        }, true);
-      }
     } else {
       logDebug('ERROR: No plyr controls found in container');
     }
@@ -442,41 +444,6 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
         playButtonElem.classList.remove('is-hidden');
       }
     });
-    
-    // Capture all clicks on container to open lightbox
-    container.addEventListener('click', (event) => {
-      // Skip during initial setup, page load, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping container click during initial setup, page load, or autoplay');
-        return;
-      }
-      
-      // Prevent any other click handlers from firing
-      event.preventDefault();
-      event.stopPropagation();
-      
-      // Open the lightbox
-      logDebug('Container clicked, opening lightbox');
-      openVideoLightbox(container, player, videoElement);
-      
-      // Mark that lightbox has been opened for this container
-      container.setAttribute('data-lightbox-opened', 'true');
-      
-      return false;
-    }, true); // Use capture phase to get event before other handlers
-    
-    // Prevent double-click behavior
-    container.addEventListener('dblclick', (event) => {
-      // Skip during initial setup, page load, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) return;
-      
-      // Prevent default double-click behavior (like entering fullscreen)
-      event.preventDefault();
-      event.stopPropagation();
-      
-      // Don't do anything special on double-click, just prevent default
-      return false;
-    }, true); // Use capture phase to get event before Plyr handlers
     
     // Handle play button click to open lightbox
     customPlayButton.addEventListener('click', (event) => {

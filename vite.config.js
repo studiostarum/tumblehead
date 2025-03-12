@@ -52,13 +52,17 @@ export default defineConfig(({ command }) => {
                 },
                 output: {
                     entryFileNames: (chunkInfo) => {
-                        // Separate output for webflow-plyr integration
-                        if (chunkInfo.name === 'webflowPlyr') {
+                        if (chunkInfo.name === 'plyr-embed') {
                             return 'plyr-embed.min.js';
                         }
                         return 'bundle.min.js';
                     },
-                    chunkFileNames: 'bundle.min.js',
+                    chunkFileNames: (chunkInfo) => {
+                        if (chunkInfo.name.includes('plyr')) {
+                            return 'plyr-embed.min.js';
+                        }
+                        return 'bundle.min.js';
+                    },
                     assetFileNames: (assetInfo) => {
                         if (assetInfo.name.endsWith('.css')) {
                             return 'bundle.min.css';
@@ -66,18 +70,22 @@ export default defineConfig(({ command }) => {
                         return 'assets/[name].[extname]';
                     },
                     manualChunks: (id) => {
-                        // Keep webflow-plyr integration separate from main bundle
-                        if (id.includes('webflow-plyr') || id.includes('components/video-player') || id.includes('integrations/webflow')) {
+                        // Keep plyr in its own chunk to prevent circular dependencies
+                        if (id.includes('plyr.js') || id.includes('plyr/dist')) {
+                            return 'plyr-vendor';
+                        }
+                        
+                        // Keep video player components separate
+                        if (id.includes('components/video-player')) {
                             return 'plyr-embed';
                         }
-                        return 'bundle.min.js'; // Force all other JS into a single bundle
+                        
+                        // Everything else goes in the main bundle
+                        return 'bundle';
                     }
                 }
             },
-            // Extracting CSS to a separate file is intentional for production:
-            // 1. Allows parallel loading of CSS and JS
-            // 2. Prevents Flash of Unstyled Content (FOUC)
-            // 3. Enables proper caching strategies
+            // Extracting CSS to a separate file is intentional for production
             cssCodeSplit: false,
             sourcemap: true,
             minify: 'terser',
