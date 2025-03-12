@@ -18,41 +18,92 @@ import './styles.css'; // Import video player component styles
 // =====================================================
 
 /**
- * Create a mutation observer to prevent poster/thumbnail elements
+ * Create a simplified mutation observer to remove poster elements
  * @returns {MutationObserver} Configured mutation observer
  */
-export function createPosterPreventionObserver() {
+export function createPosterRemovalObserver() {
   return new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.addedNodes && mutation.addedNodes.length) {
         for (let i = 0; i < mutation.addedNodes.length; i++) {
           const node = mutation.addedNodes[i];
-          // If the added node is a poster or thumbnail element, remove it immediately
+          // If the added node is a poster element, remove it
           if (node.classList && 
               (node.classList.contains('plyr__poster') || 
                node.getAttribute('data-poster') || 
                node.hasAttribute('poster'))) {
-            console.log('Removing poster element');
-            node.remove();
+            // Completely hide and remove the poster
+            if (node.style) {
+              node.style.display = 'none';
+              node.style.opacity = '0';
+              node.style.visibility = 'hidden';
+            }
+            
+            // Try to remove it from the DOM
+            try {
+              if (node.parentNode) {
+                node.parentNode.removeChild(node);
+              }
+            } catch (err) {
+              // Silent error handling
+            }
           }
           
           // For other nodes that might contain poster elements
           if (node.querySelectorAll) {
-            const posters = node.querySelectorAll('.plyr__poster');
+            const posters = node.querySelectorAll('.plyr__poster, [poster], [data-poster]');
             posters.forEach(poster => {
-              console.log('Removing nested poster element');
-              poster.remove();
+              // Hide the poster
+              if (poster.style) {
+                poster.style.display = 'none';
+                poster.style.opacity = '0';
+                poster.style.visibility = 'hidden';
+              }
+              
+              // Remove from DOM
+              try {
+                if (poster.parentNode) {
+                  poster.parentNode.removeChild(poster);
+                }
+              } catch (err) {
+                // Silent error handling
+              }
             });
+          }
+          
+          // Also handle video elements directly to remove poster attributes
+          if (node.tagName === 'VIDEO') {
+            node.removeAttribute('poster');
+            node.removeAttribute('data-poster');
           }
         }
       }
       
-      // Also check for attribute changes that might set a poster
+      // Check for attribute changes that might set a poster
       if (mutation.type === 'attributes' && 
-          mutation.attributeName === 'poster' && 
-          mutation.target.hasAttribute('poster')) {
-        console.log('Removing poster attribute');
-        mutation.target.removeAttribute('poster');
+          (mutation.attributeName === 'poster' || mutation.attributeName === 'data-poster') && 
+          mutation.target.hasAttribute(mutation.attributeName)) {
+        mutation.target.removeAttribute(mutation.attributeName);
+      }
+      
+      // Handle style attribute changes that might affect poster display
+      if (mutation.type === 'attributes' && 
+          mutation.attributeName === 'style' && 
+          mutation.target.classList && 
+          mutation.target.classList.contains('plyr__poster')) {
+        // Hide poster completely
+        mutation.target.style.display = 'none';
+        mutation.target.style.opacity = '0';
+        mutation.target.style.visibility = 'hidden';
+        
+        // Try to remove it from the DOM
+        try {
+          if (mutation.target.parentNode) {
+            mutation.target.parentNode.removeChild(mutation.target);
+          }
+        } catch (err) {
+          // Silent error handling
+        }
       }
     });
   });
@@ -70,13 +121,6 @@ export function preloadVideoSource(videoSrc) {
   prefetch.rel = 'prefetch';
   prefetch.href = videoSrc;
   document.head.appendChild(prefetch);
-  
-  // Also try preload
-  const preload = document.createElement('link');
-  preload.rel = 'preload';
-  preload.as = 'video';
-  preload.href = videoSrc;
-  document.head.appendChild(preload);
 }
 
 /**
@@ -86,6 +130,12 @@ export function preloadVideoSource(videoSrc) {
  */
 export function configureVideoSource(video, videoSrc) {
   if (!video || !videoSrc) return;
+  
+  // ALWAYS remove poster attribute to ensure no thumbnail shows
+  video.removeAttribute('poster');
+  video.removeAttribute('data-poster');
+  video.style.backgroundImage = 'none';
+  video.style.background = 'transparent';
   
   // Create source element if it doesn't exist
   if (!video.querySelector('source')) {
@@ -104,9 +154,7 @@ export function configureVideoSource(video, videoSrc) {
     }
     
     video.appendChild(source);
-    
-    // Also set src directly as a fallback
-    video.src = videoSrc;
+    video.src = videoSrc; // Also set src directly as a fallback
   } else {
     // If source exists but needs updating
     const source = video.querySelector('source');
@@ -118,11 +166,6 @@ export function configureVideoSource(video, videoSrc) {
   
   // Force video to load
   video.load();
-  
-  // Always remove poster to ensure no thumbnail shows
-  video.removeAttribute('poster');
-  video.style.backgroundImage = 'none';
-  video.style.background = 'transparent';
 }
 
 /**
@@ -136,11 +179,7 @@ export function ensureVideoVisibility(video) {
   video.style.opacity = '1';
   video.style.visibility = 'visible';
   video.style.display = 'block';
-  
-  // Set critical properties that might be causing the black screen
   video.style.backgroundColor = 'transparent';
-  
-  // Force the video to be in the active DOM layer
   video.style.position = 'relative';
   video.style.zIndex = '5';
   
@@ -150,7 +189,7 @@ export function ensureVideoVisibility(video) {
 }
 
 // Use the shared observer
-const preventPosterObserver = createPosterPreventionObserver();
+const preventPosterObserver = createPosterRemovalObserver();
 
 // Track initialized players to prevent duplicates
 const initializedVideos = new Set();
@@ -166,28 +205,46 @@ function initializeVideoPlayer(video) {
     return players.find(p => p.elements.original === video);
   }
   
-  // Always remove the poster attribute completely to ensure no thumbnail shows
-  video.removeAttribute('poster');
+  // Force setting currentTime to 0 before anything else happens
+  video.currentTime = 0;
   
-  // Try to play the video immediately, before Plyr initializes
-  try {
-    video.play().catch(e => console.log('Pre-init autoplay failed:', e));
-  } catch (e) {
-    console.log('Error with pre-init play:', e);
-  }
+  // Set standard video attributes
+  video.muted = true;
+  video.preload = 'auto';
+  video.loop = true; // Enable looping
+  video.autoplay = true; // Enable autoplay
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
   
-  // Watch for poster elements being added and remove them immediately
+  // Try to play the video immediately
+  const playVideo = async () => {
+    try {
+      // Ensure video is visible
+      video.style.opacity = '1';
+      video.style.visibility = 'visible';
+      await video.play();
+    } catch (e) {
+      // Silent handling of play failures
+      console.log('Initial autoplay failed, retrying...');
+      setTimeout(playVideo, 100);
+    }
+  };
+  
+  // Try to play immediately and also after a short delay
+  playVideo();
+  setTimeout(playVideo, 100);
+  
+  // Initialize observer for poster removal
   preventPosterObserver.observe(document.body, { 
     childList: true, 
     subtree: true,
     attributes: true,
-    attributeFilter: ['poster', 'style']
+    attributeFilter: ['poster', 'style', 'data-poster', 'src', 'data-src', 'class']
   });
   
-  // Initialize Plyr
+  // Initialize Plyr with simplified options
   const plyrOptions = {
     controls: [
-      // 'play-large',
       'play',
       'progress',
       'current-time',
@@ -195,31 +252,47 @@ function initializeVideoPlayer(video) {
       'volume',
       'fullscreen',
     ],
-    resetOnEnd: true,
+    resetOnEnd: false, // Prevent reset at end
     clickToPlay: true,
-    muted: true, // Always mute to ensure autoplay works
-    autoplay: true, // Always try to autoplay
-    disablePictureInPicture: true, // Disable PiP to avoid thumbnails
-    loadSprite: false, // Prevent sprite loading that might cause flicker
-    // Don't set loop in options, we'll set it after initialization
+    muted: true,
+    autoplay: true,
+    loop: { active: true }, // Enable looping
+    disablePictureInPicture: true,
+    loadSprite: false,
+    previewThumbnails: {
+      enabled: false,
+    },
+    poster: null,
+    tooltips: { controls: false, seek: false },
+    thumbnails: { enabled: false }
   };
-  
-  // Add preload attribute for video
-  video.preload = 'auto';
-  
-  // Force browser to begin loading the video right away
-  if (video.src) {
-    preloadVideoSource(video.src);
-  }
   
   // Create Plyr instance
   const player = new Plyr(video, plyrOptions);
   
-  // After Plyr creation, ensure no poster is shown
-  if (player.elements && player.elements.poster) {
-    // Completely remove the poster element instead of just hiding it
-    player.elements.poster.remove();
-  }
+  // Remove poster element after player is ready
+  player.on('ready', () => {
+    if (player.elements && player.elements.poster) {
+      // Hide poster completely
+      player.elements.poster.style.display = 'none';
+      player.elements.poster.style.opacity = '0';
+      player.elements.poster.style.visibility = 'hidden';
+      
+      // Try to remove the poster element if possible
+      try {
+        if (player.elements.poster.parentNode) {
+          player.elements.poster.parentNode.removeChild(player.elements.poster);
+        }
+      } catch (err) {
+        // Silent error handling
+      }
+    }
+    
+    // Remove poster attribute from the video element
+    if (player.elements && player.elements.original) {
+      player.elements.original.removeAttribute('poster');
+    }
+  });
   
   // Set initialized status
   video.setAttribute('data-plyr-initialized', 'true');
@@ -325,74 +398,87 @@ export function initializePlyrVideos() {
 function setupPreviewMode(container, player) {
   // Initial state: preview mode
   container.classList.add('preview-mode');
-  // Immediately mark as playing to ensure visibility
-  container.classList.add('video-playing');
   
-  // Try to play the video directly first, before any setup
+  // Ensure we're at frame 0
   if (player.media) {
-    try {
-      player.media.muted = true; // Ensure it's muted for autoplay
-      player.media.play().catch(e => console.log('Preview setup direct play failed:', e));
-    } catch (e) {
-      console.log('Error with preview setup direct play:', e);
-    }
+    player.media.currentTime = 0;
   }
   
-  // Force disable poster for preview videos
-  if (player.elements && player.elements.original) {
-    // Remove poster attribute entirely
-    player.elements.original.removeAttribute('poster');
+  // Mark as playing immediately
+  container.classList.add('video-playing');
+  
+  // Configure video for preview mode
+  if (player.media) {
+    // Set essential attributes for autoplay
+    player.media.muted = true;
+    player.media.loop = true;
+    player.media.autoplay = true;
+    player.media.playsinline = true;
+    player.media.setAttribute('webkit-playsinline', '');
+    player.media.currentTime = 0;
     
-    // If Plyr has created a poster element, completely hide it
+    // Function to handle playback
+    const playVideo = async () => {
+      try {
+        // Ensure video is visible
+        player.media.style.opacity = '1';
+        player.media.style.visibility = 'visible';
+        
+        // Attempt to play
+        await player.media.play();
+        
+        // If successful, ensure the video stays visible
+        player.media.style.opacity = '1';
+        player.media.style.visibility = 'visible';
+      } catch (error) {
+        console.log('Preview autoplay failed, retrying...');
+        // Retry after a short delay
+        setTimeout(playVideo, 100);
+      }
+    };
+
+    // Try to play immediately
+    playVideo();
+    
+    // Also try to play when metadata is loaded
+    player.media.addEventListener('loadedmetadata', playVideo);
+    
+    // Ensure video stays playing after seeking or buffering
+    player.media.addEventListener('seeked', playVideo);
+    player.media.addEventListener('waiting', () => {
+      setTimeout(playVideo, 100);
+    });
+  }
+  
+  // Disable any poster
+  if (player.elements) {
+    // Remove poster from original video element
+    if (player.elements.original) {
+      player.elements.original.removeAttribute('poster');
+      player.elements.original.removeAttribute('data-poster');
+      player.elements.original.style.backgroundImage = 'none';
+    }
+    
+    // Remove poster element
     if (player.elements.poster) {
       player.elements.poster.style.display = 'none';
       player.elements.poster.style.opacity = '0';
       player.elements.poster.style.visibility = 'hidden';
-    }
-  }
-  
-  // Enable looping for preview videos
-  // Set loop attribute on the video element directly
-  if (player.elements && player.elements.original) {
-    player.elements.original.setAttribute('loop', '');
-    // Use a safer way to set loop on Plyr
-    try {
-      // Some versions of Plyr need this workaround
-      if (typeof player.config === 'object' && player.config !== null) {
-        player.config.loop = { active: true };
+      
+      try {
+        if (player.elements.poster.parentNode) {
+          player.elements.poster.parentNode.removeChild(player.elements.poster);
+        }
+      } catch (err) {
+        // Silent error handling
       }
-    } catch (e) {
-      console.log('Could not set player loop config:', e);
     }
-  }
-  
-  // Apply poster image for fallback if available
-  if (player.elements && player.elements.original && player.elements.original.getAttribute('data-poster')) {
-    const posterUrl = player.elements.original.getAttribute('data-poster');
     
-    // Check if the poster URL is valid (not a video file)
-    const isValidPoster = posterUrl && 
-      !posterUrl.endsWith('.mp4') && 
-      !posterUrl.endsWith('.webm') && 
-      !posterUrl.endsWith('.mov') && 
-      posterUrl !== player.elements.original.getAttribute('data-src');
-      
-    if (isValidPoster) {
-      player.elements.original.poster = posterUrl;
-      
-      // If using Plyr, make sure the poster is displayed
-      if (player.elements.poster) {
-        player.elements.poster.style.backgroundImage = `url(${posterUrl})`;
-      }
-    } else {
-      // Clear invalid poster URL to let video display properly
-      player.elements.original.removeAttribute('poster');
-      player.elements.original.removeAttribute('data-poster');
-      
-      // If Plyr has a poster element, clear it
-      if (player.elements.poster) {
-        player.elements.poster.style.backgroundImage = '';
-      }
+    // Disable preview thumbnails
+    if (player.config) {
+      player.config.previewThumbnails = { enabled: false };
+      player.config.resetOnEnd = false; // Prevent reset at end
+      player.config.loop = { active: true }; // Enable looping
     }
   }
   
@@ -415,161 +501,6 @@ function setupPreviewMode(container, player) {
       }
     });
   }
-  
-  // Function to play the preview video
-  const playPreview = () => {
-    // First ensure the player and media exist
-    if (!player || !player.media) {
-      console.log('Player or media not available');
-      return;
-    }
-    
-    // Reset any attributes that might prevent playback
-    player.muted = true;
-    player.volume = 0;
-    player.speed = 1;
-    player.currentTime = 0;
-    
-    // Force plyr controls to be hidden
-    if (player.elements.controls) {
-      player.elements.controls.style.display = 'none';
-    }
-    
-    // Make sure the video element is visible and with proper z-index
-    if (player.elements.wrapper) {
-      player.elements.wrapper.style.visibility = 'visible';
-      player.elements.wrapper.style.opacity = '1';
-      player.elements.wrapper.style.zIndex = '3';
-    }
-    
-    // Force the native video element to be visible
-    if (player.media) {
-      player.media.style.opacity = '1';
-      player.media.style.visibility = 'visible';
-    }
-    
-    // Force poster to be hidden when we attempt playback
-    if (player.elements.poster) {
-      player.elements.poster.style.opacity = '0';
-      player.elements.poster.style.display = 'none';
-      player.elements.poster.style.visibility = 'hidden';
-      player.elements.poster.remove(); // Try to completely remove it
-    }
-    
-    // Log the player state
-    console.log('Player state before play:', {
-      paused: player.paused,
-      muted: player.muted, 
-      currentTime: player.currentTime,
-      duration: player.duration,
-      readyState: player.media.readyState
-    });
-
-    // If video isn't loaded yet, wait for it
-    if (player.media.readyState < 2) {
-      console.log('Video not ready yet, waiting for load');
-      player.media.addEventListener('loadeddata', () => {
-        console.log('Video data loaded, attempting playback');
-        attemptPlayback();
-      }, { once: true });
-      
-      // Also set a fallback timeout in case loadeddata never fires
-      setTimeout(attemptPlayback, 500);
-      return;
-    }
-    
-    // Otherwise try to play immediately
-    attemptPlayback();
-    
-    // Function to attempt actual playback
-    function attemptPlayback() {
-      console.log('Attempting video playback...');
-      
-      // Add video-playing class first
-      container.classList.add('video-playing');
-      
-      // Play video using both the Plyr player and direct video element methods
-      try {
-        // Try playing with Plyr
-        const playPromise = player.play();
-        
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            console.log('Video playback started successfully with Plyr');
-          }).catch(error => {
-            console.error('Plyr autoplay prevented:', error);
-            
-            // Try native video element as fallback
-            try {
-              console.log('Trying native video element playback as fallback');
-              player.media.play().catch(nativeError => {
-                console.error('Native autoplay also prevented:', nativeError);
-                handlePlaybackFailure();
-              });
-            } catch (nativeError) {
-              console.error('Error with native playback:', nativeError);
-              handlePlaybackFailure();
-            }
-          });
-        } else {
-          // For older browsers that don't return a promise
-          console.log('Browser did not return play promise, checking play state');
-          
-          // Check if the video is playing after a short delay
-          setTimeout(() => {
-            if (player.paused) {
-              console.log('Video is still paused after play attempt');
-              handlePlaybackFailure();
-            } else {
-              console.log('Video appears to be playing');
-            }
-          }, 300);
-        }
-      } catch (error) {
-        console.error('Error attempting to play:', error);
-        handlePlaybackFailure();
-      }
-      
-      // Handle failed playback
-      function handlePlaybackFailure() {
-        console.log('Handling playback failure');
-        
-        // Make the play button more prominent since autoplay failed
-        const playButton = container.querySelector('.preview-play-button');
-        if (playButton) {
-          playButton.style.opacity = '1';
-          playButton.style.transform = 'scale(1.2)';
-        }
-      }
-    }
-  };
-  
-  // Try to play initially without a delay to start immediately
-  playPreview(); // Call immediately 
-  
-  // Also try with a small delay as backup
-  setTimeout(playPreview, 100);
-  
-  // And with a longer delay as a final attempt
-  setTimeout(playPreview, 1000);
-  
-  // Make sure preview videos restart when they end (backup for loop)
-  player.on('ended', () => {
-    if (container.classList.contains('preview-mode')) {
-      player.currentTime = 0;
-      player.play().catch(() => {
-        console.log('Replay prevented by browser policy');
-      });
-    }
-  });
-  
-  // Handle visibility changes to restart video when tab becomes visible
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && 
-        container.classList.contains('preview-mode')) {
-      playPreview();
-    }
-  });
 }
 
 /**

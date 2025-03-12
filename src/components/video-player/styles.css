@@ -63,23 +63,39 @@
   z-index: 2;
 }
 
-.video-container.preview-mode .plyr__poster {
-  background-size: cover;
-  opacity: 0;
-  /* Hide poster by default - show video instead */
-  transition: opacity 0.3s ease;
-  z-index: 1;
-  /* Below video */
+/* CRITICAL: Global poster removal styles */
+.plyr__poster,
+.video-container .plyr__poster,
+.video-container.preview-mode .plyr__poster,
+.plyr--paused .plyr__poster,
+.plyr--stopped .plyr__poster,
+.plyr__video-wrapper::before,
+[poster],
+video[poster],
+video::-webkit-media-poster-frame,
+::-webkit-media-controls-poster {
   display: none !important;
-  /* Hide poster completely with !important to override any other styles */
+  opacity: 0 !important;
   visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -999 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  background-image: none !important;
 }
 
-/* Only for browsers that don't support autoplay, show poster */
-html:not([data-can-autoplay="true"]) .video-container.preview-mode .plyr__poster {
-  opacity: 0;
-  display: none !important;
-  visibility: hidden !important;
+/* Make video visible immediately */
+video,
+.plyr video,
+.video-container video,
+.video-container.preview-mode .video-inner video,
+.video-container.preview-mode .plyr video {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  z-index: 10 !important;
 }
 
 /* Enhanced play button for browsers without autoplay support */
@@ -178,7 +194,7 @@ html:not([data-can-autoplay="true"]) .video-container.preview-mode .preview-play
 
 .preview-play-button:hover {
   transform: translate(-50%, -50%) scale(1.2);
-  background: rgba(255, 73, 77, 1);
+  background: var(--plyr-color-main);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
@@ -354,7 +370,7 @@ body.scroll-locked {
 }
 
 .video-lightbox-container.lightbox-closing {
-  animation: none;
+  animation: scaleOut var(--animation-duration) ease forwards;
   transform-origin: center center;
   will-change: transform, opacity;
   /* Ensure it stays on top during the closing animation */
@@ -1069,100 +1085,6 @@ video::-webkit-media-controls-poster {
   /* Create a more compact control layout */
   .video-lightbox-container .plyr__volume {
     margin-left: auto;
-  }
-
-  /* Add mobile controls dropdown toggle */
-  .mobile-controls-toggle {
-    display: none;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
-    z-index: 10001;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    color: white;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-  }
-
-  .mobile-controls-toggle:hover {
-    background: rgba(0, 0, 0, 0.7);
-    transform: scale(1.1);
-  }
-
-  .mobile-controls-toggle:active {
-    transform: scale(0.95);
-  }
-
-  .mobile-controls-toggle svg {
-    width: 20px;
-    height: 20px;
-    stroke: white;
-    stroke-width: 2px;
-  }
-
-  .mobile-controls-menu {
-    display: none;
-    position: absolute;
-    top: 60px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: 4px;
-    padding: 10px;
-    z-index: 10002;
-    width: 200px;
-    flex-direction: column;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  .mobile-controls-menu.active {
-    display: flex;
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .mobile-controls-menu button {
-    background: transparent;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 10px;
-    margin: 4px 0;
-    text-align: left;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-  }
-
-  .mobile-controls-menu button:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .mobile-controls-menu button svg {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-  }
-
-  @media (max-width: 480px) {
-    .mobile-controls-toggle {
-      display: flex;
-    }
-
-    .video-lightbox-container .plyr__control[data-plyr="settings"],
-    .video-lightbox-container .plyr__control[data-plyr="pip"],
-    .video-lightbox-container .plyr__control[data-plyr="airplay"] {
-      display: none !important;
-    }
   }
 }
 
