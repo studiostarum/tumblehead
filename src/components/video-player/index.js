@@ -44,16 +44,33 @@ const DEBUG_MODE = false;
 const PAGE_LOAD_TIME = Date.now();
 const PAGE_LOAD_THRESHOLD = 2500; // ms to consider as initial page load period
 
+// Add visibility change tracking to prevent lightboxes from opening when switching tabs
+let TAB_SWITCHED_TIME = 0;
+const TAB_SWITCH_THRESHOLD = 1000; // ms to ignore events after tab switch
+
+// Track document visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    TAB_SWITCHED_TIME = Date.now();
+    logDebug('Tab became visible, setting switch time', TAB_SWITCHED_TIME);
+  }
+}, false);
+
+// Function to check if we're in the initial page load period
+function isInitialPageLoad() {
+  return (Date.now() - PAGE_LOAD_TIME) < PAGE_LOAD_THRESHOLD;
+}
+
+// Function to check if we just switched tabs
+function isRecentTabSwitch() {
+  return (Date.now() - TAB_SWITCHED_TIME) < TAB_SWITCH_THRESHOLD;
+}
+
 // Debug helper function that only logs when DEBUG_MODE is true
 function logDebug(message, data) {
   if (DEBUG_MODE) {
     console.log(`%c[Plyr Video] ${message}`, 'background: #008080; color: white; padding: 2px 6px; border-radius: 2px;', data || '');
   }
-}
-
-// Function to check if we're in the initial page load period
-function isInitialPageLoad() {
-  return (Date.now() - PAGE_LOAD_TIME) < PAGE_LOAD_THRESHOLD;
 }
 
 /**
@@ -211,9 +228,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     // Skip if clicking outside this container
     if (!container.contains(event.target)) return;
     
-    // Skip during initial setup, page load, or if autoplay is in progress
-    if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
-      logDebug('Skipping click/touch during initial setup, page load, or autoplay');
+    // Skip during initial setup, page load, after tab switch, or if autoplay is in progress
+    if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+      logDebug('Skipping click/touch during initial setup, page load, tab switch, or autoplay');
       return;
     }
     
@@ -306,9 +323,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       // Disable default play behavior
       player.off('play');
       player.on('play', (event) => {
-        // Skip during initial setup, page load, or if autoplay is in progress
-        if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
-          logDebug('Skipping lightbox open during initial setup, page load, or autoplay');
+        // Skip during initial setup, page load, tab switch, or if autoplay is in progress
+        if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+          logDebug('Skipping lightbox open during initial setup, page load, tab switch, or autoplay');
           return;
         }
         
@@ -405,9 +422,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     // Prevent default play behavior
     player.off('play');
     player.on('play', (event) => {
-      // Skip during initial setup, page load, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play event during initial setup, page load, or autoplay');
+      // Skip during initial setup, page load, tab switch, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play event during initial setup, page load, tab switch, or autoplay');
         return;
       }
       
@@ -447,9 +464,9 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Handle play button click to open lightbox
     customPlayButton.addEventListener('click', (event) => {
-      // Skip during initial setup, page load, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play button click during initial setup, page load, or autoplay');
+      // Skip during initial setup, page load, tab switch, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+        logDebug('Skipping play button click during initial setup, page load, tab switch, or autoplay');
         return;
       }
       
@@ -469,8 +486,8 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     
     // Also prevent pause when clicking on the video
     videoElement.addEventListener('click', (event) => {
-      // Skip during initial setup, page load, or if autoplay is in progress
-      if (isInitialSetup || isInitialPageLoad() || container.hasAttribute('data-autoplay-in-progress')) return;
+      // Skip during initial setup, page load, tab switch, or if autoplay is in progress
+      if (isInitialSetup || isInitialPageLoad() || isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) return;
       
       if (container.classList.contains('preview-mode')) {
         // Prevent default behavior (pausing)
