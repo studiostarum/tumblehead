@@ -102,18 +102,34 @@ export function initializePlyrVideos() {
     }
     
     // Check if this is a preview mode setup
-    const isPreviewMode = videoElement.getAttribute('data-preview-mode') === 'true';
-    const shouldAutoplay = videoElement.getAttribute('data-autoplay') === 'true';
-    const shouldMute = videoElement.getAttribute('data-muted') === 'true';
     const videoSrc = videoElement.getAttribute('data-src');
     const posterSrc = videoElement.getAttribute('data-poster');
+    const shouldAutoplay = videoElement.getAttribute('data-autoplay') === 'true';
+    const shouldMute = videoElement.getAttribute('data-muted') === 'true';
     const usePlyrButton = videoElement.getAttribute('data-use-plyr-button') === 'true';
     
+    // Use let for variables that might be reassigned based on data-mode
+    let isPreviewMode = videoElement.getAttribute('data-preview-mode') === 'true';
+    let playOnly = videoElement.getAttribute('data-play-only') === 'true';
+    
+    // New simplified mode attribute
+    const mode = videoElement.getAttribute('data-mode');
+    // Check if mode is set and update flags accordingly (overriding separate boolean flags)
+    if (mode === 'preview') {
+      isPreviewMode = true;
+      playOnly = false;
+    } else if (mode === 'play-only') {
+      isPreviewMode = false;
+      playOnly = true;
+    }
+    
     logDebug(`Container ${index} configuration:`, { 
+      mode,
       isPreviewMode, 
       shouldAutoplay, 
       shouldMute, 
       usePlyrButton,
+      playOnly,
       videoSrc: videoSrc ? 'set' : 'not set',
       posterSrc: posterSrc ? 'set' : 'not set'
     });
@@ -136,7 +152,7 @@ export function initializePlyrVideos() {
     const playerOptions = { ...DEFAULT_OPTIONS };
     
     // If in preview mode, modify controls to prevent default click behavior
-    if (isPreviewMode) {
+    if (isPreviewMode && !playOnly) {
       // For preview mode, hide most controls and only keep essentials
       playerOptions.controls = ['play-large'];
       
@@ -147,6 +163,14 @@ export function initializePlyrVideos() {
       
       // Disable autoplay in preview mode to prevent lightbox from opening automatically
       playerOptions.autoplay = false;
+    } else if (playOnly) {
+      // For play-only mode, remove all controls and set autoplay
+      playerOptions.controls = []; // Remove all controls
+      playerOptions.clickToPlay = false; // Disable click-to-play
+      playerOptions.keyboard = false; // Disable keyboard controls
+      playerOptions.autoplay = true; // Always autoplay
+      playerOptions.muted = true; // Must be muted for autoplay to work reliably
+      playerOptions.loop = { active: true }; // Loop the video
     } else {
       // For non-preview mode, respect the autoplay attribute
       playerOptions.autoplay = shouldAutoplay;
@@ -164,8 +188,8 @@ export function initializePlyrVideos() {
       // Mark as initialized
       container.setAttribute('data-plyr-initialized', 'true');
       
-      // Set up preview mode
-      if (isPreviewMode) {
+      // Set up preview mode if needed
+      if (isPreviewMode && !playOnly) {
         setupPreviewMode(container, player, videoElement, usePlyrButton);
         
         // Apply autoplay for preview mode separately after setup
@@ -192,6 +216,10 @@ export function initializePlyrVideos() {
             }
           }, 300);
         }
+      } 
+      // Set up play-only mode
+      else if (playOnly) {
+        setupPlayOnlyMode(container, player);
       }
       
       logDebug(`Successfully initialized container ${index}`);
@@ -564,6 +592,43 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       }
     }, true); // Use capture phase to get event before Plyr handlers
   }
+}
+
+/**
+ * Set up a play-only mode (no lightbox, no controls, just autoplay)
+ * @param {HTMLElement} container The video container
+ * @param {Plyr} player The Plyr instance
+ */
+function setupPlayOnlyMode(container, player) {
+  // Mark the container as play-only
+  container.classList.add('play-only-mode');
+  
+  // Disable all controls and user interaction
+  player.elements.container.style.pointerEvents = 'none';
+  
+  // Hide all Plyr controls
+  const controls = container.querySelectorAll('.plyr__controls, .plyr__control--overlaid');
+  controls.forEach(control => {
+    control.style.display = 'none';
+    control.style.opacity = '0';
+    control.style.visibility = 'hidden';
+  });
+  
+  // Make sure autoplay works by starting playback after a small delay
+  setTimeout(() => {
+    // Make sure it's muted for autoplay to work in all browsers
+    player.muted = true;
+    
+    // Start playback
+    player.play().catch(error => {
+      logDebug(`Error autoplaying video in play-only mode:`, error);
+    });
+  }, 100);
+  
+  // Add some styling to make it clear this is a pure video element
+  container.style.cursor = 'default';
+  
+  logDebug(`Set up play-only mode for ${container.id || 'unnamed container'} (autoplay only, no controls)`);
 }
 
 /**
