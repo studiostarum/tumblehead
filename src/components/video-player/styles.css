@@ -1,5 +1,5 @@
 /**
- * Custom Plyr video player styles
+ * Video Player Component Styles
  */
 
 :root {
@@ -111,10 +111,12 @@
 
 /* Styles for scroll locking */
 body.scroll-locked {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  /* These will be added dynamically by JS */
+  /* The important properties for avoiding content shift are:
+   * - position: fixed
+   * - width: 100%
+   * - padding-right (added dynamically to compensate for scrollbar)
+   */
 }
 
 /* Lightbox container */

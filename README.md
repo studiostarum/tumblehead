@@ -1,163 +1,188 @@
 # Tumblehead Website
 
-This project contains the animated navbar implementation for the Tumblehead website.
+A modern, component-based frontend implementation for the Tumblehead website, featuring an animated navbar, logo carousel, and embedded video player integration with Webflow CMS.
 
-## Project Structure
+## Project Overview
+
+This project has been refactored to follow a component-based architecture, improving organization, maintainability, and scalability. The codebase includes:
+
+- **Component-based architecture** with self-contained UI modules
+- **Plyr video player integration** for Webflow with lightbox functionality
+- **Animated navbar** with scroll-aware behavior
+- **Logo carousel** component
+- **Modern build system** using Vite with optimized production output
+
+## Directory Structure
 
 ```
-project-root/
+tumblehead/
+├── dist/                # Production build output
+├── docs/                # Documentation files
+├── node_modules/        # Dependencies
+├── scripts/             # Build and utility scripts
 ├── src/
-│   ├── js/
-│   │   ├── modules/
-│   │   │   ├── navbar.js
-│   │   │   └── utils.js
-│   │   └── main.js
-│   └── styles/
-│       └── navbar.css
-├── public/
-│   └── assets/
-├── dist/
+│   ├── assets/          # Static assets
+│   │   ├── icons/
+│   │   └── images/
+│   ├── components/      # Reusable UI components
+│   │   ├── category-filters/
+│   │   ├── hero/
+│   │   ├── logo-carousel/
+│   │   ├── navbar/
+│   │   ├── project-grid/
+│   │   └── video-player/
+│   │       ├── index.js       # Main component exports
+│   │       ├── lightbox.js    # Lightbox functionality
+│   │       └── styles.css     # Component styles
+│   ├── integrations/    # Third-party integrations
+│   │   └── webflow/     # Webflow-specific code
+│   │       └── plyr.js  # Webflow-Plyr integration
+│   ├── styles/          # Global styles
+│   │   ├── main.css     # Main stylesheet
+│   │   └── variables.css # CSS variables
+│   ├── utils/           # Utility functions
+│   │   ├── dom.js       # DOM manipulation utilities
+│   │   ├── scroll.js    # Scroll utilities
+│   │   └── video.js     # Video utilities
+│   ├── index.dev.html   # Development HTML template
+│   ├── index.html       # Production HTML template
+│   ├── main.js          # Main application entry point
+│   └── webflow-plyr.js  # Webflow integration entry point
+├── .gitignore
 ├── package.json
-├── vite.config.js
-└── README.md
+├── README.md
+├── REFACTORING.md
+└── vite.config.js
 ```
 
-## Setup
+## Components
 
-1. Install dependencies:
+### Video Player (Plyr Integration for Webflow)
+
+A feature-rich video player implementation using Plyr, optimized for integration with Webflow CMS:
+
+- **Preview Mode**: Autoplay (muted) videos as previews with centered play button
+- **Lightbox Mode**: Expands to full-screen lightbox with unmuted playback
+- **Scroll Locking**: Locks page scrolling when lightbox is open
+- **Seamless Experience**: Preview continues playing when lightbox opens
+- **Accessibility**: Full keyboard navigation and screen reader support
+
+### Navbar
+
+A responsive, animated navigation bar:
+
+- Smooth fade-in/out animation based on scroll position
+- Mobile-friendly with hamburger menu
+- Scroll-aware visibility (hides when scrolling down, shows when scrolling up)
+- Dropdown menu support
+
+### Logo Carousel
+
+A smooth, responsive logo carousel:
+
+- Infinite scrolling
+- Touch-enabled for mobile devices
+- Pause on hover
+- Configurable scroll speed and behavior
+
+## Build System
+
+The project uses Vite for fast development and optimized production builds:
+
+### Entry Points
+
+The build system maintains two distinct entry points:
+
+1. **main.js**: Main application entry point, included in `bundle.min.js`
+2. **webflow-plyr.js**: Standalone Webflow Plyr integration, builds to `plyr-embed.min.js`
+
+### Output Files
+
+The production build generates the following optimized files:
+
+- **bundle.min.js**: Main application JavaScript
+- **plyr-embed.min.js**: Standalone Webflow Plyr integration
+- **bundle.min.css**: Combined CSS styles
+- **index.html**: Production HTML template
+
+CSS is intentionally kept as a separate file in production for:
+- Parallel loading of CSS and JavaScript
+- Prevention of Flash of Unstyled Content (FOUC)
+- Better cache control
+
+## Development Workflow
+
+### Installation
+
 ```bash
 npm install
 ```
 
-2. Development:
+### Development Server
+
 ```bash
 npm run dev
 ```
 
-3. Build for production:
+This starts a development server at http://localhost:3000 with the `index.dev.html` template.
+
+### Production Build
+
 ```bash
 npm run build
 ```
 
-4. Preview production build:
+Generates optimized production files in the `dist/` directory.
+
+### Preview Production Build
+
 ```bash
 npm run preview
 ```
 
-## Features
+## Integrating with Webflow
 
-- Animated navbar that fades in when scrolling past the hero section
-- Smooth transitions and performance optimized
-- Modern build setup with Vite
+### Video Player Integration
 
-# Navbar Component Documentation
+To use the Plyr video player in Webflow:
 
-## Overview
-The navbar component provides a smooth scroll-based visibility animation that automatically shows/hides the navigation bar based on the user's scroll position relative to a hero section. The navbar animation is active only on pages with a hero section and remains always visible on other pages.
-
-## Features
-- Smooth fade-in/fade-out animation with transform
-- Context-aware behavior (animated with hero section, always visible without)
-- Scroll position based visibility
-- Performance optimized with throttling
-- Semantic HTML with data attributes
-- Clean destruction and event cleanup
-
-## Implementation
-
-### HTML Structure
-Add the following data attributes to your HTML elements:
-
+1. Add this script tag to your Webflow project:
 ```html
-<!-- Page with animated navbar (e.g., home page) -->
-<body>
-    <!-- Navbar element -->
-    <nav data-navbar>
-        <!-- Your navbar content -->
-    </nav>
-
-    <!-- Hero section -->
-    <section data-hero>
-        <!-- Your hero content -->
-    </section>
-</body>
-
-<!-- Page with static navbar -->
-<body>
-    <nav data-navbar>
-        <!-- Your navbar content -->
-    </nav>
-</body>
+<script src="https://your-domain.com/plyr-embed.min.js" type="module"></script>
 ```
 
-### Data Attributes
-- `data-navbar`: Add to your navbar element
-- `data-hero`: Add to your hero section element (only on pages where you want the navbar to animate)
-- `data-state`: Automatically managed by the controller (values: "visible" | "hidden")
-
-### JavaScript Usage
-```javascript
-import { initNavbar } from './js/modules/navbar';
-
-// Initialize the navbar
-const navbarController = initNavbar();
-
-// Clean up when needed (e.g., page unmount)
-navbarController.destroy();
+2. Add video containers with the following structure:
+```html
+<div class="video-container">
+  <div class="video-inner">
+    <video 
+      data-plyr="true" 
+      data-preview-mode="true" 
+      data-autoplay="true" 
+      data-muted="true"
+      data-src="your-video-url.mp4"
+      data-poster="your-poster-image.jpg"
+      playsinline
+      loop>
+    </video>
+  </div>
+</div>
 ```
 
-### CSS Customization
-The navbar uses the following CSS classes that you can customize:
+3. Configure with data attributes:
+   - `data-preview-mode="true"`: Enables preview/lightbox functionality
+   - `data-autoplay="true"`: Autoplays in preview mode
+   - `data-muted="true"`: Mutes in preview mode (unmutes in lightbox)
+   - `data-src`: Video source URL
+   - `data-poster`: Poster image URL
 
-```css
-[data-navbar] {
-    opacity: 0;
-    transform: translateY(-20px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    z-index: 1000;
-}
-
-[data-navbar][data-state="visible"] {
-    opacity: 1;
-    transform: translateY(0);
-}
-```
-
-## Behavior
-1. **Pages with Hero Section**:
-   - Navbar starts hidden
-   - Shows when scrolling past the hero section
-   - Hides when scrolling back to the hero section
-   - Smooth transition animations
-
-2. **Pages without Hero Section**:
-   - Navbar is always visible
-   - No scroll-based animations
-   - No event listeners attached
-
-## Performance
-- Uses throttling to optimize scroll event handling
-- Event listeners are only attached when hero section is present
-- Proper cleanup on destruction
-- Passive scroll event listener for better scroll performance
+For detailed customization options, see the [Webflow Plyr CMS Integration](docs/webflow-plyr-cms-integration.md) documentation.
 
 ## Browser Support
-- Works in all modern browsers
-- Uses standard CSS transforms and transitions
-- No special polyfills required
 
-## Troubleshooting
-If the navbar isn't working as expected, check:
-1. Data attributes are correctly set on your HTML elements
-2. JavaScript is properly initialized
-3. No CSS conflicts are overriding the transitions
-4. Console for any error messages
+- All modern browsers (Chrome, Firefox, Safari, Edge)
+- Internet Explorer is not supported
 
-## Error Handling
-The component includes built-in error handling:
-- Warns if hero section is not found
-- Errors if navbar element is not found
-- Graceful fallback to visible state if elements are missing 
+## License
+
+ISC 

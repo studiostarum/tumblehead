@@ -1,17 +1,28 @@
-// Import main CSS file
-import '../styles/main.css';
+/**
+ * Main Application Entry Point
+ * 
+ * This is the primary entry point for the application.
+ * It initializes all components and sets up global functionality.
+ */
 
-import { initNavbar } from './modules/navbar';
-import { initCustomScrollbar } from './modules/custom-scrollbar';
-import { initHeroScrollReveal } from './modules/hero-scroll-reveal';
-import { initLogoCarousel } from './modules/logo-carousel';
-import { initVideoLightbox } from './modules/video-lightbox';
+// Import main CSS file
+import './styles/main.css';
+
+// Import components
+import { initNavbar } from './components/navbar';
+import { initLogoCarousel } from './components/logo-carousel';
+import { initVideoPlayer } from './components/video-player';
+import { initHeroScrollReveal } from './components/hero/scroll-reveal';
+
+// Import utilities
+import { initCustomScrollbar } from './utils/scroll';
+import { setupFinsweetVideoIntegration } from './utils/video';
+
+// Import third-party dependencies
 import { createIcons, Play } from 'lucide';
-import { setupFinsweetVideoIntegration } from './videoUtils';
-import './webflow-plyr-embed'; // Import the Webflow Plyr embed module
 
 /**
- * Lock screen orientation to portrait
+ * Lock screen orientation to portrait on mobile devices
  */
 function lockScreenOrientation() {
     // Only apply on mobile devices
@@ -46,11 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lock screen orientation
     lockScreenOrientation();
     
-    initNavbar();
-    initCustomScrollbar();
-    initHeroScrollReveal();
-    initLogoCarousel();
-    
     // Initialize Lucide icons first
     createIcons({
         icons: {
@@ -58,9 +64,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Then initialize video lightbox
-    initVideoLightbox();
-
-    // Initialize video handling with Finsweet integration
+    // Initialize UI components
+    initNavbar();
+    initCustomScrollbar();
+    initHeroScrollReveal();
+    initLogoCarousel();
+    
+    // Initialize video components
+    initVideoPlayer();
     setupFinsweetVideoIntegration();
-}); 
+});
+
+// Export for external use
+export default {
+    lockScreenOrientation
+}; 

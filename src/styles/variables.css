@@ -1,0 +1,50 @@
+/**
+ * Global CSS Variables
+ * 
+ * This file contains all global CSS variables used throughout the application.
+ * Import this file in components that need access to the global variables.
+ */
+
+:root {
+  /* Colors */
+  --primary-color: #ff494d;
+  --primary-color-light: rgba(255, 73, 77, 0.8);
+  --primary-color-dark: #e02e32;
+  
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-base: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  /* Z-indices */
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  
+  /* Breakpoints */
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  
+  /* Plyr variables */
+  --plyr-color-main: var(--primary-color);
+  --plyr-control-radius: var(--border-radius-sm);
+  --plyr-video-control-background-hover: rgba(255, 73, 77, 0.2);
+  --plyr-video-control-color: #ffffff;
+  --plyr-video-control-color-hover: #ffffff;
+  --plyr-audio-control-color: #ffffff;
+  --plyr-audio-control-color-hover: #ffffff;
+  --plyr-control-spacing: 8px;
+  --plyr-range-fill-background: var(--primary-color);
+  --plyr-range-thumb-background: #ffffff;
+  --plyr-video-controls-background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75));
+  
+  /* Animation */
+  --animation-duration: 0.4s;
+} 

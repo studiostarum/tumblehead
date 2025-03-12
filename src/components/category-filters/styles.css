@@ -1,0 +1,36 @@
+/**
+ * Category Filters Component Styles
+ */
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.category-filter {
+  padding: 0.5rem 1.5rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 30px;
+  color: #333;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.category-filter:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.category-filter.active {
+  background-color: #ff494d;
+  color: white;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+  .category-filters {
+    justify-content: center;
+  }
+} 

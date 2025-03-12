@@ -1,0 +1,31 @@
+/**
+ * Logo Carousel Component Styles
+ */
+
+.logo-carousel {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.logo-carousel-track-outer {
+    overflow: hidden;
+    width: 100%;
+}
+
+.logo-carousel-track {
+    display: flex;
+    align-items: center;
+    will-change: transform;
+}
+
+.logo-carousel-logo {
+    flex-shrink: 0;
+    padding: 0 2rem;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.logo-carousel-logo:hover {
+    opacity: 0.8;
+} 
