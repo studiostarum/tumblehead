@@ -14,6 +14,199 @@
   --plyr-range-fill-background: #ff494d;
   --plyr-range-thumb-background: #ffffff;
   --plyr-video-controls-background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75));
+  
+  /* Animation durations */
+  --animation-duration: 0.4s;
+}
+
+/* Webflow-compatible video container styles */
+.video-container {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  overflow: hidden;
+  transition: transform var(--animation-duration) ease, 
+              box-shadow var(--animation-duration) ease;
+}
+
+.video-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video-inner video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Preview mode styles */
+.video-container.preview-mode {
+  cursor: pointer;
+}
+
+.video-container.preview-mode .plyr--video {
+  pointer-events: none; /* Prevent interaction with video in preview mode */
+}
+
+.video-container.preview-mode .plyr__controls {
+  display: none !important; /* Hide controls in preview mode */
+}
+
+/* Centered play button for preview mode */
+.preview-play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  background: rgba(255, 73, 77, 0.8);
+  color: white;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.preview-play-button:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+  background: rgba(255, 73, 77, 1);
+}
+
+.preview-play-button svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Lightbox transition styles */
+.video-lightbox-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0);
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity var(--animation-duration) ease;
+  pointer-events: none;
+}
+
+.video-lightbox-backdrop.active {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.85);
+  pointer-events: all;
+}
+
+/* Styles for scroll locking */
+body.scroll-locked {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Lightbox container */
+.video-lightbox-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 1200px;
+  height: 0;
+  padding-top: 0;
+  padding-bottom: calc(90% * 9 / 16); /* Maintain 16:9 aspect ratio */
+  max-height: 90vh;
+  z-index: 9999;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: none;
+}
+
+.video-lightbox-container.lightbox-mode {
+  display: block;
+  animation: scaleIn var(--animation-duration) ease forwards;
+}
+
+@media (max-width: 768px) {
+  .video-lightbox-container {
+    width: 95%;
+    padding-bottom: calc(95% * 9 / 16);
+  }
+}
+
+/* Ensure video fills the wrapper */
+.video-lightbox-container .video-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video-lightbox-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Close button for lightbox */
+.lightbox-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  z-index: 10000;
+  transition: opacity 0.3s ease, background-color 0.2s ease;
+  pointer-events: none;
+}
+
+.lightbox-close.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.lightbox-close:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.lightbox-close svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+/* Scale-in animation for lightbox mode */
+@keyframes scaleIn {
+  0% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
 }
 
 /* Make player mobile-friendly */
@@ -29,17 +222,6 @@
   .plyr--video {
     max-height: 50vh;
   }
-}
-
-/* Lightbox specific styles */
-.video-lightbox-wrapper .plyr {
-  width: 100%;
-  height: 100%;
-  max-height: 85vh;
-  margin: 0 auto;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* Fullscreen improvements */
