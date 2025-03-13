@@ -18,47 +18,16 @@ import { initHeroScrollReveal } from './components/hero/scroll-reveal';
 import { initLogoCarousel } from './components/logo-carousel';
 
 // Import utilities
-import { initCustomScrollbar } from './utils/scroll';
 import { setupFinsweetVideoIntegration } from './utils/video';
 
 // Import third-party dependencies
 import { createIcons, Play } from 'lucide';
 
 /**
- * Lock screen orientation to portrait on mobile devices
- */
-function lockScreenOrientation() {
-    // Only apply on mobile devices
-    if (window.matchMedia("(max-width: 768px)").matches) {
-        try {
-            // Try screen orientation API first
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('portrait').catch((err) => {
-                    console.log('Orientation lock failed:', err);
-                });
-            }
-            // Fallback for older browsers
-            else if (screen.lockOrientation) {
-                screen.lockOrientation('portrait');
-            } else if (screen.mozLockOrientation) {
-                screen.mozLockOrientation('portrait');
-            } else if (screen.msLockOrientation) {
-                screen.msLockOrientation('portrait');
-            }
-        } catch (err) {
-            console.log('Screen orientation lock not supported');
-        }
-    }
-}
-
-/**
  * Initialize all modules when DOM is ready
  */
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM ready, initializing modules...');
-    
-    // Lock screen orientation
-    lockScreenOrientation();
     
     // Initialize Lucide icons first
     createIcons({
@@ -69,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize UI components
     initNavbar();
-    initCustomScrollbar();
     initHeroScrollReveal();
     
     // Initialize logo carousel with custom config (optional)
@@ -84,8 +52,3 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('resize', () => {
     // No need to call initLogoCarousel() here as we're using ResizeObserver
 }, { passive: true });
-
-// Export for external use
-export default {
-    lockScreenOrientation
-}; 
