@@ -5,6 +5,9 @@ import './styles.css';
 import Plyr from 'plyr';
 import 'plyr/dist/plyr.css';
 
+// Import setupAspectRatio from plyr.js
+import { setupAspectRatio } from './plyr';
+
 // Default options for Plyr video player
 const DEFAULT_OPTIONS = {
   autoplay: false,
@@ -134,6 +137,9 @@ export function initializePlyrVideos() {
       videoElement.muted = true;
     }
     
+    // Set up aspect ratio
+    setupAspectRatio(container);
+    
     // Create custom Plyr options for preview mode
     const playerOptions = { ...DEFAULT_OPTIONS };
     
@@ -145,8 +151,10 @@ export function initializePlyrVideos() {
       playerOptions.clickToPlay = false; // Disable default click-to-play behavior
       playerOptions.dblclickToToggleFullscreen = false; // Disable double-click to fullscreen
       
-      // Disable autoplay in lightbox mode to prevent lightbox from opening automatically
-      playerOptions.autoplay = false;
+      // Enable autoplay for lightbox preview
+      playerOptions.autoplay = true;
+      playerOptions.muted = true; // Must be muted for autoplay to work reliably
+      playerOptions.loop = { active: true }; // Loop the video
     } else if (isPreviewMode) {
       // For preview mode, remove all controls and set autoplay
       playerOptions.controls = []; // Remove all controls

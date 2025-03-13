@@ -27,24 +27,33 @@ const ASPECT_RATIO_OPTIONS = {
  * Set up aspect ratio for a video container
  * @param {HTMLElement} container The video container element
  */
-function setupAspectRatio(container) {
-  const videoElement = container.querySelector('video[data-plyr="true"]');
-  if (!videoElement) return;
+export function setupAspectRatio(container) {
+  const videoElement = container.querySelector('video');
+  if (!videoElement) {
+    logDebug('No video element found in container');
+    return;
+  }
 
-  // Get aspect ratio from data attribute or default to 16:9
-  const aspectRatio = videoElement.getAttribute('data-aspect-ratio') || '16:9';
+  // Get aspect ratio from data attribute, checking both video element and container, default to 16:9
+  const aspectRatio = videoElement.getAttribute('data-aspect-ratio') || 
+                     container.getAttribute('data-aspect-ratio') || 
+                     '16:9';
+  logDebug(`Setting up aspect ratio: ${aspectRatio} for video`, videoElement);
   
-  // Set the aspect ratio attribute on the container
+  // Set the aspect ratio attribute on both the container and video element
   container.setAttribute('data-aspect-ratio', aspectRatio);
+  videoElement.setAttribute('data-aspect-ratio', aspectRatio);
   
   // If custom aspect ratio, calculate and set the custom value
   if (aspectRatio === 'custom') {
-    const customRatio = videoElement.getAttribute('data-custom-ratio');
+    const customRatio = videoElement.getAttribute('data-custom-ratio') ||
+                       container.getAttribute('data-custom-ratio');
     if (customRatio) {
       // Calculate percentage from ratio (e.g., "3:4" -> 133.33%)
       const [width, height] = customRatio.split(':').map(Number);
       const percentage = (height / width) * 100;
       container.style.setProperty('--custom-aspect-ratio', `${percentage}%`);
+      logDebug(`Set custom aspect ratio: ${percentage}%`);
     }
   }
 
@@ -52,12 +61,15 @@ function setupAspectRatio(container) {
   const lightboxContent = document.querySelector('.video-lightbox-content');
   if (lightboxContent) {
     lightboxContent.setAttribute('data-aspect-ratio', aspectRatio);
+    logDebug(`Set lightbox aspect ratio: ${aspectRatio}`);
     if (aspectRatio === 'custom') {
-      const customRatio = videoElement.getAttribute('data-custom-ratio');
+      const customRatio = videoElement.getAttribute('data-custom-ratio') ||
+                         container.getAttribute('data-custom-ratio');
       if (customRatio) {
         const [width, height] = customRatio.split(':').map(Number);
         const percentage = (height / width) * 100;
         lightboxContent.style.setProperty('--custom-aspect-ratio', `${percentage}%`);
+        logDebug(`Set lightbox custom aspect ratio: ${percentage}%`);
       }
     }
   }
