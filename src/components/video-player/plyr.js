@@ -15,6 +15,54 @@ const DEBUG_MODE = false;
 // Flag to prevent multiple initializations during page load
 let hasInitialized = false;
 
+// Default aspect ratio options
+const ASPECT_RATIO_OPTIONS = {
+  '16:9': '56.25%',
+  '4:3': '75%',
+  '1:1': '100%',
+  '9:16': '177.78%'
+};
+
+/**
+ * Set up aspect ratio for a video container
+ * @param {HTMLElement} container The video container element
+ */
+function setupAspectRatio(container) {
+  const videoElement = container.querySelector('video[data-plyr="true"]');
+  if (!videoElement) return;
+
+  // Get aspect ratio from data attribute or default to 16:9
+  const aspectRatio = videoElement.getAttribute('data-aspect-ratio') || '16:9';
+  
+  // Set the aspect ratio attribute on the container
+  container.setAttribute('data-aspect-ratio', aspectRatio);
+  
+  // If custom aspect ratio, calculate and set the custom value
+  if (aspectRatio === 'custom') {
+    const customRatio = videoElement.getAttribute('data-custom-ratio');
+    if (customRatio) {
+      // Calculate percentage from ratio (e.g., "3:4" -> 133.33%)
+      const [width, height] = customRatio.split(':').map(Number);
+      const percentage = (height / width) * 100;
+      container.style.setProperty('--custom-aspect-ratio', `${percentage}%`);
+    }
+  }
+
+  // Also set up lightbox content aspect ratio if it exists
+  const lightboxContent = document.querySelector('.video-lightbox-content');
+  if (lightboxContent) {
+    lightboxContent.setAttribute('data-aspect-ratio', aspectRatio);
+    if (aspectRatio === 'custom') {
+      const customRatio = videoElement.getAttribute('data-custom-ratio');
+      if (customRatio) {
+        const [width, height] = customRatio.split(':').map(Number);
+        const percentage = (height / width) * 100;
+        lightboxContent.style.setProperty('--custom-aspect-ratio', `${percentage}%`);
+      }
+    }
+  }
+}
+
 /**
  * Initialize all videos when Webflow page loads
  */
@@ -30,12 +78,20 @@ function initOnWebflowLoad() {
   // Initialize on DOM ready - with single execution guarantee
   document.addEventListener('DOMContentLoaded', () => {
     logDebug('Initializing Plyr videos for Webflow');
+    
+    // Set up aspect ratios for all video containers
+    document.querySelectorAll('.video-container').forEach(setupAspectRatio);
+    
     initVideoPlayer();
   }, { once: true });
   
   // Initialize on Webflow page change (if using Webflow interactions) - with single execution guarantee
   window.addEventListener('Webflow.ready', () => {
     logDebug('Webflow ready, initializing Plyr videos');
+    
+    // Set up aspect ratios for all video containers
+    document.querySelectorAll('.video-container').forEach(setupAspectRatio);
+    
     initializePlyrVideos();
   }, { once: true });
 }

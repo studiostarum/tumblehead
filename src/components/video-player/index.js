@@ -82,16 +82,16 @@ function logDebug(message, data) {
  * Initialize Plyr videos with preview mode and lightbox functionality
  */
 export function initializePlyrVideos() {
-  // Find all video containers with data-plyr attribute
+  // Find all video containers
   const videoContainers = document.querySelectorAll('.video-container');
   
   logDebug(`Found ${videoContainers.length} video containers`);
   
   videoContainers.forEach((container, index) => {
-    const videoElement = container.querySelector('video[data-plyr="true"]');
+    const videoElement = container.querySelector('video');
     
     if (!videoElement) {
-      logDebug(`Container ${index} has no video element with data-plyr="true"`);
+      logDebug(`Container ${index} has no video element`);
       return;
     }
     
@@ -106,40 +106,16 @@ export function initializePlyrVideos() {
     const posterSrc = videoElement.getAttribute('data-poster');
     const shouldAutoplay = videoElement.getAttribute('data-autoplay') === 'true';
     const shouldMute = videoElement.getAttribute('data-muted') === 'true';
-    const usePlyrButton = videoElement.getAttribute('data-use-plyr-button') === 'true';
     
     // Use let for variables that might be reassigned based on data-mode
-    let isPreviewMode = videoElement.getAttribute('data-preview-mode') === 'true';
-    let playOnly = videoElement.getAttribute('data-play-only') === 'true';
-    
-    // New simplified mode attribute
-    const mode = videoElement.getAttribute('data-mode');
-    // Check if mode is set and update flags accordingly (overriding separate boolean flags)
-    if (mode === 'preview') {
-      isPreviewMode = true;
-      playOnly = false;
-    } else if (mode === 'play-only') {
-      isPreviewMode = false;
-      playOnly = true;
-      
-      // Immediately add a CSS class to prevent controls flash
-      container.classList.add('play-only-mode');
-      // Hide any controls that might be pre-rendered
-      const existingControls = container.querySelectorAll('.plyr__controls, .plyr__control--overlaid');
-      existingControls.forEach(control => {
-        control.style.display = 'none';
-        control.style.opacity = '0';
-        control.style.visibility = 'hidden';
-      });
-    }
+    let isLightboxMode = videoElement.getAttribute('data-mode') === 'lightbox';
+    let isPreviewMode = videoElement.getAttribute('data-mode') === 'preview';
     
     logDebug(`Container ${index} configuration:`, { 
-      mode,
+      isLightboxMode,
       isPreviewMode, 
       shouldAutoplay, 
-      shouldMute, 
-      usePlyrButton,
-      playOnly,
+      shouldMute,
       videoSrc: videoSrc ? 'set' : 'not set',
       posterSrc: posterSrc ? 'set' : 'not set'
     });
@@ -161,20 +137,18 @@ export function initializePlyrVideos() {
     // Create custom Plyr options for preview mode
     const playerOptions = { ...DEFAULT_OPTIONS };
     
-    // If in preview mode, modify controls to prevent default click behavior
-    if (isPreviewMode && !playOnly) {
-      // For preview mode, hide most controls and only keep essentials
+    // If in lightbox mode, modify controls to prevent default click behavior
+    if (isLightboxMode) {
+      // For lightbox mode, hide most controls and only keep essentials
       playerOptions.controls = ['play-large'];
       
-      if (!usePlyrButton) {
-        playerOptions.clickToPlay = false; // Disable default click-to-play behavior
-        playerOptions.dblclickToToggleFullscreen = false; // Disable double-click to fullscreen
-      }
+      playerOptions.clickToPlay = false; // Disable default click-to-play behavior
+      playerOptions.dblclickToToggleFullscreen = false; // Disable double-click to fullscreen
       
-      // Disable autoplay in preview mode to prevent lightbox from opening automatically
+      // Disable autoplay in lightbox mode to prevent lightbox from opening automatically
       playerOptions.autoplay = false;
-    } else if (playOnly) {
-      // For play-only mode, remove all controls and set autoplay
+    } else if (isPreviewMode) {
+      // For preview mode, remove all controls and set autoplay
       playerOptions.controls = []; // Remove all controls
       playerOptions.clickToPlay = false; // Disable click-to-play
       playerOptions.keyboard = false; // Disable keyboard controls
@@ -198,11 +172,11 @@ export function initializePlyrVideos() {
       // Mark as initialized
       container.setAttribute('data-plyr-initialized', 'true');
       
-      // Set up preview mode if needed
-      if (isPreviewMode && !playOnly) {
-        setupPreviewMode(container, player, videoElement, usePlyrButton);
+      // Set up lightbox mode if needed
+      if (isLightboxMode) {
+        setupLightboxMode(container, player, videoElement);
         
-        // Apply autoplay for preview mode separately after setup
+        // Apply autoplay for lightbox mode separately after setup
         // This ensures event handlers are in place before autoplay happens
         if (shouldAutoplay && shouldMute) {
           // Only attempt autoplay if muted (browser restrictions)
@@ -227,9 +201,9 @@ export function initializePlyrVideos() {
           }, 300);
         }
       } 
-      // Set up play-only mode
-      else if (playOnly) {
-        setupPlayOnlyMode(container, player);
+      // Set up preview mode
+      else if (isPreviewMode) {
+        setupPreviewMode(container, player);
       }
       
       logDebug(`Successfully initialized container ${index}`);
@@ -242,15 +216,14 @@ export function initializePlyrVideos() {
 }
 
 /**
- * Set up preview mode with lightbox functionality
+ * Set up lightbox mode with lightbox functionality
  * @param {HTMLElement} container The video container
  * @param {Plyr} player The Plyr instance
  * @param {HTMLVideoElement} videoElement The video element
- * @param {boolean} usePlyrButton Whether to use Plyr's native play button
  */
-function setupPreviewMode(container, player, videoElement, usePlyrButton = false) {
-  // Add preview mode class
-  container.classList.add('preview-mode');
+function setupLightboxMode(container, player, videoElement) {
+  // Add lightbox mode class
+  container.classList.add('lightbox-mode');
   
   // Remove any existing play button first
   const existingButton = container.querySelector('.preview-play-button');
@@ -290,7 +263,7 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
       return;
     }
     
-    if (container.classList.contains('preview-mode')) {
+    if (container.classList.contains('lightbox-mode')) {
       // Stop propagation and prevent default
       event.stopPropagation();
       event.preventDefault();
@@ -310,8 +283,8 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
   container.addEventListener('click', preventDefaultClickHandler, true);
   container.addEventListener('touchend', preventDefaultClickHandler, true);
   
-  // Completely disable Plyr's click-to-play for preview mode
-  if (container.classList.contains('preview-mode')) {
+  // Completely disable Plyr's click-to-play for lightbox mode
+  if (container.classList.contains('lightbox-mode')) {
     // This will run immediately after player creation
     player.elements.container.style.pointerEvents = 'none';
     
@@ -323,296 +296,112 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
     }
   }
   
-  // Set up Plyr's native controls or custom button based on option
-  if (usePlyrButton) {
-    logDebug(`Setting up Plyr native button for ${container.id || 'unnamed container'}`);
-    
-    // Use Plyr's native play button - make sure it's visible
-    const plyrControls = container.querySelector('.plyr__control--overlaid');
-    if (plyrControls) {
-      // Force button to be visible and properly circular
-      plyrControls.style.opacity = '1';
-      plyrControls.style.visibility = 'visible';
-      plyrControls.style.pointerEvents = 'auto';
-      
-      // Ensure proper positioning and circular shape
-      plyrControls.style.top = '50%';
-      plyrControls.style.left = '50%';
-      plyrControls.style.transform = 'translate(-50%, -50%)';
-      plyrControls.style.margin = '0';
-      
-      // Force fixed dimensions for consistent circular shape
-      const buttonSize = window.innerWidth <= 480 ? '36px' : 
-                         window.innerWidth <= 768 ? '42px' : '48px';
-                         
-      plyrControls.style.width = buttonSize;
-      plyrControls.style.height = buttonSize;
-      plyrControls.style.minWidth = buttonSize;
-      plyrControls.style.minHeight = buttonSize;
-      plyrControls.style.maxWidth = buttonSize;
-      plyrControls.style.maxHeight = buttonSize;
-      plyrControls.style.borderRadius = '50%';
-      plyrControls.style.padding = '0';
-      plyrControls.style.boxSizing = 'border-box';
-      
-      // Center the icon inside
-      plyrControls.style.display = 'flex';
-      plyrControls.style.alignItems = 'center';
-      plyrControls.style.justifyContent = 'center';
-      
-      // Fix icon position if needed
-      const iconSvg = plyrControls.querySelector('svg');
-      if (iconSvg) {
-        iconSvg.style.position = 'relative';
-        iconSvg.style.width = '40%';
-        iconSvg.style.height = '40%';
-        iconSvg.style.margin = '0';
-        iconSvg.style.marginLeft = '10%'; // Visually center the triangle
-        iconSvg.style.top = '0';
-        iconSvg.style.left = '0';
-        iconSvg.style.transform = 'none';
-      }
-      
-      // Set data attribute for tracking
-      container.setAttribute('data-using-plyr-button', 'true');
-      
-      // Disable default play behavior
-      player.off('play');
-      player.on('play', (event) => {
-        // Increment click counter
-        const currentCount = parseInt(container.dataset.clickCount || '0');
-        container.dataset.clickCount = (currentCount + 1).toString();
-        
-        // Skip unwanted events, but be more permissive after the first click
-        if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
-          logDebug('First play during initial setup or page load, incrementing counter but not opening lightbox');
-          return;
-        }
-        
-        // Still block tab switch events regardless of click count
-        if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
-          logDebug('Skipping lightbox open during tab switch or autoplay');
-          return;
-        }
-        
-        // Prevent video from playing
-        player.pause();
-        
-        // Open lightbox instead
-        logDebug(`Play clicked (click #${currentCount+1}), opening lightbox`);
-        openVideoLightbox(container, player, videoElement);
-        
-        // Mark that lightbox has been opened for this container
-        container.setAttribute('data-lightbox-opened', 'true');
-        
-        // Prevent bubbling
-        event.stopPropagation();
-        return false;
-      });
-    } else {
-      logDebug('ERROR: No plyr controls found in container');
-    }
-  } else {
-    logDebug(`Setting up custom play button for ${container.id || 'unnamed container'}`);
-    
-    // Use custom button approach
-    // Forcefully hide Plyr's native controls
-    const plyrControls = container.querySelector('.plyr__control--overlaid');
-    if (plyrControls) {
-      plyrControls.style.opacity = '0';
-      plyrControls.style.visibility = 'hidden';
-      plyrControls.style.pointerEvents = 'none';
-    }
-    
-    // Create play button
-    const customPlayButton = document.createElement('button');
-    customPlayButton.className = 'preview-play-button';
-    customPlayButton.setAttribute('aria-label', 'Play video');
-    
-    // Play icon SVG - using more contrasting/visible version with proper centering
-    customPlayButton.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" 
-           fill="white" stroke="white" stroke-width="2" 
-           stroke-linecap="round" stroke-linejoin="round"
-           style="width: 40%; height: 40%; margin-left: 10%; position: relative;">
-        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-      </svg>
-    `;
-    
-    // Store the container reference on the button for event handling
-    customPlayButton.dataset.containerRef = container.id || `plyr-container-${Math.random().toString(36).substr(2, 9)}`;
-    if (!container.id) {
-      container.id = customPlayButton.dataset.containerRef;
-    }
-    
-    // Calculate button size based on screen width
-    const buttonSize = window.innerWidth <= 480 ? '36px' : 
-                       window.innerWidth <= 768 ? '42px' : '48px';
-    
-    // Force button to be visible and on top by setting inline styles with proper centering
-    customPlayButton.style.position = 'absolute';
-    customPlayButton.style.top = '50%';
-    customPlayButton.style.left = '50%';
-    customPlayButton.style.transform = 'translate(-50%, -50%)';
-    customPlayButton.style.zIndex = '9999';
-    customPlayButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    customPlayButton.style.color = 'white';
-    customPlayButton.style.borderRadius = '50%';
-    customPlayButton.style.display = 'flex';
-    customPlayButton.style.alignItems = 'center';
-    customPlayButton.style.justifyContent = 'center';
-    customPlayButton.style.cursor = 'pointer';
-    customPlayButton.style.opacity = '1';
-    customPlayButton.style.visibility = 'visible';
-    customPlayButton.style.boxShadow = '0 0 0 4px rgba(255, 255, 255, 0.4)';
-    customPlayButton.style.padding = '0';
-    customPlayButton.style.margin = '0';
-    
-    // Force fixed dimensions for consistent circular shape
-    customPlayButton.style.width = buttonSize;
-    customPlayButton.style.height = buttonSize;
-    customPlayButton.style.minWidth = buttonSize;
-    customPlayButton.style.minHeight = buttonSize;
-    customPlayButton.style.maxWidth = buttonSize;
-    customPlayButton.style.maxHeight = buttonSize;
-    customPlayButton.style.boxSizing = 'border-box';
-    
-    // Add to the container to maintain proper event context
-    container.appendChild(customPlayButton);
-    
-    // Set attribute for tracking
-    container.setAttribute('data-has-preview-button', 'true');
-    
-    // Ensure the play button has the visible class when added to the container
-    customPlayButton.classList.add('is-visible');
-    
-    // Prevent default play behavior
-    player.off('play');
-    player.on('play', (event) => {
-      // Increment click counter
-      const currentCount = parseInt(container.dataset.clickCount || '0');
-      container.dataset.clickCount = (currentCount + 1).toString();
-      
-      // Skip unwanted events, but be more permissive after the first click
-      if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
-        logDebug('First play during initial setup or page load, incrementing counter but not opening lightbox');
-        return;
-      }
-      
-      // Still block tab switch events regardless of click count
-      if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play event during tab switch or autoplay');
-        return;
-      }
-      
-      // Prevent video from playing
-      player.pause();
-      
-      // Open lightbox instead
-      logDebug(`Play event fired (click #${currentCount+1}), opening lightbox`);
-      openVideoLightbox(container, player, videoElement);
-      
-      // Mark that lightbox has been opened for this container
-      container.setAttribute('data-lightbox-opened', 'true');
-      
-      // Prevent bubbling
-      event.stopPropagation();
-      return false;
-    });
-    
-    // Handle visual feedback for play button with proper fade animation
-    player.on('play', () => {
-      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
-      const playButtonElem = container.querySelector('.preview-play-button');
-      if (playButtonElem) {
-        playButtonElem.classList.remove('is-visible');
-        playButtonElem.classList.add('is-hidden');
-      }
-    });
-    
-    player.on('pause', () => {
-      if (isInitialSetup || container.hasAttribute('data-autoplay-in-progress')) return;
-      const playButtonElem = container.querySelector('.preview-play-button');
-      if (playButtonElem) {
-        playButtonElem.classList.add('is-visible');
-        playButtonElem.classList.remove('is-hidden');
-      }
-    });
-    
-    // Handle play button click to open lightbox
-    customPlayButton.addEventListener('click', (event) => {
-      // Increment click counter
-      const currentCount = parseInt(container.dataset.clickCount || '0');
-      container.dataset.clickCount = (currentCount + 1).toString();
-      
-      // Skip unwanted events, but be more permissive after the first click
-      if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
-        logDebug('First play button click during initial setup or page load, incrementing counter but not opening lightbox');
-        return;
-      }
-      
-      // Still block tab switch events regardless of click count
-      if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
-        logDebug('Skipping play button click during tab switch or autoplay');
-        return;
-      }
-      
-      // Prevent any other click handlers from firing
-      event.preventDefault();
-      event.stopPropagation();
-      
-      // Open the lightbox
-      logDebug(`Play button clicked (click #${currentCount+1}), opening lightbox`);
-      openVideoLightbox(container, player, videoElement);
-      
-      // Mark that lightbox has been opened for this container
-      container.setAttribute('data-lightbox-opened', 'true');
-      
-      return false;
-    }, true); // Use capture phase to get event before other handlers
-    
-    // Also prevent pause when clicking on the video
-    videoElement.addEventListener('click', (event) => {
-      // Increment click counter
-      const currentCount = parseInt(container.dataset.clickCount || '0');
-      container.dataset.clickCount = (currentCount + 1).toString();
-      
-      // Skip unwanted events, but be more permissive after the first click
-      if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
-        logDebug('First video element click during initial setup or page load, incrementing counter but not opening lightbox');
-        return;
-      }
-      
-      // Still block tab switch events regardless of click count
-      if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) return;
-      
-      if (container.classList.contains('preview-mode')) {
-        // Prevent default behavior (pausing)
-        event.preventDefault();
-        event.stopPropagation();
-        
-        // Open the lightbox
-        logDebug(`Video element clicked (click #${currentCount+1}), opening lightbox`);
-        openVideoLightbox(container, player, videoElement);
-        
-        // Mark that lightbox has been opened for this container
-        container.setAttribute('data-lightbox-opened', 'true');
-        
-        return false;
-      }
-    }, true); // Use capture phase to get event before Plyr handlers
+  // Create play button
+  const customPlayButton = document.createElement('button');
+  customPlayButton.className = 'preview-play-button';
+  customPlayButton.setAttribute('aria-label', 'Play video');
+  
+  // Play icon SVG - using more contrasting/visible version with proper centering
+  customPlayButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" 
+         fill="white" stroke="white" stroke-width="2" 
+         stroke-linecap="round" stroke-linejoin="round"
+         style="width: 40%; height: 40%; margin-left: 10%; position: relative;">
+      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+    </svg>
+  `;
+  
+  // Store the container reference on the button for event handling
+  customPlayButton.dataset.containerRef = container.id || `plyr-container-${Math.random().toString(36).substr(2, 9)}`;
+  if (!container.id) {
+    container.id = customPlayButton.dataset.containerRef;
   }
+  
+  // Calculate button size based on screen width
+  const buttonSize = window.innerWidth <= 480 ? '36px' : 
+                     window.innerWidth <= 768 ? '42px' : '48px';
+  
+  // Force button to be visible and on top by setting inline styles with proper centering
+  customPlayButton.style.position = 'absolute';
+  customPlayButton.style.top = '50%';
+  customPlayButton.style.left = '50%';
+  customPlayButton.style.transform = 'translate(-50%, -50%)';
+  customPlayButton.style.zIndex = '9999';
+  customPlayButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  customPlayButton.style.color = 'white';
+  customPlayButton.style.borderRadius = '50%';
+  customPlayButton.style.display = 'flex';
+  customPlayButton.style.alignItems = 'center';
+  customPlayButton.style.justifyContent = 'center';
+  customPlayButton.style.cursor = 'pointer';
+  customPlayButton.style.opacity = '1';
+  customPlayButton.style.visibility = 'visible';
+  customPlayButton.style.boxShadow = '0 0 0 4px rgba(255, 255, 255, 0.4)';
+  customPlayButton.style.padding = '0';
+  customPlayButton.style.margin = '0';
+  
+  // Force fixed dimensions for consistent circular shape
+  customPlayButton.style.width = buttonSize;
+  customPlayButton.style.height = buttonSize;
+  customPlayButton.style.minWidth = buttonSize;
+  customPlayButton.style.minHeight = buttonSize;
+  customPlayButton.style.maxWidth = buttonSize;
+  customPlayButton.style.maxHeight = buttonSize;
+  customPlayButton.style.boxSizing = 'border-box';
+  
+  // Add to the container to maintain proper event context
+  container.appendChild(customPlayButton);
+  
+  // Set attribute for tracking
+  container.setAttribute('data-has-preview-button', 'true');
+  
+  // Ensure the play button has the visible class when added to the container
+  customPlayButton.classList.add('is-visible');
+  
+  // Prevent default play behavior
+  player.off('play');
+  player.on('play', (event) => {
+    // Increment click counter
+    const currentCount = parseInt(container.dataset.clickCount || '0');
+    container.dataset.clickCount = (currentCount + 1).toString();
+    
+    // Skip unwanted events, but be more permissive after the first click
+    if (currentCount === 0 && (isInitialSetup || isInitialPageLoad())) {
+      logDebug('First play during initial setup or page load, incrementing counter but not opening lightbox');
+      return;
+    }
+    
+    // Still block tab switch events regardless of click count
+    if (isRecentTabSwitch() || container.hasAttribute('data-autoplay-in-progress')) {
+      logDebug('Skipping lightbox open during tab switch or autoplay');
+      return;
+    }
+    
+    // Prevent video from playing
+    player.pause();
+    
+    // Open lightbox instead
+    logDebug(`Play clicked (click #${currentCount+1}), opening lightbox`);
+    openVideoLightbox(container, player, videoElement);
+    
+    // Mark that lightbox has been opened for this container
+    container.setAttribute('data-lightbox-opened', 'true');
+    
+    // Prevent bubbling
+    event.stopPropagation();
+    return false;
+  });
 }
 
 /**
- * Set up a play-only mode (no lightbox, no controls, just autoplay)
+ * Set up a preview mode (autoplay only)
  * @param {HTMLElement} container The video container
  * @param {Plyr} player The Plyr instance
  */
-function setupPlayOnlyMode(container, player) {
-  // Mark the container as play-only - this may already be set during initialization
-  if (!container.classList.contains('play-only-mode')) {
-    container.classList.add('play-only-mode');
+function setupPreviewMode(container, player) {
+  // Mark the container as preview mode - this may already be set during initialization
+  if (!container.classList.contains('preview-mode')) {
+    container.classList.add('preview-mode');
   }
   
   // Disable all controls and user interaction 
@@ -642,14 +431,14 @@ function setupPlayOnlyMode(container, player) {
     
     // Start playback
     player.play().catch(error => {
-      logDebug(`Error autoplaying video in play-only mode:`, error);
+      logDebug(`Error autoplaying video in preview mode:`, error);
     });
   }, 100);
   
   // Add some styling to make it clear this is a pure video element
   container.style.cursor = 'default';
   
-  logDebug(`Set up play-only mode for ${container.id || 'unnamed container'} (autoplay only, no controls)`);
+  logDebug(`Set up preview mode for ${container.id || 'unnamed container'} (autoplay only, no controls)`);
 }
 
 /**

@@ -2,7 +2,9 @@
 
 A modern, component-based frontend implementation for the Tumblehead website, featuring an animated navbar, logo carousel, and embedded video player integration with Webflow CMS.
 
-## Project Overview
+---
+
+## 1. Project Overview
 
 This project has been refactored to follow a component-based architecture, improving organization, maintainability, and scalability. The codebase includes:
 
@@ -12,7 +14,9 @@ This project has been refactored to follow a component-based architecture, impro
 - **Logo carousel** component
 - **Modern build system** using Vite with optimized production output
 
-## Directory Structure
+---
+
+## 2. Directory Structure
 
 ```
 tumblehead/
@@ -49,19 +53,60 @@ tumblehead/
 └── vite.config.js
 ```
 
-## Components
+---
 
-### Video Player (Plyr Integration for Webflow)
+## 3. Components
+
+### 3.1 Video Player (Plyr Integration for Webflow)
 
 A feature-rich video player implementation using Plyr, optimized for integration with Webflow CMS:
 
-- **Preview Mode**: Autoplay (muted) videos as previews with centered play button
-- **Lightbox Mode**: Expands to full-screen lightbox with unmuted playback
+- **Preview Mode**: Autoplay (muted) videos with no controls
+- **Lightbox Mode**: Expands to full-screen lightbox with unmuted playback and controls
 - **Scroll Locking**: Locks page scrolling when lightbox is open
 - **Seamless Experience**: Preview continues playing when lightbox opens
 - **Accessibility**: Full keyboard navigation and screen reader support
+- **Flexible Aspect Ratios**: Support for multiple aspect ratios including custom ratios
 
-### Navbar
+#### Quick Start
+
+1. Add the script to your Webflow project:
+```html
+<script src="https://your-domain.com/plyr-embed.min.js" type="module"></script>
+```
+
+2. Add a video container with the required attributes:
+```html
+<div class="video-container">
+  <video 
+    data-mode="preview"
+    data-aspect-ratio="16:9"
+    data-src="your-video-url.mp4"
+    data-poster="your-poster-image.jpg"
+    playsinline>
+  </video>
+</div>
+```
+
+#### Configuration Options
+
+| Attribute              | Values                                 | Description                                                     |
+| ---------------------- | -------------------------------------- | --------------------------------------------------------------- |
+| `data-mode`            | `preview`, `lightbox`                  | `preview`: Autoplay muted video with no controls<br>`lightbox`: Shows preview with play button, opens in lightbox |
+| `data-aspect-ratio`    | `16:9`, `4:3`, `1:1`, `9:16`, `custom` | Sets video aspect ratio (default: 16:9)                         |
+| `data-custom-ratio`    | `width:height`                         | Required when using custom aspect ratio                         |
+| `data-autoplay`        | `true`                                 | Autoplays in preview mode                                       |
+| `data-muted`           | `true`                                 | Mutes in preview mode (unmutes in lightbox)                     |
+| `data-src`             | URL                                    | Video source URL                                                |
+| `data-poster`          | URL                                    | Poster image URL                                                |
+| `playsinline`          | -                                      | Prevents fullscreen on mobile                                   |
+| `loop`                 | -                                      | Loops the video (recommended for preview mode)                   |
+
+For detailed customization options, see the [Webflow Plyr CMS Integration](docs/webflow-plyr-cms-integration.md) documentation.
+
+---
+
+### 3.2 Navbar
 
 A responsive, animated navigation bar:
 
@@ -70,7 +115,9 @@ A responsive, animated navigation bar:
 - Scroll-aware visibility (hides when scrolling down, shows when scrolling up)
 - Dropdown menu support
 
-### Logo Carousel
+---
+
+### 3.3 Logo Carousel
 
 A smooth, responsive logo carousel with dynamic content duplication:
 
@@ -82,131 +129,17 @@ A smooth, responsive logo carousel with dynamic content duplication:
 - **Visual Effects**: Grayscale filter with hover state for interactive client logos
 - **Pause on Hover**: Animation pauses when user hovers over logos
 
-#### Implementation
+---
 
-The carousel uses data attributes for maximum reusability, making it easy to implement in any project:
+## 4. Development Workflow
 
-```html
-<section class="client-list-section">
-    <div data-carousel class="client-list-component">
-        <div data-carousel-track class="client-list-wrapper w-dyn-list">
-            <div role="list" class="client-list w-dyn-items">
-                <div data-carousel-item role="listitem" class="client-logo-wrapper w-dyn-item">
-                    <img loading="lazy" src="path/to/logo.png" alt="" class="client-logo">
-                </div>
-                <!-- Add more items as needed -->
-            </div>
-        </div>
-    </div>
-</section>
-```
-
-#### Data Attributes Structure
-
-The carousel uses three key data attributes:
-
-- `data-carousel`: Applied to the container element
-- `data-carousel-track`: Applied to the scrolling track that contains all items
-- `data-carousel-item`: Applied to each individual logo item
-
-#### How It Works
-
-1. **Dynamic Duplication**: The JavaScript automatically duplicates items based on viewport width:
-   ```javascript
-   // Calculate how many sets we need to fill the viewport plus extra for smooth scroll
-   const trackWidth = track.scrollWidth;
-   const viewportWidth = window.innerWidth;
-   const sets = Math.ceil((viewportWidth * 3) / trackWidth) + 1;
-   ```
-
-2. **Smooth Animation**: Uses CSS `transform` with hardware acceleration:
-   ```css
-   @keyframes scroll {
-     0% {
-       transform: translateX(0);
-     }
-     100% {
-       transform: translateX(calc(-100% / 3));
-     }
-   }
-   ```
-
-3. **Responsive Handling**: Uses ResizeObserver to cleanly handle window resizing:
-   ```javascript
-   const resizeObserver = new ResizeObserver(() => {
-     duplicateItems();
-   });
-   ```
-
-#### Customization
-
-The carousel can be customized through CSS:
-
-```css
-/* Adjust logo sizing */
-[data-carousel-item] {
-  min-width: 100px;
-  max-width: 160px;
-  padding: 1rem;
-}
-
-/* Adjust spacing between logos */
-[data-carousel-track] {
-  gap: 2rem;
-}
-
-/* Adjust animation speed */
-[data-carousel-track] {
-  animation: scroll 30s linear infinite;
-}
-```
-
-Visual effects like the grayscale filter can also be customized:
-
-```css
-[data-carousel-item] img {
-  filter: grayscale(1) brightness(2);
-}
-
-[data-carousel-item]:hover img {
-  filter: grayscale(0) brightness(1);
-}
-```
-
-## Build System
-
-The project uses Vite for fast development and optimized production builds:
-
-### Entry Points
-
-The build system maintains two distinct entry points:
-
-1. **main.js**: Main application entry point, included in `bundle.min.js`
-2. **webflow-plyr.js**: Standalone Webflow Plyr integration, builds to `plyr-embed.min.js`
-
-### Output Files
-
-The production build generates the following optimized files:
-
-- **bundle.min.js**: Main application JavaScript
-- **plyr-embed.min.js**: Standalone Webflow Plyr integration
-- **bundle.min.css**: Combined CSS styles
-- **index.html**: Production HTML template
-
-CSS is intentionally kept as a separate file in production for:
-- Parallel loading of CSS and JavaScript
-- Prevention of Flash of Unstyled Content (FOUC)
-- Better cache control
-
-## Development Workflow
-
-### Installation
+### 4.1 Installation
 
 ```bash
 npm install
 ```
 
-### Development Server
+### 4.2 Development Server
 
 ```bash
 npm run dev
@@ -214,7 +147,7 @@ npm run dev
 
 This starts a development server at http://localhost:3000 with the `index.dev.html` template.
 
-### Production Build
+### 4.3 Production Build
 
 ```bash
 npm run build
@@ -222,91 +155,31 @@ npm run build
 
 Generates optimized production files in the `dist/` directory.
 
-### Preview Production Build
+### 4.4 Preview Production Build
 
 ```bash
 npm run preview
 ```
 
-## Integrating with Webflow
+---
 
-### Video Player Integration
+## 5. Integrating with Webflow
 
-To use the Plyr video player in Webflow:
+### 5.1 Video Player Integration
 
-1. Add this script tag to your Webflow project:
-```html
-<script src="https://your-domain.com/plyr-embed.min.js" type="module"></script>
-```
+The video player is designed to work seamlessly with Webflow CMS. Simply follow the [Quick Start](#quick-start) guide in the Components section above.
 
-2. Add video containers with the following structure:
-```html
-<div class="video-container">
-  <div class="video-inner">
-    <video 
-      data-plyr="true" 
-      data-mode="preview"
-      data-autoplay="true" 
-      data-muted="true"
-      data-src="your-video-url.mp4"
-      data-poster="your-poster-image.jpg"
-      playsinline
-      loop>
-    </video>
-  </div>
-</div>
-```
+For detailed customization options and CMS integration specifics, see the [Webflow Plyr CMS Integration](docs/webflow-plyr-cms-integration.md) documentation.
 
-3. Configure with data attributes:
-   
-   #### Simplified Mode Attribute (Recommended)
-   - `data-mode="preview"`: Sets up the video as a preview with lightbox functionality
-   - `data-mode="play-only"`: Sets up the video to autoplay silently with no controls or lightbox
-   
-   #### Legacy Configuration Attributes (Still supported)
-   - `data-preview-mode="true"`: Enables preview/lightbox functionality
-   - `data-play-only="true"`: Enables autoplay-only mode without controls
-   - `data-autoplay="true"`: Autoplays in preview mode
-   - `data-muted="true"`: Mutes in preview mode (unmutes in lightbox)
-   - `data-use-plyr-button="true"`: Uses Plyr's native play button instead of custom button
-   - `data-src`: Video source URL
-   - `data-poster`: Poster image URL
+---
 
-### Configuration Examples
-
-#### Example 1: Preview Video with Lightbox
-```html
-<!-- Using simplified mode attribute -->
-<video data-plyr="true" data-mode="preview" data-autoplay="true" data-muted="true"
-       data-src="your-video-url.mp4" playsinline>
-</video>
-
-<!-- Using legacy attributes -->
-<video data-plyr="true" data-preview-mode="true" data-autoplay="true" data-muted="true"
-       data-src="your-video-url.mp4" playsinline>
-</video>
-```
-
-#### Example 2: Play-Only Mode (Autoplay without controls)
-```html
-<!-- Using simplified mode attribute -->
-<video data-plyr="true" data-mode="play-only" data-muted="true"
-       data-src="your-video-url.mp4" playsinline loop>
-</video>
-
-<!-- Using legacy attributes -->
-<video data-plyr="true" data-play-only="true" data-muted="true"
-       data-src="your-video-url.mp4" playsinline loop>
-</video>
-```
-
-For detailed customization options, see the [Webflow Plyr CMS Integration](docs/webflow-plyr-cms-integration.md) documentation.
-
-## Browser Support
+## 6. Browser Support
 
 - All modern browsers (Chrome, Firefox, Safari, Edge)
 - Internet Explorer is not supported
 
-## License
+---
+
+## 7. License
 
 ISC 

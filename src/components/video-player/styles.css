@@ -7,12 +7,36 @@
   position: relative;
   width: 100%;
   height: 0;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  /* Default to 16:9 aspect ratio */
+  --aspect-ratio: 56.25%;
+  padding-bottom: var(--aspect-ratio);
   background: #000;
   overflow: hidden;
   border-radius: 8px; /* Add rounded corners */
 }
 
+/* Aspect ratio presets */
+.video-container[data-aspect-ratio="16:9"] {
+  --aspect-ratio: 56.25%;
+}
+
+.video-container[data-aspect-ratio="4:3"] {
+  --aspect-ratio: 75%;
+}
+
+.video-container[data-aspect-ratio="1:1"] {
+  --aspect-ratio: 100%;
+}
+
+.video-container[data-aspect-ratio="9:16"] {
+  --aspect-ratio: 177.78%;
+}
+
+.video-container[data-aspect-ratio="custom"] {
+  --aspect-ratio: var(--custom-aspect-ratio, 56.25%);
+}
+
+/* Video and Plyr styling */
 .video-container video,
 .video-container .plyr {
   position: absolute;
@@ -22,49 +46,39 @@
   height: 100%;
 }
 
+/* Ensure videos cover their container */
+.video-container video,
+.video-container .plyr video,
+.video-container .plyr__video-wrapper {
+  object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Force Plyr wrapper to maintain aspect ratio */
+.video-container .plyr__video-wrapper {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* Preview Mode Styles */
-
-/* Base styles for preview mode */
 .preview-mode {
-  cursor: pointer;
+  cursor: default;
 }
 
-.preview-mode .plyr--hide-controls {
-  cursor: pointer;
-}
-
-/* Hide Plyr's controls in preview mode unless explicitly enabled */
+/* Hide all controls in preview mode */
+.preview-mode .plyr__controls,
 .preview-mode .plyr__control--overlaid {
+  display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }
 
-/* Allow Plyr's native button when the option is enabled */
-.preview-mode[data-using-plyr-button="true"] .plyr__control--overlaid {
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-}
-
-/* Add a subtle overlay on hover for better visibility */
-.preview-mode:hover:before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(243, 233, 233, 0.25);
-  z-index: 2;
-  /* Keep below our custom button */
-  pointer-events: none;
-  transition: background-color 0.3s ease;
-}
-
 /* ===== SHARED BUTTON STYLES ===== */
-/* This ensures all play buttons (preview, Plyr native, and lightbox) share consistent styling */
-
 /* Base styles for all play buttons */
 .plyr__control--overlaid,
 .preview-play-button {
@@ -128,18 +142,8 @@
   margin-left: 10% !important; /* Visual centering of the triangle */
 }
 
-/* Special case for plyr native button in preview mode */
-.preview-mode[data-using-plyr-button="true"] .plyr__control--overlaid {
-  transform: translate(-50%, -50%) scale(1.0) !important;
-}
-
-.preview-mode[data-using-plyr-button="true"] .plyr__control--overlaid:hover {
-  transform: translate(-50%, -50%) scale(1.1) !important;
-}
-
 /* Larger buttons in lightbox */
-.video-lightbox .plyr__control--overlaid,
-.plyr-lightbox .plyr__control--overlaid {
+.video-lightbox .plyr__control--overlaid {
   --base-button-size: 64px !important;
 }
 
@@ -165,8 +169,7 @@
 }
 
 /* Hide the centered play button when the video is playing */
-.video-lightbox.is-playing .plyr__control--overlaid,
-.plyr-lightbox.is-playing .plyr__control--overlaid {
+.video-lightbox.is-playing .plyr__control--overlaid {
   opacity: 0 !important;
   visibility: hidden !important;
   transition: opacity 0.4s ease, visibility 0s linear 0.4s !important;
@@ -179,8 +182,7 @@
     --base-button-size: 42px !important;
   }
   
-  .video-lightbox .plyr__control--overlaid,
-  .plyr-lightbox .plyr__control--overlaid {
+  .video-lightbox .plyr__control--overlaid {
     --base-button-size: 56px !important;
   }
 }
@@ -192,8 +194,7 @@
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) !important;
   }
   
-  .video-lightbox .plyr__control--overlaid,
-  .plyr-lightbox .plyr__control--overlaid {
+  .video-lightbox .plyr__control--overlaid {
     --base-button-size: 48px !important;
   }
 }
@@ -201,8 +202,7 @@
 /* ===== LIGHTBOX STYLES ===== */
 
 /* Video Lightbox */
-.video-lightbox,
-.plyr-lightbox {
+.video-lightbox {
   position: fixed;
   top: 0;
   left: 0;
@@ -218,8 +218,7 @@
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.video-lightbox.is-visible,
-.plyr-lightbox.show {
+.video-lightbox.is-visible {
   opacity: 1;
   visibility: visible;
 }
@@ -244,14 +243,34 @@
 
 .video-lightbox-content {
   width: 100%;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  --aspect-ratio: 56.25%;
+  padding-top: var(--aspect-ratio);
   position: relative;
   overflow: hidden;
   border-radius: .75rem;
 }
 
-.video-lightbox-content .plyr,
-.plyr-lightbox .plyr {
+.video-lightbox-content[data-aspect-ratio="16:9"] {
+  --aspect-ratio: 56.25%;
+}
+
+.video-lightbox-content[data-aspect-ratio="4:3"] {
+  --aspect-ratio: 75%;
+}
+
+.video-lightbox-content[data-aspect-ratio="1:1"] {
+  --aspect-ratio: 100%;
+}
+
+.video-lightbox-content[data-aspect-ratio="9:16"] {
+  --aspect-ratio: 177.78%;
+}
+
+.video-lightbox-content[data-aspect-ratio="custom"] {
+  --aspect-ratio: var(--custom-aspect-ratio, 56.25%);
+}
+
+.video-lightbox-content .plyr {
   position: absolute;
   top: 0;
   left: 0;
@@ -259,14 +278,8 @@
   height: 100%;
 }
 
-.plyr-lightbox .plyr {
-  width: 80%;
-  max-width: 1280px;
-}
-
 /* Close button styles */
-.video-lightbox-close,
-.plyr-lightbox .close-button {
+.video-lightbox-close {
   position: absolute;
   color: white;
   background: rgba(0, 0, 0, 0.7);
@@ -278,9 +291,6 @@
   cursor: pointer;
   z-index: 100000;
   transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.video-lightbox-close {
   top: -40px;
   right: 0;
   font-size: 30px;
@@ -291,28 +301,13 @@
   transition: all 0.2s ease, opacity 0.3s ease;
 }
 
-.plyr-lightbox .close-button {
-  top: 20px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-}
-
 .video-lightbox.is-visible .video-lightbox-close {
   opacity: 1;
   transform: scale(1);
   transition-delay: 0.2s;
 }
 
-.video-lightbox-close:hover,
-.plyr-lightbox .close-button:hover {
+.video-lightbox-close:hover {
   transform: scale(1.1);
   background: rgba(0, 0, 0, 0.9);
-}
-
-/* Only show the actual video element in play-only mode */
-.video-container.play-only-mode .plyr__video-wrapper {
-  display: block !important;
-  opacity: 1 !important;
-  visibility: visible !important;
 }
