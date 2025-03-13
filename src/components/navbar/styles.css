@@ -2,25 +2,19 @@
  * Navbar Component Styles
  */
 
-/* Base navbar styles */
-.navbar {
-  transition: background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-  background-color: transparent;
-}
-
-/* Scrolled state */
-.navbar.is-scrolled {
-  background-color: black;
-}
-
-/* Menu open state */
-.navbar.menu-open {
-  background-color: black;
-}
-
-/* Navbar states - now applies to all pages */
+/* Base navbar styles - default visible state for all pages */
 [data-element="navbar"],
 .navbar {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition: background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Special home page states - hide initially */
+[data-page="home"] [data-element="navbar"],
+[data-page="home"] .navbar {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -29,9 +23,9 @@
   transition: none;
 }
 
-/* JS enabled state - now applies to all pages */
-[data-element="navbar"].js-enabled,
-.navbar.js-enabled {
+/* JS enabled state - only for homepage */
+[data-page="home"] [data-element="navbar"].js-enabled,
+[data-page="home"] .navbar.js-enabled {
   /* Delay visibility change until after fade out */
   transition:
     opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
@@ -40,9 +34,9 @@
     background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-/* Visible state - now applies to all pages */
-[data-element="navbar"].js-enabled.visible,
-.navbar.js-enabled.visible {
+/* Visible state - only for homepage */
+[data-page="home"] [data-element="navbar"].js-enabled.visible,
+[data-page="home"] .navbar.js-enabled.visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -52,6 +46,11 @@
     transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
     visibility 0s,
     background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Menu open state */
+.navbar.menu-open {
+  background-color: black;
 }
 
 /* Menu overlay */
