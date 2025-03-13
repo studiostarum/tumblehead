@@ -105,12 +105,17 @@ export function initNavbar() {
   // Handle anchor links
   setupSmoothScrolling(navbar);
   
+  // Handle home page with hero section visibility
+  setupHomePageNavbarVisibility(navbar);
+  
   // Return controller for potential external control
   return {
     navbar,
     destroy: () => {
       // Cleanup code would go here
       unlockScroll();
+      // Remove scroll event listener if it was set up
+      window.removeEventListener('scroll', navbar._scrollHandler);
     }
   };
 }
@@ -332,6 +337,49 @@ function setupSmoothScrolling(navbar) {
       }
     });
   });
+}
+
+/**
+ * Setup navbar visibility for home pages
+ * @param {HTMLElement} navbar The navbar element
+ */
+function setupHomePageNavbarVisibility(navbar) {
+  // Check if we're on a home page
+  const isHomePage = document.body.hasAttribute('data-page') && 
+                    document.body.getAttribute('data-page') === 'home';
+  
+  if (!isHomePage) return;
+  
+  // Find the hero element
+  const heroSection = document.querySelector('[data-element="hero"]') || 
+                     document.querySelector('[data-section="hero"]');
+  
+  if (!heroSection) {
+    console.warn('Hero section not found on home page. Ensure [data-element="hero"] or [data-section="hero"] exists.');
+    return;
+  }
+  
+  // Create scroll handler function
+  const handleScroll = () => {
+    const heroRect = heroSection.getBoundingClientRect();
+    const heroBottom = heroRect.bottom;
+    
+    // If we've scrolled past the hero section
+    if (heroBottom <= 0) {
+      navbar.classList.add('visible');
+    } else {
+      navbar.classList.remove('visible');
+    }
+  };
+  
+  // Store reference to the handler for cleanup
+  navbar._scrollHandler = handleScroll;
+  
+  // Add scroll event listener
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  
+  // Initial check
+  handleScroll();
 }
 
 // Export for external use

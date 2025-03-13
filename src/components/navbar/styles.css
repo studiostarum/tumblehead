@@ -19,6 +19,20 @@ body.scroll-locked {
   left: 0;
 }
 
+/* Home page specific navbar styles */
+[data-page="home"] .navbar,
+[data-page="home"] [data-element="navbar"] {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+[data-page="home"] .navbar.visible,
+[data-page="home"] [data-element="navbar"].visible {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* Menu animations for Webflow navbar */
 .nav-menu-wrapper {
   transition: opacity 0.35s cubic-bezier(0.25, 0.1, 0.25, 1),
