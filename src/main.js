@@ -15,6 +15,7 @@ import './components/video-player/plyr';
 import { initNavbar } from './components/navbar';
 import { initVideoPlayer } from './components/video-player';
 import { initHeroScrollReveal } from './components/hero/scroll-reveal';
+import { initLogoCarousel } from './components/logo-carousel';
 
 // Import utilities
 import { initCustomScrollbar } from './utils/scroll';
@@ -71,10 +72,23 @@ document.addEventListener('DOMContentLoaded', () => {
     initCustomScrollbar();
     initHeroScrollReveal();
     
+    // Initialize logo carousel with custom config (optional)
+    initLogoCarousel(null, {
+        minLogosVisible: 4,
+        viewportCoverage: 3,
+        speedFactor: 0.02,
+        resizeDebounce: 250
+    });
+    
     // Initialize video components
     initVideoPlayer();
     setupFinsweetVideoIntegration();
 });
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    initLogoCarousel();
+}, { passive: true });
 
 // Export for external use
 export default {

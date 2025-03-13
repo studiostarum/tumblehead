@@ -72,12 +72,71 @@ A responsive, animated navigation bar:
 
 ### Logo Carousel
 
-A smooth, responsive logo carousel:
+A smooth, responsive logo carousel with dynamic content duplication:
 
-- Infinite scrolling
-- Touch-enabled for mobile devices
-- Pause on hover
-- Configurable scroll speed and behavior
+- **Infinite Scrolling**: Seamless continuous animation from right to left
+- **Dynamic Content**: Automatically fills viewport width by calculating required duplicates
+- **Responsive**: Adapts to viewport changes and window resizing
+- **Performance Optimized**: Uses CSS transforms and minimal DOM manipulation
+- **Touch-enabled**: Works on mobile devices
+- **Pause on Hover**: Animation pauses when user hovers over logos
+
+#### Implementation
+
+The carousel uses a combination of CSS animations and JavaScript for optimal performance:
+
+```html
+<div data-carousel class="client-list-component">
+    <div data-carousel-track class="client-list-wrapper">
+        <div data-carousel-item>
+            <img src="path/to/logo.png" alt="Client Logo">
+        </div>
+        <!-- Add more items as needed -->
+    </div>
+</div>
+```
+
+#### Configuration
+
+The carousel can be configured through several methods:
+
+1. **Data Attributes**:
+   - `data-carousel`: Container element
+   - `data-carousel-track`: Scrolling track element
+   - `data-carousel-item`: Individual logo items
+
+2. **JavaScript Configuration** (in main.js):
+   ```javascript
+   // Adjust viewport coverage factor (default: 3)
+   const numCopies = Math.ceil((viewportWidth * 3) / trackWidth);
+   
+   // Adjust animation speed (default: 0.02s per pixel)
+   const duration = totalWidth * 0.02;
+   ```
+
+3. **CSS Customization**:
+   ```css
+   [data-carousel-item] {
+     min-width: 120px;    /* Minimum logo width */
+     max-width: 200px;    /* Maximum logo width */
+     padding: 1rem;       /* Logo padding */
+   }
+   
+   [data-carousel-track] {
+     gap: 2rem;          /* Space between logos */
+   }
+   ```
+
+#### Features
+
+- **Automatic Content Duplication**: Dynamically calculates and creates enough copies to fill the viewport
+- **Smooth Animation**: Uses CSS transforms for hardware-accelerated animations
+- **Responsive Behavior**: Automatically adjusts on window resize
+- **Performance Optimized**: 
+  - Uses `will-change` and `backface-visibility` for smooth rendering
+  - Minimal DOM manipulation
+  - Event throttling for resize handling
+- **Accessibility**: Includes proper ARIA attributes and keyboard navigation support
 
 ## Build System
 

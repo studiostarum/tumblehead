@@ -1,0 +1,64 @@
+/* Logo Carousel Component */
+[data-carousel] {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+[data-carousel-track] {
+  display: flex;
+  width: max-content;
+  gap: 6rem;
+  animation: scroll 20s linear infinite;
+}
+
+/* Create virtual copies using background */
+[data-carousel-track]::before,
+[data-carousel-track]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+[data-carousel-track]::before {
+  transform: translateX(-100%);
+}
+
+[data-carousel-track]::after {
+  transform: translateX(100%);
+}
+
+[data-carousel-item] {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  max-width: 6rem;
+  padding: 1rem;
+}
+
+[data-carousel-item] img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - var(--gap, 2rem)));
+  }
+}
+
+/* Ensure smooth animation performance */
+[data-carousel-track] {
+  will-change: transform;
+  backface-visibility: hidden;
+} 
