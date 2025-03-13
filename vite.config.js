@@ -34,7 +34,7 @@ export default defineConfig(({ command }) => {
         return {
             ...baseConfig,
             server: {
-                open: '/index.dev.html',
+                open: '/home.dev.html',
                 port: 3000
             }
         };

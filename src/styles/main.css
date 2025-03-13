@@ -5,6 +5,13 @@
  * and defines global styles for the application.
  */
 
+/* Import component styles */
+@import '../components/navbar/styles.css';
+@import '../components/video-player/styles.css';
+@import '../components/project-grid/styles.css';
+@import '../components/category-filters/styles.css';
+@import '../components/logo-carousel/styles.css';
+
 /* Global styles */
 html, body {
   margin: 0;
@@ -13,15 +20,17 @@ html, body {
   overflow-x: hidden;
 }
 
+body.scroll-locked {
+  overflow: hidden !important;
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+  overscroll-behavior: none;
+  position: fixed;
+  width: 100%;
+}
+
 .page-wrapper {
   position: relative;
   width: 100%;
   overflow-x: hidden;
 }
-
-/* Import component styles */
-@import '../components/navbar/styles.css';
-@import '../components/video-player/styles.css';
-@import '../components/project-grid/styles.css';
-@import '../components/category-filters/styles.css';
-@import '../components/logo-carousel/styles.css';
