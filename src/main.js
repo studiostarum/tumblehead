@@ -13,7 +13,6 @@ import './components/video-player/plyr';
 
 // Import components
 import { initNavbar } from './components/navbar';
-import { initLogoCarousel } from './components/logo-carousel';
 import { initVideoPlayer } from './components/video-player';
 import { initHeroScrollReveal } from './components/hero/scroll-reveal';
 
@@ -71,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavbar();
     initCustomScrollbar();
     initHeroScrollReveal();
-    initLogoCarousel();
     
     // Initialize video components
     initVideoPlayer();

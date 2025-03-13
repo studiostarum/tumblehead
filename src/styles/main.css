@@ -7,7 +7,6 @@
 
 /* Import component styles */
 @import '../components/navbar/styles.css';
-@import '../components/logo-carousel/styles.css';
 @import '../components/video-player/styles.css';
 @import '../components/project-grid/styles.css';
 @import '../components/category-filters/styles.css';

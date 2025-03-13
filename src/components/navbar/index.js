@@ -92,8 +92,10 @@ export function initNavbar() {
   // Find the primary navigation (support both structures)
   const primaryNav = navbar.querySelector('.navbar-primary-nav') || navbar.querySelector('.nav-menu-wrapper');
   
-  // Add 'js-enabled' class to enable CSS transitions
-  navbar.classList.add('js-enabled');
+  // Enable transitions after a brief delay to ensure initial styles are applied
+  setTimeout(() => {
+    navbar.classList.add('js-enabled');
+  }, 50);
   
   // Handle mobile menu toggle
   if (menuToggle && primaryNav) {
@@ -351,13 +353,15 @@ function setupHomePageNavbarVisibility(navbar) {
   if (!isHomePage) return;
   
   // Find the hero element
-  const heroSection = document.querySelector('[data-element="hero"]') || 
-                     document.querySelector('[data-section="hero"]');
+  const heroSection = document.querySelector('[data-element="hero"]')
   
   if (!heroSection) {
-    console.warn('Hero section not found on home page. Ensure [data-element="hero"] or [data-section="hero"] exists.');
+    console.warn('Hero section not found on home page. Ensure [data-element="hero"] exists.');
     return;
   }
+  
+  // Ensure navbar is hidden initially
+  navbar.classList.remove('visible');
   
   // Create scroll handler function
   const handleScroll = () => {
@@ -378,8 +382,7 @@ function setupHomePageNavbarVisibility(navbar) {
   // Add scroll event listener
   window.addEventListener('scroll', handleScroll, { passive: true });
   
-  // Initial check
-  handleScroll();
+  // Do NOT call handleScroll initially to ensure navbar stays hidden
 }
 
 // Export for external use
