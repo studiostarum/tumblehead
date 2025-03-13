@@ -18,9 +18,9 @@
   background-color: black;
 }
 
-/* Navbar home page states */
-[data-page="home"] [data-element="navbar"],
-[data-page="home"] .navbar {
+/* Navbar states - now applies to all pages */
+[data-element="navbar"],
+.navbar {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -29,9 +29,9 @@
   transition: none;
 }
 
-/* JS enabled state */
-[data-page="home"] [data-element="navbar"].js-enabled,
-[data-page="home"] .navbar.js-enabled {
+/* JS enabled state - now applies to all pages */
+[data-element="navbar"].js-enabled,
+.navbar.js-enabled {
   /* Delay visibility change until after fade out */
   transition:
     opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
@@ -40,9 +40,9 @@
     background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-/* Visible state */
-[data-page="home"] [data-element="navbar"].js-enabled.visible,
-[data-page="home"] .navbar.js-enabled.visible {
+/* Visible state - now applies to all pages */
+[data-element="navbar"].js-enabled.visible,
+.navbar.js-enabled.visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -136,4 +136,23 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Video transition states */
+.plyr {
+  opacity: 1;
+  transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.plyr.reinitializing {
+  opacity: 0;
+}
+
+/* Optional: you can also add a fade for the container */
+.w-dyn-item {
+  transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.w-dyn-item.filtering {
+  opacity: 0;
 }
