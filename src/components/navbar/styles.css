@@ -2,70 +2,77 @@
  * Navbar Component Styles
  */
 
-/* Base navbar styles - default visible state for all pages */
+/* Variables */
+:root {
+  --transition-timing: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-props: opacity var(--transition-timing),
+                     transform var(--transition-timing),
+                     background-color var(--transition-timing),
+                     backdrop-filter var(--transition-timing);
+  --navbar-height: 4.875rem;
+}
+
+/* Common transitions */
+.animated {
+  transition: var(--transition-props);
+}
+
+/* Base navbar styles */
 [data-element="navbar"],
 .navbar {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
   transform: translateY(0);
-  transition: background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: background-color var(--transition-timing);
+  background-color: transparent;
 }
 
-/* Special home page states - hide initially */
+/* Scrolled and menu open states */
+.navbar.is-scrolled,
+.navbar.menu-open {
+  background-color: rgba(0, 0, 0, 0.95);
+}
+
+/* Homepage navbar states */
 [data-page="home"] [data-element="navbar"],
 [data-page="home"] .navbar {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transform: translateY(-10px);
-  /* No transition initially */
   transition: none;
 }
 
-/* JS enabled state - only for homepage */
 [data-page="home"] [data-element="navbar"].js-enabled,
 [data-page="home"] .navbar.js-enabled {
-  /* Delay visibility change until after fade out */
-  transition:
-    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    visibility 0s 0.3s,
-    background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: var(--transition-props), visibility 0s 0.3s;
 }
 
-/* Visible state - only for homepage */
 [data-page="home"] [data-element="navbar"].js-enabled.visible,
 [data-page="home"] .navbar.js-enabled.visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
   transform: translateY(0);
-  transition:
-    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    visibility 0s,
-    background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: var(--transition-props), visibility 0s;
 }
 
-/* Menu open state */
-.navbar.menu-open {
+/* Menu states */
+.navbar.menu-open,
+.nav-menu-wrapper {
   background-color: black;
 }
 
 /* Menu overlay */
 .nav-menu-wrapper {
   position: fixed;
-  top: 4.875rem;
+  top: var(--navbar-height);
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 999;
-  background: black;
-  transition:
-    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    visibility 0s 0.3s,
-    backdrop-filter 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: var(--transition-props), visibility 0s 0.3s;
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
@@ -78,10 +85,7 @@
   visibility: visible;
   opacity: 1;
   pointer-events: all;
-  transition:
-    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    backdrop-filter 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-    visibility 0s;
+  transition: var(--transition-props), visibility 0s;
   backdrop-filter: blur(5px);
 }
 
@@ -89,18 +93,18 @@
   height: calc(100vh - 80px);
 }
 
-/* Menu button animation */
+/* Menu button */
 .menu-button {
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-timing);
 }
 
 .menu-button[data-state="open"] {
   transform: rotate(45deg);
 }
 
-/* Nav links fade animation */
+/* Nav links animation */
 .nav-menu-wrapper[data-state="visible"] .nav-link {
-  animation: fadeInUp 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  animation: fadeInUp 0.5s var(--transition-timing) forwards;
   opacity: 0;
 }
 
@@ -109,19 +113,20 @@
   transition: opacity 0.2s ease;
 }
 
-.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(1) {
+/* Staggered animation delays */
+.nav-menu-wrapper[data-state="visible"] .nav-menu > a:nth-child(1) {
   animation-delay: 0.1s;
 }
 
-.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(2) {
+.nav-menu-wrapper[data-state="visible"] .nav-menu > a:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(3) {
+.nav-menu-wrapper[data-state="visible"] .nav-menu > a:nth-child(3) {
   animation-delay: 0.3s;
 }
 
-.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(4) {
+.nav-menu-wrapper[data-state="visible"] .nav-menu > a:nth-child(4) {
   animation-delay: 0.4s;
 }
 
@@ -130,28 +135,20 @@
     opacity: 0;
     transform: translateY(20px);
   }
-
   100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Video transition states */
-.plyr {
-  opacity: 1;
-  transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-.plyr.reinitializing {
-  opacity: 0;
-}
-
-/* Optional: you can also add a fade for the container */
+/* Video states */
+.plyr,
 .w-dyn-item {
-  transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  opacity: 1;
+  transition: opacity var(--transition-timing);
 }
 
+.plyr.reinitializing,
 .w-dyn-item.filtering {
   opacity: 0;
 }
