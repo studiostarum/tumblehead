@@ -309,3 +309,26 @@
   transform: scale(1.1);
   background: rgba(0, 0, 0, 0.9);
 }
+
+/* Add play-only mode styles to completely hide controls */
+.video-container.play-only-mode .plyr__controls,
+.video-container.play-only-mode .plyr__control--overlaid {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Make sure no controls appear even during loading */
+.video-container.play-only-mode .plyr:not(.plyr--ready) * {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Only show the actual video element in play-only mode */
+.video-container.play-only-mode .plyr__video-wrapper {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}

@@ -121,6 +121,16 @@ export function initializePlyrVideos() {
     } else if (mode === 'play-only') {
       isPreviewMode = false;
       playOnly = true;
+      
+      // Immediately add a CSS class to prevent controls flash
+      container.classList.add('play-only-mode');
+      // Hide any controls that might be pre-rendered
+      const existingControls = container.querySelectorAll('.plyr__controls, .plyr__control--overlaid');
+      existingControls.forEach(control => {
+        control.style.display = 'none';
+        control.style.opacity = '0';
+        control.style.visibility = 'hidden';
+      });
     }
     
     logDebug(`Container ${index} configuration:`, { 
@@ -600,19 +610,30 @@ function setupPreviewMode(container, player, videoElement, usePlyrButton = false
  * @param {Plyr} player The Plyr instance
  */
 function setupPlayOnlyMode(container, player) {
-  // Mark the container as play-only
-  container.classList.add('play-only-mode');
+  // Mark the container as play-only - this may already be set during initialization
+  if (!container.classList.contains('play-only-mode')) {
+    container.classList.add('play-only-mode');
+  }
   
-  // Disable all controls and user interaction
+  // Disable all controls and user interaction 
   player.elements.container.style.pointerEvents = 'none';
   
-  // Hide all Plyr controls
+  // Hide all Plyr controls - use direct DOM manipulation for immediate effect
   const controls = container.querySelectorAll('.plyr__controls, .plyr__control--overlaid');
   controls.forEach(control => {
     control.style.display = 'none';
     control.style.opacity = '0';
     control.style.visibility = 'hidden';
   });
+  
+  // Completely remove controls from the DOM to prevent any possibility of them being shown
+  setTimeout(() => {
+    controls.forEach(control => {
+      if (control && control.parentNode) {
+        control.parentNode.removeChild(control);
+      }
+    });
+  }, 0);
   
   // Make sure autoplay works by starting playback after a small delay
   setTimeout(() => {
