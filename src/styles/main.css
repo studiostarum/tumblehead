@@ -5,6 +5,20 @@
  * and defines global styles for the application.
  */
 
+/* Global styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.page-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: hidden;
+}
+
 /* Import component styles */
 @import '../components/navbar/styles.css';
 @import '../components/video-player/styles.css';
