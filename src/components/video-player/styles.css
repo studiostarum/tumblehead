@@ -12,7 +12,6 @@
   padding-bottom: var(--aspect-ratio);
   background: #000;
   overflow: hidden;
-  border-radius: 8px; /* Add rounded corners */
 }
 
 /* Aspect ratio presets */
@@ -291,11 +290,11 @@
   cursor: pointer;
   z-index: 100000;
   transition: background-color 0.2s ease, transform 0.2s ease;
-  top: -40px;
-  right: 0;
-  font-size: 30px;
-  width: 40px;
-  height: 40px;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 1.875rem;
+  width: 2.25rem;
+  height: 2.25rem;
   opacity: 0;
   transform: scale(0.8);
   transition: all 0.2s ease, opacity 0.3s ease;
