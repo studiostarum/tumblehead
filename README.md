@@ -151,7 +151,7 @@ To use the Plyr video player in Webflow:
   <div class="video-inner">
     <video 
       data-plyr="true" 
-      data-preview-mode="true" 
+      data-mode="preview"
       data-autoplay="true" 
       data-muted="true"
       data-src="your-video-url.mp4"
@@ -164,11 +164,47 @@ To use the Plyr video player in Webflow:
 ```
 
 3. Configure with data attributes:
+   
+   #### Simplified Mode Attribute (Recommended)
+   - `data-mode="preview"`: Sets up the video as a preview with lightbox functionality
+   - `data-mode="play-only"`: Sets up the video to autoplay silently with no controls or lightbox
+   
+   #### Legacy Configuration Attributes (Still supported)
    - `data-preview-mode="true"`: Enables preview/lightbox functionality
+   - `data-play-only="true"`: Enables autoplay-only mode without controls
    - `data-autoplay="true"`: Autoplays in preview mode
    - `data-muted="true"`: Mutes in preview mode (unmutes in lightbox)
+   - `data-use-plyr-button="true"`: Uses Plyr's native play button instead of custom button
    - `data-src`: Video source URL
    - `data-poster`: Poster image URL
+
+### Configuration Examples
+
+#### Example 1: Preview Video with Lightbox
+```html
+<!-- Using simplified mode attribute -->
+<video data-plyr="true" data-mode="preview" data-autoplay="true" data-muted="true"
+       data-src="your-video-url.mp4" playsinline>
+</video>
+
+<!-- Using legacy attributes -->
+<video data-plyr="true" data-preview-mode="true" data-autoplay="true" data-muted="true"
+       data-src="your-video-url.mp4" playsinline>
+</video>
+```
+
+#### Example 2: Play-Only Mode (Autoplay without controls)
+```html
+<!-- Using simplified mode attribute -->
+<video data-plyr="true" data-mode="play-only" data-muted="true"
+       data-src="your-video-url.mp4" playsinline loop>
+</video>
+
+<!-- Using legacy attributes -->
+<video data-plyr="true" data-play-only="true" data-muted="true"
+       data-src="your-video-url.mp4" playsinline loop>
+</video>
+```
 
 For detailed customization options, see the [Webflow Plyr CMS Integration](docs/webflow-plyr-cms-integration.md) documentation.
 

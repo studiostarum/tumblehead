@@ -309,3 +309,10 @@
   transform: scale(1.1);
   background: rgba(0, 0, 0, 0.9);
 }
+
+/* Only show the actual video element in play-only mode */
+.video-container.play-only-mode .plyr__video-wrapper {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
