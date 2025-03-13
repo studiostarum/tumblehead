@@ -12,6 +12,7 @@ node_modules/
 
 # Testing files
 **/*.dev.html
+webflow.css
 
 # Logs
 logs
