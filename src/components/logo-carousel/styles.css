@@ -10,8 +10,6 @@
   width: max-content;
   gap: 2rem;
   padding: 1rem 0;
-  --original-width: 0px; /* Will be set by JS */
-  /* animation duration is set by JS */
 }
 
 [data-carousel-item] {

@@ -5,8 +5,7 @@
  * Compatible with both standard navbar and Webflow navbar structures.
  */
 
-import './styles.css';
-import { toggleClass, isElementInViewport } from '../../utils/dom';
+import { toggleClass } from '../../utils/dom';
 
 // Configuration
 const CONFIG = {
@@ -16,11 +15,45 @@ const CONFIG = {
 
 // Store original body styles to restore later
 let originalBodyStyles = {
-  overflow: '',
-  paddingRight: '',
-  position: '',
-  top: '',
-  width: ''
+  overflow: ''
+};
+
+/**
+ * Utility functions for common navbar operations
+ */
+const navbarUtils = {
+  isWebflowNav: (navbar) => navbar.hasAttribute('data-element'),
+  
+  isMenuOpen: (navbar, primaryNav) => {
+    return navbarUtils.isWebflowNav(navbar) 
+      ? primaryNav.getAttribute('data-state') === 'visible'
+      : navbar.classList.contains('menu-open');
+  },
+  
+  closeMenu: (navbar, menuToggle, primaryNav, shouldFocus = false) => {
+    if (navbarUtils.isWebflowNav(navbar)) {
+      menuToggle.setAttribute('data-state', '');
+      primaryNav.setAttribute('data-state', 'hidden');
+    } else {
+      toggleClass(navbar, 'menu-open', false);
+      menuToggle.setAttribute('aria-expanded', 'false');
+    }
+    document.body.classList.remove('menu-open');
+    unlockScroll();
+    if (shouldFocus) menuToggle.focus();
+  },
+  
+  openMenu: (navbar, menuToggle, primaryNav) => {
+    if (navbarUtils.isWebflowNav(navbar)) {
+      menuToggle.setAttribute('data-state', 'open');
+      primaryNav.setAttribute('data-state', 'visible');
+    } else {
+      toggleClass(navbar, 'menu-open', true);
+      menuToggle.setAttribute('aria-expanded', 'true');
+    }
+    document.body.classList.add('menu-open');
+    lockScroll();
+  }
 };
 
 /**
@@ -51,28 +84,24 @@ function getScrollbarWidth() {
  * Lock body scroll without layout shift
  */
 function lockScroll() {
-  // Store current scroll position
-  const scrollY = window.scrollY;
-  
-  // Save original values
+  // Save original overflow value
   originalBodyStyles.overflow = document.body.style.overflow;
-  originalBodyStyles.paddingRight = document.body.style.paddingRight;
-  originalBodyStyles.position = document.body.style.position;
-  originalBodyStyles.top = document.body.style.top;
-  originalBodyStyles.width = document.body.style.width;
   
   // Calculate scrollbar width
   const scrollbarWidth = getScrollbarWidth();
   
-  // Add padding to compensate for missing scrollbar
-  if (window.innerWidth > document.documentElement.clientWidth) {
-    document.body.style.paddingRight = `${scrollbarWidth}px`;
+  // Apply padding to body
+  document.body.style.paddingRight = `${scrollbarWidth}px`;
+  
+  // Find navbar and check if it's fixed
+  const navbar = document.querySelector('.navbar') || document.querySelector('[data-element="navbar"]');
+  if (navbar && window.getComputedStyle(navbar).position === 'fixed') {
+    // Get existing padding and add scrollbar width
+    const currentPadding = parseFloat(window.getComputedStyle(navbar).paddingRight) || 0;
+    navbar.style.paddingRight = `${currentPadding + scrollbarWidth}px`;
   }
   
-  // Lock scroll while preserving position
-  document.body.style.position = 'fixed';
-  document.body.style.top = `-${scrollY}px`;
-  document.body.style.width = '100%';
+  // Lock scroll
   document.body.style.overflow = 'hidden';
   document.body.classList.add('scroll-locked');
 }
@@ -81,19 +110,18 @@ function lockScroll() {
  * Unlock body scroll and restore original state
  */
 function unlockScroll() {
-  // Get the scroll position from the body's top property
-  const scrollY = document.body.style.top;
-  
-  // Restore original styles
-  document.body.style.overflow = originalBodyStyles.overflow;
-  document.body.style.paddingRight = originalBodyStyles.paddingRight;
-  document.body.style.position = originalBodyStyles.position;
-  document.body.style.top = originalBodyStyles.top;
-  document.body.style.width = originalBodyStyles.width;
+  // Remove scroll lock class
   document.body.classList.remove('scroll-locked');
   
-  // Restore scroll position
-  window.scrollTo(0, parseInt(scrollY || '0') * -1);
+  // Restore overflow and remove padding from body
+  document.body.style.overflow = originalBodyStyles.overflow;
+  document.body.style.paddingRight = '';
+  
+  // Find navbar and restore original padding
+  const navbar = document.querySelector('.navbar') || document.querySelector('[data-element="navbar"]');
+  if (navbar && window.getComputedStyle(navbar).position === 'fixed') {
+    navbar.style.paddingRight = '';
+  }
 }
 
 /**
@@ -106,17 +134,6 @@ export function initNavbar() {
     console.warn('Navbar element not found. Ensure .navbar or [data-element="navbar"] exists.');
     return;
   }
-  
-  // Set scrollbar width CSS variable
-  document.documentElement.style.setProperty('--scrollbar-width', `${getScrollbarWidth()}px`);
-  
-  // Set navbar height CSS variable
-  document.documentElement.style.setProperty('--navbar-height', `${navbar.offsetHeight}px`);
-  
-  // Update navbar height on resize
-  window.addEventListener('resize', () => {
-    document.documentElement.style.setProperty('--navbar-height', `${navbar.offsetHeight}px`);
-  });
   
   // Find the menu toggle button (support both structures)
   const menuToggle = navbar.querySelector('.navbar-menu-toggle') || navbar.querySelector('.menu-button');
@@ -164,131 +181,34 @@ function setupMobileMenu(navbar, menuToggle, primaryNav) {
   // Toggle menu
   menuToggle.addEventListener('click', (e) => {
     e.preventDefault();
-    
-    // Support both standard and Webflow structures
-    const isWebflowNav = navbar.hasAttribute('data-element');
-    
-    if (isWebflowNav) {
-      // Webflow navbar structure
-      const isExpanded = menuToggle.getAttribute('data-state') === 'open';
-      menuToggle.setAttribute('data-state', isExpanded ? '' : 'open');
-      primaryNav.setAttribute('data-state', isExpanded ? 'hidden' : 'visible');
-      
-      document.body.classList.toggle('menu-open', !isExpanded);
-      
-      // Prevent scroll when menu is open using our scroll lock functions
-      if (isExpanded) {
-        unlockScroll();
-      } else {
-        lockScroll();
-      }
+    const isOpen = navbarUtils.isMenuOpen(navbar, primaryNav);
+    if (isOpen) {
+      navbarUtils.closeMenu(navbar, menuToggle, primaryNav);
     } else {
-      // Standard navbar structure
-      const isExpanded = toggleClass(navbar, 'menu-open');
-      menuToggle.setAttribute('aria-expanded', isExpanded.toString());
-      document.body.classList.toggle('menu-open', isExpanded);
-      
-      // Prevent scroll when menu is open using our scroll lock functions
-      if (isExpanded) {
-        lockScroll();
-      } else {
-        unlockScroll();
-      }
+      navbarUtils.openMenu(navbar, menuToggle, primaryNav);
     }
   });
   
   // Close menu when clicking outside
   document.addEventListener('click', (e) => {
     const isMobile = window.innerWidth < CONFIG.breakpoint;
-    const isWebflowNav = navbar.hasAttribute('data-element');
-    
-    if (isWebflowNav) {
-      // Webflow navbar structure
-      const isMenuOpen = primaryNav.getAttribute('data-state') === 'visible';
-      
-      if (isMobile && isMenuOpen && !navbar.contains(e.target)) {
-        menuToggle.setAttribute('data-state', '');
-        primaryNav.setAttribute('data-state', 'hidden');
-        document.body.classList.remove('menu-open');
-        unlockScroll();
-      }
-    } else {
-      // Standard navbar structure
-      const isMenuOpen = navbar.classList.contains('menu-open');
-      
-      if (isMobile && isMenuOpen && !navbar.contains(e.target)) {
-        toggleClass(navbar, 'menu-open', false);
-        menuToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('menu-open');
-        unlockScroll();
-      }
+    if (isMobile && navbarUtils.isMenuOpen(navbar, primaryNav) && !navbar.contains(e.target)) {
+      navbarUtils.closeMenu(navbar, menuToggle, primaryNav);
     }
   });
   
   // Handle window resize
   window.addEventListener('resize', () => {
     const isMobile = window.innerWidth < CONFIG.breakpoint;
-    const isWebflowNav = navbar.hasAttribute('data-element');
-    
-    if (isWebflowNav) {
-      // Webflow navbar structure
-      const isMenuOpen = primaryNav.getAttribute('data-state') === 'visible';
-      
-      if (!isMobile && isMenuOpen) {
-        menuToggle.setAttribute('data-state', '');
-        primaryNav.setAttribute('data-state', 'hidden');
-        
-        // Apply same animation delay before hiding
-        setTimeout(() => {
-          primaryNav.style.display = 'none';
-        }, CONFIG.animationDuration);
-        
-        document.body.classList.remove('menu-open');
-        unlockScroll();
-      }
-    } else {
-      // Standard navbar structure
-      if (!isMobile && navbar.classList.contains('menu-open')) {
-        toggleClass(navbar, 'menu-open', false);
-        menuToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('menu-open');
-        unlockScroll();
-      }
+    if (!isMobile && navbarUtils.isMenuOpen(navbar, primaryNav)) {
+      navbarUtils.closeMenu(navbar, menuToggle, primaryNav);
     }
   });
   
   // Close menu when pressing escape key
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const isWebflowNav = navbar.hasAttribute('data-element');
-      
-      if (isWebflowNav) {
-        // Webflow navbar structure
-        const isMenuOpen = primaryNav.getAttribute('data-state') === 'visible';
-        
-        if (isMenuOpen) {
-          menuToggle.setAttribute('data-state', '');
-          primaryNav.setAttribute('data-state', 'hidden');
-          
-          // Apply same animation delay before hiding
-          setTimeout(() => {
-            primaryNav.style.display = 'none';
-          }, CONFIG.animationDuration);
-          
-          document.body.classList.remove('menu-open');
-          unlockScroll();
-          menuToggle.focus();
-        }
-      } else {
-        // Standard navbar structure
-        if (navbar.classList.contains('menu-open')) {
-          toggleClass(navbar, 'menu-open', false);
-          menuToggle.setAttribute('aria-expanded', 'false');
-          document.body.classList.remove('menu-open');
-          unlockScroll();
-          menuToggle.focus();
-        }
-      }
+    if (e.key === 'Escape' && navbarUtils.isMenuOpen(navbar, primaryNav)) {
+      navbarUtils.closeMenu(navbar, menuToggle, primaryNav, true);
     }
   });
   
@@ -333,14 +253,11 @@ function setupSmoothScrolling(navbar) {
         e.preventDefault();
         
         // Close menu if open
-        if (navbar.classList.contains('menu-open')) {
-          const menuToggle = navbar.querySelector('.navbar-menu-toggle');
-          if (menuToggle) {
-            toggleClass(navbar, 'menu-open', false);
-            menuToggle.setAttribute('aria-expanded', 'false');
-            document.body.classList.remove('menu-open');
-            unlockScroll();
-          }
+        const menuToggle = navbar.querySelector('.navbar-menu-toggle') || navbar.querySelector('.menu-button');
+        const primaryNav = navbar.querySelector('.navbar-primary-nav') || navbar.querySelector('.nav-menu-wrapper');
+        
+        if (navbarUtils.isMenuOpen(navbar, primaryNav) && menuToggle && primaryNav) {
+          navbarUtils.closeMenu(navbar, menuToggle, primaryNav);
         }
         
         // Calculate scroll position

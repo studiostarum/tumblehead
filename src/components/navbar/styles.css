@@ -2,28 +2,9 @@
  * Navbar Component Styles
  */
 
-/* Prevent layout shift when scroll is locked */
-html {
-  /* Modern browsers - reserve space for scrollbar */
-  scrollbar-gutter: stable;
-}
-
-/* Fallback for browsers without scrollbar-gutter support */
-body.scroll-locked {
-  overflow: hidden;
-  padding-right: var(--scrollbar-width, 17px);
-  /* Default to 17px if CSS var not set */
-}
-
-/* Prevent navbar shift when menu opens */
-body.scroll-locked .navbar,
-body.scroll-locked [data-element="navbar"] {
-  padding-right: var(--scrollbar-width, 17px);
-}
-
-/* Base navbar state on home page */
-[data-page="home"] .navbar,
-[data-page="home"] [data-element="navbar"] {
+/* Navbar home page states */
+[data-page="home"] [data-element="navbar"],
+[data-page="home"] .navbar {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -32,9 +13,9 @@ body.scroll-locked [data-element="navbar"] {
   transition: none;
 }
 
-/* Enable transitions once JS has loaded */
-[data-page="home"] .navbar.js-enabled,
-[data-page="home"] [data-element="navbar"].js-enabled {
+/* JS enabled state */
+[data-page="home"] [data-element="navbar"].js-enabled,
+[data-page="home"] .navbar.js-enabled {
   /* Delay visibility change until after fade out */
   transition:
     opacity 0.6s ease-out,
@@ -43,9 +24,9 @@ body.scroll-locked [data-element="navbar"] {
   /* Delay visibility transition */
 }
 
-/* Show navbar when visible class is added */
-[data-page="home"] .navbar.js-enabled.visible,
-[data-page="home"] [data-element="navbar"].js-enabled.visible {
+/* Visible state */
+[data-page="home"] [data-element="navbar"].js-enabled.visible,
+[data-page="home"] .navbar.js-enabled.visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -64,8 +45,7 @@ body.scroll-locked [data-element="navbar"] {
 /* Menu overlay */
 .nav-menu-wrapper {
   position: fixed;
-  top: var(--navbar-height, 80px);
-  /* Use navbar height or default to 80px */
+  top: 4.875rem;
   left: 0;
   right: 0;
   bottom: 0;
@@ -101,7 +81,7 @@ body.scroll-locked [data-element="navbar"] {
 }
 
 .nav-menu {
-  height: calc(100vh - var(--navbar-height, 80px));
+  height: calc(100vh - 80px);
 }
 
 /* Menu button animation */
