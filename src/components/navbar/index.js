@@ -17,7 +17,10 @@ const CONFIG = {
 // Store original body styles to restore later
 let originalBodyStyles = {
   overflow: '',
-  paddingRight: ''
+  paddingRight: '',
+  position: '',
+  top: '',
+  width: ''
 };
 
 /**
@@ -48,9 +51,15 @@ function getScrollbarWidth() {
  * Lock body scroll without layout shift
  */
 function lockScroll() {
+  // Store current scroll position
+  const scrollY = window.scrollY;
+  
   // Save original values
   originalBodyStyles.overflow = document.body.style.overflow;
   originalBodyStyles.paddingRight = document.body.style.paddingRight;
+  originalBodyStyles.position = document.body.style.position;
+  originalBodyStyles.top = document.body.style.top;
+  originalBodyStyles.width = document.body.style.width;
   
   // Calculate scrollbar width
   const scrollbarWidth = getScrollbarWidth();
@@ -60,7 +69,10 @@ function lockScroll() {
     document.body.style.paddingRight = `${scrollbarWidth}px`;
   }
   
-  // Lock scroll
+  // Lock scroll while preserving position
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${scrollY}px`;
+  document.body.style.width = '100%';
   document.body.style.overflow = 'hidden';
   document.body.classList.add('scroll-locked');
 }
@@ -69,10 +81,19 @@ function lockScroll() {
  * Unlock body scroll and restore original state
  */
 function unlockScroll() {
+  // Get the scroll position from the body's top property
+  const scrollY = document.body.style.top;
+  
   // Restore original styles
   document.body.style.overflow = originalBodyStyles.overflow;
   document.body.style.paddingRight = originalBodyStyles.paddingRight;
+  document.body.style.position = originalBodyStyles.position;
+  document.body.style.top = originalBodyStyles.top;
+  document.body.style.width = originalBodyStyles.width;
   document.body.classList.remove('scroll-locked');
+  
+  // Restore scroll position
+  window.scrollTo(0, parseInt(scrollY || '0') * -1);
 }
 
 /**
@@ -85,6 +106,17 @@ export function initNavbar() {
     console.warn('Navbar element not found. Ensure .navbar or [data-element="navbar"] exists.');
     return;
   }
+  
+  // Set scrollbar width CSS variable
+  document.documentElement.style.setProperty('--scrollbar-width', `${getScrollbarWidth()}px`);
+  
+  // Set navbar height CSS variable
+  document.documentElement.style.setProperty('--navbar-height', `${navbar.offsetHeight}px`);
+  
+  // Update navbar height on resize
+  window.addEventListener('resize', () => {
+    document.documentElement.style.setProperty('--navbar-height', `${navbar.offsetHeight}px`);
+  });
   
   // Find the menu toggle button (support both structures)
   const menuToggle = navbar.querySelector('.navbar-menu-toggle') || navbar.querySelector('.menu-button');
@@ -142,16 +174,6 @@ function setupMobileMenu(navbar, menuToggle, primaryNav) {
       menuToggle.setAttribute('data-state', isExpanded ? '' : 'open');
       primaryNav.setAttribute('data-state', isExpanded ? 'hidden' : 'visible');
       
-      // Remove the immediate display toggling to allow for CSS transitions
-      // Only set display:none after transition completes when closing
-      if (isExpanded) {
-        setTimeout(() => {
-          primaryNav.style.display = 'none';
-        }, CONFIG.animationDuration);
-      } else {
-        primaryNav.style.display = 'block';
-      }
-      
       document.body.classList.toggle('menu-open', !isExpanded);
       
       // Prevent scroll when menu is open using our scroll lock functions
@@ -187,12 +209,6 @@ function setupMobileMenu(navbar, menuToggle, primaryNav) {
       if (isMobile && isMenuOpen && !navbar.contains(e.target)) {
         menuToggle.setAttribute('data-state', '');
         primaryNav.setAttribute('data-state', 'hidden');
-        
-        // Apply same animation delay before hiding
-        setTimeout(() => {
-          primaryNav.style.display = 'none';
-        }, CONFIG.animationDuration);
-        
         document.body.classList.remove('menu-open');
         unlockScroll();
       }
@@ -360,19 +376,37 @@ function setupHomePageNavbarVisibility(navbar) {
     return;
   }
   
-  // Ensure navbar is hidden initially
-  navbar.classList.remove('visible');
+  // Enable transitions
+  navbar.classList.add('js-enabled');
   
-  // Create scroll handler function
+  // Create scroll handler function with throttling
+  let ticking = false;
   const handleScroll = () => {
-    const heroRect = heroSection.getBoundingClientRect();
-    const heroBottom = heroRect.bottom;
-    
-    // If we've scrolled past the hero section
-    if (heroBottom <= 0) {
-      navbar.classList.add('visible');
-    } else {
-      navbar.classList.remove('visible');
+    // Don't hide navbar if menu is open
+    if (document.body.classList.contains('menu-open')) {
+      return;
+    }
+
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const heroRect = heroSection.getBoundingClientRect();
+        const heroBottom = heroRect.bottom;
+        
+        // If we've scrolled past the hero section
+        if (heroBottom <= 0) {
+          if (!navbar.classList.contains('visible')) {
+            navbar.classList.add('visible');
+          }
+        } else {
+          if (navbar.classList.contains('visible')) {
+            navbar.classList.remove('visible');
+          }
+        }
+        
+        ticking = false;
+      });
+      
+      ticking = true;
     }
   };
   
@@ -382,7 +416,8 @@ function setupHomePageNavbarVisibility(navbar) {
   // Add scroll event listener
   window.addEventListener('scroll', handleScroll, { passive: true });
   
-  // Do NOT call handleScroll initially to ensure navbar stays hidden
+  // Initial check in case page is loaded scrolled down
+  handleScroll();
 }
 
 // Export for external use
