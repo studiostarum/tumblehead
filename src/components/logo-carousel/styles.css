@@ -8,8 +8,9 @@
 [data-carousel-track] {
   display: flex;
   width: max-content;
-  gap: 6rem;
-  animation: scroll 20s linear infinite;
+  gap: 2rem;
+  animation: scroll 30s linear infinite;
+  padding: 1rem 0;
 }
 
 /* Create virtual copies using background */
@@ -37,15 +38,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 3rem;
-  max-width: 6rem;
+  min-width: 100px;
+  max-width: 160px;
   padding: 1rem;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+[data-carousel-item]:hover {
+  opacity: 1;
 }
 
 [data-carousel-item] img {
   width: 100%;
   height: auto;
   object-fit: contain;
+  filter: grayscale(1) brightness(2);
+  transition: filter 0.3s ease;
+}
+
+[data-carousel-item]:hover img {
+  filter: grayscale(0) brightness(1);
 }
 
 @keyframes scroll {
@@ -53,7 +66,7 @@
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-50% - var(--gap, 2rem)));
+    transform: translateX(calc(-100% / 3));
   }
 }
 
@@ -61,4 +74,9 @@
 [data-carousel-track] {
   will-change: transform;
   backface-visibility: hidden;
+}
+
+/* Pause animation on hover */
+[data-carousel-track]:hover {
+  animation-play-state: paused;
 } 
