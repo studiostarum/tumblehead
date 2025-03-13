@@ -12,6 +12,12 @@
   padding-bottom: var(--aspect-ratio);
   background: #000;
   overflow: hidden;
+  border-radius: 8px; /* Add rounded corners */
+}
+
+/* Preview play button z-index fix */
+.preview-play-button {
+  z-index: 2 !important;
 }
 
 /* Aspect ratio presets */
@@ -112,7 +118,7 @@
   border: none !important;
   color: white !important;
   cursor: pointer !important;
-  z-index: 9999 !important;
+  z-index: 10;
   
   /* Animation - enhanced for smoother transitions */
   transition: transform 0.3s ease, 
