@@ -10,7 +10,8 @@ import { toggleClass } from '../../utils/dom';
 // Configuration
 const CONFIG = {
   breakpoint: 768,        // Mobile breakpoint (px)
-  animationDuration: 300  // Animation duration (ms)
+  animationDuration: 300, // Animation duration (ms)
+  scrollThreshold: 50     // Scroll threshold for background change (px)
 };
 
 // Store original body styles to restore later
@@ -39,6 +40,12 @@ const navbarUtils = {
       menuToggle.setAttribute('aria-expanded', 'false');
     }
     document.body.classList.remove('menu-open');
+    
+    // Only remove black background if we're scrolled to top
+    if (window.scrollY <= CONFIG.scrollThreshold) {
+      navbar.classList.remove('is-scrolled');
+    }
+    
     unlockScroll();
     if (shouldFocus) menuToggle.focus();
   },
@@ -52,6 +59,7 @@ const navbarUtils = {
       menuToggle.setAttribute('aria-expanded', 'true');
     }
     document.body.classList.add('menu-open');
+    navbar.classList.add('is-scrolled'); // Always add black bg when menu is open
     lockScroll();
   }
 };
@@ -158,6 +166,30 @@ export function initNavbar() {
   
   // Handle home page with hero section visibility
   setupHomePageNavbarVisibility(navbar);
+  
+  // Set up scroll detection
+  let ticking = false;
+  const handleScroll = () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        // Add/remove scrolled class based on scroll position
+        if (window.scrollY > CONFIG.scrollThreshold) {
+          navbar.classList.add('is-scrolled');
+        } else if (!document.body.classList.contains('menu-open')) {
+          // Only remove if menu isn't open
+          navbar.classList.remove('is-scrolled');
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }
+  };
+  
+  // Add scroll event listener
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  
+  // Initial check
+  handleScroll();
   
   // Return controller for potential external control
   return {

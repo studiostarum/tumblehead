@@ -2,6 +2,22 @@
  * Navbar Component Styles
  */
 
+/* Base navbar styles */
+.navbar {
+  transition: background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  background-color: transparent;
+}
+
+/* Scrolled state */
+.navbar.is-scrolled {
+  background-color: black;
+}
+
+/* Menu open state */
+.navbar.menu-open {
+  background-color: black;
+}
+
 /* Navbar home page states */
 [data-page="home"] [data-element="navbar"],
 [data-page="home"] .navbar {
@@ -18,10 +34,10 @@
 [data-page="home"] .navbar.js-enabled {
   /* Delay visibility change until after fade out */
   transition:
-    opacity 0.6s ease-out,
-    transform 0.6s ease-out,
-    visibility 0s 0.6s;
-  /* Delay visibility transition */
+    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+    visibility 0s 0.3s,
+    background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 /* Visible state */
@@ -31,15 +47,11 @@
   visibility: visible;
   pointer-events: auto;
   transform: translateY(0);
-  /* Remove visibility delay when showing */
   transition:
-    opacity 0.6s ease-out,
-    transform 0.6s ease-out,
-    visibility 0s;
-}
-
-.navbar {
-  background-color: black;
+    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+    visibility 0s,
+    background-color 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 /* Menu overlay */
@@ -51,32 +63,26 @@
   bottom: 0;
   z-index: 999;
   background: black;
-  transition: opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-    transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-    visibility 0s 0.4s;
-  /* Add delay for visibility when hiding */
+  transition:
+    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+    visibility 0s 0.3s,
+    backdrop-filter 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
   visibility: hidden;
   opacity: 0;
-  transform: translateY(-20px);
   pointer-events: none;
-  will-change: opacity, transform;
   backdrop-filter: blur(0px);
   display: block;
-  /* Always keep it displayed */
   overflow-y: auto;
-  /* Allow scrolling within menu if content is tall */
 }
 
 .nav-menu-wrapper[data-state="visible"] {
   visibility: visible;
   opacity: 1;
-  transform: translateY(0);
   pointer-events: all;
-  transition: opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-    transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-    backdrop-filter 0.4s ease,
+  transition:
+    opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+    backdrop-filter 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
     visibility 0s;
-  /* No delay for visibility when showing */
   backdrop-filter: blur(5px);
 }
 
@@ -95,7 +101,7 @@
 
 /* Nav links fade animation */
 .nav-menu-wrapper[data-state="visible"] .nav-link {
-  animation: fadeIn 0.4s ease forwards;
+  animation: fadeInUp 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   opacity: 0;
 }
 
@@ -105,25 +111,25 @@
 }
 
 .nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(1) {
-  animation-delay: 0.05s;
-}
-
-.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(2) {
   animation-delay: 0.1s;
 }
 
-.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(3) {
-  animation-delay: 0.15s;
-}
-
-.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(4) {
+.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-@keyframes fadeIn {
+.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.nav-menu-wrapper[data-state="visible"] .nav-menu>a:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+@keyframes fadeInUp {
   0% {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(20px);
   }
 
   100% {

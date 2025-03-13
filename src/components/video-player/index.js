@@ -844,7 +844,44 @@ function setupCMSIntegration() {
         
         // The `renderitems` event runs whenever the list renders items after filtering
         filterInstance.listInstance.on('renderitems', () => {
-          setTimeout(initializePlyrVideos, 100);
+          // First destroy all existing players
+          players.forEach((player, container) => {
+            try {
+              player.destroy();
+              // Remove initialization attribute to allow reinitializing
+              container.removeAttribute('data-plyr-initialized');
+            } catch (e) {
+              if (DEBUG_MODE) {
+                console.error('Error destroying player:', e);
+              }
+            }
+          });
+          
+          // Clear players map
+          players.clear();
+          
+          // Clear lightboxes map
+          lightboxes.clear();
+          
+          // Remove any existing lightbox elements from the DOM
+          document.querySelectorAll('.video-lightbox').forEach(lightbox => {
+            lightbox.remove();
+          });
+          
+          // Wait a bit longer for the DOM to stabilize after filter changes
+          setTimeout(() => {
+            // Initialize new players
+            initializePlyrVideos();
+            
+            // Start playing preview videos after initialization
+            document.querySelectorAll('.video-container.preview-mode video').forEach(video => {
+              if (video.paused) {
+                video.play().catch(() => {
+                  // Ignore autoplay errors
+                });
+              }
+            });
+          }, 150);
         });
       },
     ]);
