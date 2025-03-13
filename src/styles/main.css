@@ -28,32 +28,22 @@ body {
 }
 
 body.scroll-locked {
-  position: fixed;
-  width: 100%;
-  height: 100%;
   overflow: hidden;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-}
-
-/* Ensure content stays in place when scroll is locked */
-body.scroll-locked .page-wrapper {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Fix for hero project items */
-body.scroll-locked .w-dyn-item {
-  transform: none;
-  transition: none;
 }
 
 .page-wrapper {
   position: relative;
   width: 100%;
   overflow-x: hidden;
+}
+
+/* Menu overlay styles */
+.nav-menu-wrapper {
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }

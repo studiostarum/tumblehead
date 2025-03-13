@@ -19,6 +19,9 @@ let originalBodyStyles = {
   overflow: ''
 };
 
+// Store scroll position
+let scrollPosition = 0;
+
 /**
  * Utility functions for common navbar operations
  */
@@ -92,13 +95,13 @@ function getScrollbarWidth() {
  * Lock body scroll without layout shift
  */
 function lockScroll() {
-  // Save original overflow value
-  originalBodyStyles.overflow = document.body.style.overflow;
+  // Store current scroll position
+  scrollPosition = window.scrollY;
   
   // Calculate scrollbar width
   const scrollbarWidth = getScrollbarWidth();
   
-  // Apply padding to body
+  // Apply padding to body to prevent layout shift
   document.body.style.paddingRight = `${scrollbarWidth}px`;
   
   // Find navbar and check if it's fixed
@@ -110,8 +113,15 @@ function lockScroll() {
   }
   
   // Lock scroll
-  document.body.style.overflow = 'hidden';
   document.body.classList.add('scroll-locked');
+  
+  // Set the menu wrapper's scroll position
+  const menuWrapper = document.querySelector('.nav-menu-wrapper');
+  if (menuWrapper) {
+    requestAnimationFrame(() => {
+      menuWrapper.scrollTop = 0;
+    });
+  }
 }
 
 /**
@@ -121,8 +131,7 @@ function unlockScroll() {
   // Remove scroll lock class
   document.body.classList.remove('scroll-locked');
   
-  // Restore overflow and remove padding from body
-  document.body.style.overflow = originalBodyStyles.overflow;
+  // Restore padding
   document.body.style.paddingRight = '';
   
   // Find navbar and restore original padding
@@ -130,6 +139,9 @@ function unlockScroll() {
   if (navbar && window.getComputedStyle(navbar).position === 'fixed') {
     navbar.style.paddingRight = '';
   }
+  
+  // Restore scroll position
+  window.scrollTo(0, scrollPosition);
 }
 
 /**
