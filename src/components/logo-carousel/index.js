@@ -6,6 +6,9 @@ export function initLogoCarousel() {
   if (!track) return;
 
   function duplicateItems() {
+    // Clear any existing animation
+    track.style.animation = 'none';
+    
     // Remove existing clones
     track.querySelectorAll('[data-carousel-item].clone').forEach(clone => clone.remove());
 
@@ -13,11 +16,16 @@ export function initLogoCarousel() {
     const items = track.querySelectorAll('[data-carousel-item]:not(.clone)');
     if (!items.length) return;
 
-    // Calculate how many sets we need to fill the viewport plus extra for smooth scroll
-    const trackWidth = track.scrollWidth;
+    // Calculate the width of one complete set of original items
+    const originalSetWidth = track.scrollWidth;
+    
+    // Set this width as a CSS variable for the animation
+    track.style.setProperty('--original-width', `${originalSetWidth}px`);
+    
+    // Calculate how many complete sets we need based on viewport width
     const viewportWidth = window.innerWidth;
-    const sets = Math.ceil((viewportWidth * 3) / trackWidth) + 1;
-
+    const sets = Math.max(2, Math.ceil((viewportWidth * 3) / originalSetWidth));
+    
     // Clone items
     for (let i = 0; i < sets; i++) {
       items.forEach(item => {
@@ -27,10 +35,16 @@ export function initLogoCarousel() {
       });
     }
 
-    // Reset animation
-    track.style.animation = 'none';
-    track.offsetHeight; // Force reflow
-    track.style.animation = 'scroll 30s linear infinite';
+    // Force reflow
+    track.offsetHeight;
+    
+    // Calculate animation duration based on content width
+    // Slower for wider content ensures consistent speed
+    const totalItems = track.querySelectorAll('[data-carousel-item]').length;
+    const duration = Math.max(20, totalItems * 2);
+    
+    // Restart animation with new duration
+    track.style.animation = `scroll ${duration}s linear infinite`;
   }
 
   // Initial duplication
@@ -42,4 +56,7 @@ export function initLogoCarousel() {
   });
 
   resizeObserver.observe(track);
+  
+  // Also handle window load event to ensure images are loaded
+  window.addEventListener('load', duplicateItems, { once: true });
 }

@@ -74,69 +74,104 @@ A responsive, animated navigation bar:
 
 A smooth, responsive logo carousel with dynamic content duplication:
 
-- **Infinite Scrolling**: Seamless continuous animation from right to left
-- **Dynamic Content**: Automatically fills viewport width by calculating required duplicates
-- **Responsive**: Adapts to viewport changes and window resizing
-- **Performance Optimized**: Uses CSS transforms and minimal DOM manipulation
-- **Touch-enabled**: Works on mobile devices
+- **Infinite Scrolling**: Seamless continuous animation from right to left with logos always entering from the right
+- **Viewport Filling**: Automatically duplicates logos to fill the entire viewport width plus extra buffer
+- **Dynamic Content Duplication**: Calculates optimal number of duplicates based on viewport width
+- **Responsive**: Adapts to viewport changes with ResizeObserver for smooth transitions
+- **Performance Optimized**: Uses CSS transforms and minimal DOM manipulation for smooth animation
+- **Visual Effects**: Grayscale filter with hover state for interactive client logos
 - **Pause on Hover**: Animation pauses when user hovers over logos
 
 #### Implementation
 
-The carousel uses a combination of CSS animations and JavaScript for optimal performance:
+The carousel uses data attributes for maximum reusability, making it easy to implement in any project:
 
 ```html
-<div data-carousel class="client-list-component">
-    <div data-carousel-track class="client-list-wrapper">
-        <div data-carousel-item>
-            <img src="path/to/logo.png" alt="Client Logo">
+<section class="client-list-section">
+    <div data-carousel class="client-list-component">
+        <div data-carousel-track class="client-list-wrapper w-dyn-list">
+            <div role="list" class="client-list w-dyn-items">
+                <div data-carousel-item role="listitem" class="client-logo-wrapper w-dyn-item">
+                    <img loading="lazy" src="path/to/logo.png" alt="" class="client-logo">
+                </div>
+                <!-- Add more items as needed -->
+            </div>
         </div>
-        <!-- Add more items as needed -->
     </div>
-</div>
+</section>
 ```
 
-#### Configuration
+#### Data Attributes Structure
 
-The carousel can be configured through several methods:
+The carousel uses three key data attributes:
 
-1. **Data Attributes**:
-   - `data-carousel`: Container element
-   - `data-carousel-track`: Scrolling track element
-   - `data-carousel-item`: Individual logo items
+- `data-carousel`: Applied to the container element
+- `data-carousel-track`: Applied to the scrolling track that contains all items
+- `data-carousel-item`: Applied to each individual logo item
 
-2. **JavaScript Configuration** (in main.js):
+#### How It Works
+
+1. **Dynamic Duplication**: The JavaScript automatically duplicates items based on viewport width:
    ```javascript
-   // Adjust viewport coverage factor (default: 3)
-   const numCopies = Math.ceil((viewportWidth * 3) / trackWidth);
-   
-   // Adjust animation speed (default: 0.02s per pixel)
-   const duration = totalWidth * 0.02;
+   // Calculate how many sets we need to fill the viewport plus extra for smooth scroll
+   const trackWidth = track.scrollWidth;
+   const viewportWidth = window.innerWidth;
+   const sets = Math.ceil((viewportWidth * 3) / trackWidth) + 1;
    ```
 
-3. **CSS Customization**:
+2. **Smooth Animation**: Uses CSS `transform` with hardware acceleration:
    ```css
-   [data-carousel-item] {
-     min-width: 120px;    /* Minimum logo width */
-     max-width: 200px;    /* Maximum logo width */
-     padding: 1rem;       /* Logo padding */
-   }
-   
-   [data-carousel-track] {
-     gap: 2rem;          /* Space between logos */
+   @keyframes scroll {
+     0% {
+       transform: translateX(0);
+     }
+     100% {
+       transform: translateX(calc(-100% / 3));
+     }
    }
    ```
 
-#### Features
+3. **Responsive Handling**: Uses ResizeObserver to cleanly handle window resizing:
+   ```javascript
+   const resizeObserver = new ResizeObserver(() => {
+     duplicateItems();
+   });
+   ```
 
-- **Automatic Content Duplication**: Dynamically calculates and creates enough copies to fill the viewport
-- **Smooth Animation**: Uses CSS transforms for hardware-accelerated animations
-- **Responsive Behavior**: Automatically adjusts on window resize
-- **Performance Optimized**: 
-  - Uses `will-change` and `backface-visibility` for smooth rendering
-  - Minimal DOM manipulation
-  - Event throttling for resize handling
-- **Accessibility**: Includes proper ARIA attributes and keyboard navigation support
+#### Customization
+
+The carousel can be customized through CSS:
+
+```css
+/* Adjust logo sizing */
+[data-carousel-item] {
+  min-width: 100px;
+  max-width: 160px;
+  padding: 1rem;
+}
+
+/* Adjust spacing between logos */
+[data-carousel-track] {
+  gap: 2rem;
+}
+
+/* Adjust animation speed */
+[data-carousel-track] {
+  animation: scroll 30s linear infinite;
+}
+```
+
+Visual effects like the grayscale filter can also be customized:
+
+```css
+[data-carousel-item] img {
+  filter: grayscale(1) brightness(2);
+}
+
+[data-carousel-item]:hover img {
+  filter: grayscale(0) brightness(1);
+}
+```
 
 ## Build System
 

@@ -73,12 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initHeroScrollReveal();
     
     // Initialize logo carousel with custom config (optional)
-    initLogoCarousel(null, {
-        minLogosVisible: 4,
-        viewportCoverage: 3,
-        speedFactor: 0.02,
-        resizeDebounce: 250
-    });
+    initLogoCarousel();
     
     // Initialize video components
     initVideoPlayer();
@@ -87,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Handle window resize
 window.addEventListener('resize', () => {
-    initLogoCarousel();
+    // No need to call initLogoCarousel() here as we're using ResizeObserver
 }, { passive: true });
 
 // Export for external use
