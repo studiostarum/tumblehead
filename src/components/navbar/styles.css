@@ -35,6 +35,13 @@
   width: 100%;
 }
 
+/* Sticky navbar variant */
+[data-element="navbar"][data-wf--navbar-new--variant="sticky"],
+.navbar[data-wf--navbar-new--variant="sticky"] {
+  position: sticky;
+  top: 0;
+}
+
 /* Navbar container styles */
 .navbar-container {
   position: relative;
@@ -108,6 +115,11 @@ body.menu-open .navbar {
   flex-direction: column;
   overflow-y: auto;
   padding-top: var(--navbar-height);
+}
+
+/* Adjust menu wrapper for sticky navbar */
+[data-wf--navbar-new--variant="sticky"] + .nav-menu-wrapper {
+  position: absolute;
 }
 
 .nav-menu-wrapper[data-state="visible"] {

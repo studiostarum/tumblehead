@@ -28,6 +28,8 @@ let scrollPosition = 0;
 const navbarUtils = {
   isWebflowNav: (navbar) => navbar.hasAttribute('data-element'),
   
+  isStickyNav: (navbar) => navbar.getAttribute('data-wf--navbar-new--variant') === 'sticky',
+  
   isMenuOpen: (navbar, primaryNav) => {
     return navbarUtils.isWebflowNav(navbar) 
       ? primaryNav.getAttribute('data-state') === 'visible'
@@ -145,6 +147,17 @@ function unlockScroll() {
 }
 
 /**
+ * Check if the navbar is sticky and add a data attribute to the body
+ * This helps with CSS selectors for browsers that don't support :has
+ */
+function detectStickyNavbar() {
+  const navbar = document.querySelector('[data-element="navbar"], .navbar');
+  if (navbar && navbarUtils.isStickyNav(navbar)) {
+    document.body.setAttribute('data-sticky-navbar', '');
+  }
+}
+
+/**
  * Initialize the navbar component
  */
 export function initNavbar() {
@@ -202,6 +215,9 @@ export function initNavbar() {
   
   // Initial check
   handleScroll();
+  
+  // Detect sticky navbar
+  detectStickyNavbar();
   
   // Return controller for potential external control
   return {

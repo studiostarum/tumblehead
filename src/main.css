@@ -39,6 +39,16 @@ body.scroll-locked {
   padding-top: var(--navbar-height); /* Add padding to account for fixed navbar */
 }
 
+/* Remove padding for sticky navbar */
+.page-wrapper:has([data-wf--navbar-new--variant="sticky"]) {
+  padding-top: 0;
+}
+
+/* Alternative selector for browsers that don't support :has */
+[data-sticky-navbar] .page-wrapper {
+  padding-top: 0;
+}
+
 /* Menu overlay styles */
 .nav-menu-wrapper {
   position: fixed;
@@ -68,6 +78,12 @@ body.menu-open .navbar-container {
 @media screen and (max-width: 768px) {
   .page-wrapper {
     padding-top: var(--navbar-height-mobile);
+  }
+  
+  /* Remove padding for sticky navbar on mobile too */
+  .page-wrapper:has([data-wf--navbar-new--variant="sticky"]),
+  [data-sticky-navbar] .page-wrapper {
+    padding-top: 0;
   }
   
   .nav-menu-wrapper {
