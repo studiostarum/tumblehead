@@ -12,7 +12,6 @@
   padding-bottom: var(--aspect-ratio);
   background: #000;
   overflow: hidden;
-  border-radius: 8px; /* Add rounded corners */
 }
 
 /* Preview play button z-index fix */
