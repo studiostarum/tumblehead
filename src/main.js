@@ -6,7 +6,7 @@
  */
 
 // Import main CSS file
-import './styles/main.css';
+import './main.css';
 
 // Import Webflow integration
 import './components/video-player/plyr';

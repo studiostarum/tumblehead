@@ -10,6 +10,7 @@
                      background-color var(--transition-timing),
                      backdrop-filter var(--transition-timing);
   --navbar-height: 4.875rem;
+  --navbar-height-mobile: 3.5rem;
 }
 
 /* Common transitions */
@@ -26,6 +27,23 @@
   transform: translateY(0);
   transition: background-color var(--transition-timing);
   background-color: transparent;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  width: 100%;
+}
+
+/* Navbar container styles */
+.navbar-container {
+  position: relative;
+  z-index: 1001;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  height: var(--navbar-height);
 }
 
 /* Scrolled and menu open states */
@@ -64,21 +82,32 @@
   background-color: black;
 }
 
+/* Ensure navbar is visible when menu is open */
+body.menu-open [data-element="navbar"],
+body.menu-open .navbar {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1001;
+}
+
 /* Menu overlay */
 .nav-menu-wrapper {
   position: fixed;
-  top: var(--navbar-height);
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 999;
+  z-index: 1000;
   transition: var(--transition-props), visibility 0s 0.3s;
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
   backdrop-filter: blur(0px);
-  display: block;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  padding-top: var(--navbar-height);
 }
 
 .nav-menu-wrapper[data-state="visible"] {
@@ -90,12 +119,15 @@
 }
 
 .nav-menu {
-  height: calc(100vh - 80px);
+  height: calc(100vh - var(--navbar-height));
+  padding-top: 2rem;
 }
 
 /* Menu button */
 .menu-button {
   transition: transform var(--transition-timing);
+  position: relative;
+  z-index: 1002;
 }
 
 .menu-button[data-state="open"] {
@@ -151,4 +183,38 @@
 .plyr.reinitializing,
 .w-dyn-item.filtering {
   opacity: 0;
+}
+
+/* Mobile responsive styles */
+@media screen and (max-width: 768px) {
+  :root {
+    --navbar-height: var(--navbar-height-mobile);
+  }
+  
+  .navbar-container {
+    height: var(--navbar-height-mobile);
+    padding: 0 0.75rem;
+  }
+  
+  .brand-logo-container {
+    max-width: 70%;
+    transform: scale(0.8);
+    transform-origin: left center;
+  }
+  
+  .menu-button {
+    transform: scale(0.8);
+  }
+  
+  .menu-button[data-state="open"] {
+    transform: rotate(45deg) scale(0.8);
+  }
+  
+  .nav-menu-wrapper {
+    padding-top: var(--navbar-height-mobile);
+  }
+  
+  .nav-menu {
+    height: calc(100vh - var(--navbar-height-mobile));
+  }
 }

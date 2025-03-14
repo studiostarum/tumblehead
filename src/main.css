@@ -1,0 +1,76 @@
+/**
+ * Main Stylesheet
+ * 
+ * This is the main CSS file that imports all component styles
+ * and defines global styles for the application.
+ */
+
+/* Import component styles */
+@import './components/navbar/styles.css';
+@import './components/video-player/styles.css';
+@import './components/project-grid/styles.css';
+@import './components/category-filters/styles.css';
+@import './components/logo-carousel/styles.css';
+
+/* Global styles */
+html {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+body.scroll-locked {
+  overflow: hidden;
+}
+
+/* Ensure content is properly positioned with fixed navbar */
+.page-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: hidden;
+  padding-top: var(--navbar-height); /* Add padding to account for fixed navbar */
+}
+
+/* Menu overlay styles */
+.nav-menu-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: var(--navbar-height);
+}
+
+/* Ensure navbar is visible when menu is open */
+body.menu-open .navbar-container {
+  position: relative;
+  z-index: 1001;
+}
+
+/* Ensure navbar container is always visible */
+.navbar-container {
+  position: relative;
+  z-index: 1001;
+  background-color: inherit;
+}
+
+/* Mobile responsive adjustments */
+@media screen and (max-width: 768px) {
+  .page-wrapper {
+    padding-top: var(--navbar-height-mobile);
+  }
+  
+  .nav-menu-wrapper {
+    padding-top: var(--navbar-height-mobile);
+  }
+}
