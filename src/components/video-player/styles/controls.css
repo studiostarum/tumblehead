@@ -1,0 +1,97 @@
+/* Play button and controls styles */
+.play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    width: 80px;
+    height: 80px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, background 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    backdrop-filter: blur(5px);
+    z-index: 3;
+}
+
+.play-button.visible {
+    opacity: 1;
+}
+
+.play-button::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 15px 0 15px 25px;
+    border-color: transparent transparent transparent white;
+    margin-left: 5px;
+    transition: transform 0.3s ease;
+}
+
+/* Hover effects */
+.video-container[data-video-mode="preview-with-lightbox"]:hover .play-button {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.video-container[data-video-mode="preview-with-lightbox"]:hover .play-button::after {
+    transform: scale(1.1);
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+    .play-button:active {
+        transform: translate(-50%, -50%) scale(0.95);
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .play-button {
+        transition: none;
+    }
+    
+    .play-button::after {
+        transition: none;
+    }
+}
+
+.close-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1001;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.lightbox.active .close-button {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.close-button:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.close-button svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2.5;
+}

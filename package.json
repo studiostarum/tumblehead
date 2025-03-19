@@ -32,6 +32,7 @@
   },
   "private": true,
   "dependencies": {
+    "@vimeo/player": "^2.26.0",
     "lucide": "^0.477.0"
   }
 }

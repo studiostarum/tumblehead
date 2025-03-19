@@ -5,5 +5,13 @@
  * It initializes all components and sets up global functionality.
  */
 
-// Import main CSS file
-import './main.css';
+// Import styles
+import './components/video-player/styles/index.css';
+
+// Import video player component
+import { VideoPlayer } from './components/video-player/VideoPlayer';
+
+// Initialize video player when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new VideoPlayer();
+});

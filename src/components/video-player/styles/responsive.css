@@ -1,0 +1,73 @@
+/* Responsive styles */
+@media (max-width: 768px) {
+    .play-button {
+        width: 60px;
+        height: 60px;
+    }
+
+    .play-button::after {
+        border-width: 12px 0 12px 20px;
+    }
+
+    .close-button {
+        top: -35px;
+        font-size: 24px;
+    }
+
+    .lightbox-content {
+        width: 95%;
+    }
+
+    .error-message {
+        font-size: 12px;
+        padding: 12px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .play-button {
+        width: 50px;
+        height: 50px;
+    }
+
+    .play-button::after {
+        border-width: 10px 0 10px 16px;
+    }
+
+    .close-button {
+        padding: 10px;
+    }
+
+    .close-button svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+    .play-button:active {
+        transform: translate(-50%, -50%) scale(0.95);
+    }
+
+    .close-button:active {
+        transform: scale(0.95);
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .video-container,
+    .preview-wrapper iframe,
+    .thumbnail,
+    .play-button,
+    .lightbox,
+    .lightbox-content,
+    .close-button {
+        transition: none;
+    }
+
+    .loading-spinner {
+        animation: none;
+    }
+}

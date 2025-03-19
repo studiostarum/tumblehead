@@ -1,0 +1,98 @@
+/* Main video container styles */
+.video-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.video-container.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.video-container[data-video-mode="preview-with-lightbox"] {
+    cursor: pointer;
+}
+
+.preview-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0.75rem;
+}
+
+.preview-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.preview-wrapper iframe.loaded {
+    opacity: 1;
+}
+
+.preview-wrapper .thumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    transform: scale(1.01);
+    /* Slight scale to prevent white edges */
+}
+
+.preview-wrapper .thumbnail.hidden {
+    opacity: 0;
+}
+
+/* Error message styles */
+.error-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 5;
+}
+
+.error-message.visible {
+    opacity: 1;
+}
+
+/* Accessibility focus styles */
+.video-container:focus-within {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+/* Remove outline when lightbox is active */
+.video-container[data-video-mode="preview-with-lightbox"].lightbox-active {
+    outline: none !important;
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+
+    .video-container,
+    .preview-wrapper iframe,
+    .thumbnail {
+        transition: none;
+    }
+}

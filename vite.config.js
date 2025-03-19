@@ -29,7 +29,7 @@ export default defineConfig(({ command }) => {
         return {
             ...baseConfig,
             server: {
-                open: '/home.dev.html',
+                open: 'index.html',
                 port: 3000
             }
         };
