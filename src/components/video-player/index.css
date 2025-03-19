@@ -1,0 +1,9 @@
+/**
+ * Video Player Component Styles
+ */
+
+@import './styles/video-player.css';
+@import './styles/controls.css';
+@import './styles/loading.css';
+@import './styles/lightbox.css';
+@import './styles/responsive.css';

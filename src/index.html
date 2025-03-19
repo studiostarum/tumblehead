@@ -5,12 +5,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tumblehead Animation</title>
-    <!-- CSS is now imported through JavaScript -->
-    <script type="module" src="/main.js"></script>
 </head>
 
-<body>
-    <!-- Content will be loaded here -->
+<body
+    style="background-color: #000; min-height: 100vh; margin: 0; padding: 2rem 0; display: flex; flex-direction: column; gap: 2rem;">
+    <section
+        style="display: flex; flex-direction: row; gap: 2rem; max-width: 90rem; margin: 0 auto; padding: 2rem 0; width: 100%;">
+        <!-- Example with lightbox -->
+        <div class="video-container" data-video-mode="preview-with-lightbox" data-video-id="https://vimeo.com/389461796"
+            tabindex="0" role="button" aria-label="Click to play video in fullscreen">
+        </div>
+
+        <!-- Example without lightbox (preview only) -->
+        <div class="video-container" data-video-mode="preview-only" data-video-id="933270643">
+        </div>
+    </section>
+
+    <section>
+        <!-- Logo Slider Example -->
+        <div class="logo-slider">
+            <div class="logo-slider_track">
+                <!-- Example Logo Items (these would come from Webflow CMS) -->
+                <div class="logo-slider_item">
+                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+1" alt="Sample Logo 1"
+                        loading="lazy">
+                </div>
+                <div class="logo-slider_item">
+                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+2" alt="Sample Logo 2"
+                        loading="lazy">
+                </div>
+                <div class="logo-slider_item">
+                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+3" alt="Sample Logo 3"
+                        loading="lazy">
+                </div>
+                <div class="logo-slider_item">
+                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+4" alt="Sample Logo 4"
+                        loading="lazy">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script type="module" src="/main.js"></script>
 </body>
 
 </html>

@@ -6,6 +6,6 @@
  */
 
 /* Import component styles */
-@import './components/project-grid/styles.css';
-@import './components/video-player/video-player.css';
-@import './components/video-player/styles/index.css';
+@import './components/project-grid/index.css';
+@import './components/video-player/index.css';
+@import './components/logo-slider/index.css';
