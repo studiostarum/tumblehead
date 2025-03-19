@@ -1,0 +1,9 @@
+/**
+ * Main Stylesheet
+ * 
+ * This is the main CSS file that imports all component styles
+ * and defines global styles for the application.
+ */
+
+/* Import component styles */
+@import './components/project-grid/styles.css';

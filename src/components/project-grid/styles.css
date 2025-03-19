@@ -1,0 +1,28 @@
+/**
+ * Project Grid Component Styles
+ */
+
+/* Project Grid Styles */
+[data-element="project-grid"] {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+[data-element="project-grid"]>*:only-child {
+  grid-column: 1 / -1;
+}
+
+[data-element="project-grid"]>*:nth-child(3n) {
+  grid-column: span 2;
+}
+
+@media screen and (max-width: 48rem) {
+  [data-element="project-grid"] {
+    grid-template-columns: 1fr;
+  }
+
+  [data-element="project-grid"]>*:nth-child(3n) {
+    grid-column: auto;
+  }
+}

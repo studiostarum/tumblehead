@@ -1,0 +1,37 @@
+{
+  "name": "tumblehead",
+  "version": "1.0.0",
+  "description": "Tumblehead website with animated navbar",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.js",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && vite build",
+    "preview": "vite preview",
+    "verify": "node scripts/verify-build.js",
+    "deploy": "npm run build && npm run verify && echo 'Ready to deploy dist/ folder to Cloudflare'",
+    "pages:build": "npm run build && npm run verify"
+  },
+  "keywords": [
+    "webflow",
+    "animation",
+    "navbar"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.51.1",
+    "@vitejs/plugin-legacy": "^5.0.0",
+    "terser": "^5.37.0",
+    "vite": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/studiostarum/tumblehead.git"
+  },
+  "private": true,
+  "dependencies": {
+    "lucide": "^0.477.0"
+  }
+}
