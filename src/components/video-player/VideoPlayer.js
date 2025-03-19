@@ -181,7 +181,7 @@ export class VideoPlayer {
                 // Set up preview duration control
                 let startTime = 0;
                 player.on('timeupdate', async (data) => {
-                    if (data.seconds >= startTime + 7) {
+                    if (data.seconds >= startTime + 30) {
                         startTime = 0;
                         await player.setCurrentTime(startTime);
                         await player.play();
