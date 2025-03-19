@@ -4,13 +4,17 @@ Custom Webflow features for the Tumblehead Animation website.
 
 ## Features
 
-- Animated Navigation Bar
 - [Video Player Component](src/components/video-player/README.md) with Vimeo Integration
-  - 7-second preview loops
+  - Configurable duration preview loops
   - Lightbox support
   - Responsive design
   - Accessibility features
   - Zero-config HTML structure
+- [Logo Slider Component](src/components/logo-slider/README.md) with Webflow CMS Integration
+  - Infinite scrolling
+  - Smooth animation
+  - Responsive design
+  - Dynamic logo cloning
 - Webflow CMS Integration
 
 ## Quick Start
@@ -48,6 +52,7 @@ npm run preview
 ├── src/
 │   ├── components/
 │   │   ├── video-player/    # Video player component
+│   │   ├── logo-slider/     # Logo slider component
 │   │   └── ...
 │   ├── main.js             # Main entry point
 │   └── ...
