@@ -24,6 +24,8 @@ The component requires only the base container with data attributes. All other e
 <div class="video-container" 
      data-video-mode="preview-with-lightbox" 
      data-video-id="https://vimeo.com/389461796" 
+     data-video-start-time="15"
+     data-video-end-time="45"
      tabindex="0" 
      role="button" 
      aria-label="Click to play video in fullbox">
@@ -32,7 +34,9 @@ The component requires only the base container with data attributes. All other e
 <!-- Preview only -->
 <div class="video-container" 
      data-video-mode="preview-only" 
-     data-video-id="933270643">
+     data-video-id="933270643"
+     data-video-start-time="5"
+     data-video-end-time="20">
 </div>
 ```
 
@@ -45,6 +49,11 @@ The component requires only the base container with data attributes. All other e
 - `role="button"` - Required for lightbox mode (accessibility)
 - `aria-label` - Required for lightbox mode (accessibility)
 
+### Optional Attributes
+
+- `data-video-start-time` - Start time in seconds for preview playback (default: 0)
+- `data-video-end-time` - End time in seconds for preview playback (default: start time + 30)
+
 ### Webflow CMS Integration
 
 In your Webflow CMS Collection Template:
@@ -53,6 +62,8 @@ In your Webflow CMS Collection Template:
 <div class="video-container" 
      data-video-mode="preview-with-lightbox" 
      data-video-id="{{ wf {&quot;path&quot;:&quot;video-url&quot;,&quot;type&quot;:&quot;PlainText&quot;} }}"
+     data-video-start-time="10"
+     data-video-end-time="25"
      tabindex="0" 
      role="button" 
      aria-label="Click to play video in fullscreen">

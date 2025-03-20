@@ -178,11 +178,18 @@ export class VideoPlayer {
                     playButton.classList.add('visible');
                 }
 
-                // Set up preview duration control
-                let startTime = 0;
+                // Get custom start and end times from data attributes (with defaults)
+                const startTime = parseFloat(container.dataset.videoStartTime) || 0;
+                const endTime = parseFloat(container.dataset.videoEndTime) || startTime + 30;
+                
+                // Set initial playback position if startTime is specified
+                if (startTime > 0) {
+                    await player.setCurrentTime(startTime);
+                }
+
+                // Set up preview duration control with custom times
                 player.on('timeupdate', async (data) => {
-                    if (data.seconds >= startTime + 30) {
-                        startTime = 0;
+                    if (data.seconds >= endTime) {
                         await player.setCurrentTime(startTime);
                         await player.play();
                     }
@@ -237,6 +244,9 @@ export class VideoPlayer {
         const mode = container.dataset.videoMode;
         const config = VIDEO_MODES[mode];
         
+        // Get custom start time from data attribute if available
+        const startTime = parseFloat(container.dataset.videoStartTime) || 0;
+        
         // Get iframe and spinner
         const iframe = this.lightboxContent.querySelector('iframe');
         const spinner = this.lightboxContent.querySelector('.loading-spinner');
@@ -248,7 +258,11 @@ export class VideoPlayer {
         }
         
         // Set up lightbox iframe with proper parameters
-        const lightboxUrl = buildVideoUrl(videoId, config.lightboxParams);
+        const lightboxParams = {...config.lightboxParams};
+        if (startTime > 0) {
+            lightboxParams.t = startTime + 's';
+        }
+        const lightboxUrl = buildVideoUrl(videoId, lightboxParams);
         iframe.src = lightboxUrl;
         
         // Show lightbox
