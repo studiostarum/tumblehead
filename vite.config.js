@@ -43,7 +43,7 @@ export default defineConfig(({ command }) => {
             emptyOutDir: true,
             rollupOptions: {
                 input: {
-                    'bundle': resolve(__dirname, 'src/main.js'),
+                    'bundle': resolve(__dirname, 'src/main.js')
                 },
                 output: {
                     format: 'iife',
@@ -80,6 +80,19 @@ export default defineConfig(({ command }) => {
                     comments: false
                 }
             }
-        }
+        },
+        plugins: [
+            {
+                name: 'css-entry',
+                transform(code, id) {
+                    if (id.endsWith('main.js')) {
+                        return {
+                            code: `import '../src/main.css';\n${code}`,
+                            map: null
+                        };
+                    }
+                }
+            }
+        ]
     };
 }); 
