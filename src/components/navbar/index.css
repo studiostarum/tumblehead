@@ -1,0 +1,24 @@
+/* Navbar transition styles */
+[data-element="navbar"] {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    will-change: transform, opacity;
+    position: fixed; /* Ensure the navbar stays fixed during scroll */
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000; /* Ensure navbar is above other content */
+}
+
+/* Reveal elements transition styles */
+[data-scroll-reveal] {
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    will-change: transform, opacity;
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    [data-element="navbar"],
+    [data-scroll-reveal] {
+        transition: none;
+    }
+} 

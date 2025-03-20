@@ -8,14 +8,14 @@
 // Import styles
 import './main.css';
 
-// Import video player component
+// Import components
 import { VideoPlayer } from './components/video-player/VideoPlayer';
-
-// Import logo slider component
 import { LogoSlider } from './components/logo-slider';
+import { Navbar } from './components/navbar';
 
-// Initialize video player when DOM is loaded
+// Initialize components when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new VideoPlayer();
     new LogoSlider();
+    new Navbar();
 });
