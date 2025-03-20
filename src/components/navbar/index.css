@@ -1,5 +1,5 @@
 /* Navbar transition styles */
-[data-element="navbar"] {
+[data-page="home"] [data-element="navbar"] {
     opacity: 0;
     transform: translateY(-100%);
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -16,7 +16,7 @@
 
 /* Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    [data-element="navbar"],
+    [data-page="home"] [data-element="navbar"],
     [data-scroll-reveal] {
         transition: none;
     }
