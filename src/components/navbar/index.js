@@ -1,6 +1,3 @@
-// Import styles
-import './index.css';
-
 export class Navbar {
     constructor() {
         // Get navbar and trigger elements
@@ -17,56 +14,47 @@ export class Navbar {
     }
 
     init() {
-        // Initially hide navbar
-        this.navbar.style.opacity = '0';
-        this.navbar.style.transform = 'translateY(-100%)';
-        
         // Initially hide all reveal elements
         this.hideRevealElements();
         
-        // Create intersection observer for the trigger
+        // Setup observers
+        this.setupTriggerObserver();
+        this.setupRevealObserver();
+
+        // Add scroll event listener
+        this.setupScrollListener();
+    }
+
+    setupTriggerObserver() {
         this.triggerObserver = new IntersectionObserver(
             (entries) => {
                 entries.forEach(entry => {
-                    // When trigger element exits viewport (scrolled past it)
-                    if (!entry.isIntersecting) {
-                        this.showNavbar();
-                    } else {
-                        this.hideNavbar();
-                    }
+                    this.toggleElement(this.navbar, !entry.isIntersecting);
                 });
             },
-            {
-                threshold: 0,
-                rootMargin: '0px'
-            }
+            { threshold: 0, rootMargin: '0px' }
         );
-
-        // Start observing the trigger element
         this.triggerObserver.observe(this.trigger);
-        
-        // Create observer for reveal elements
+    }
+
+    setupRevealObserver() {
         this.revealObserver = new IntersectionObserver(
             (entries) => {
                 entries.forEach(entry => {
-                    // Always check position when element is visible
                     if (entry.isIntersecting) {
                         this.checkRevealElement(entry.target);
                     }
                 });
             },
-            {
-                threshold: [0, 0.1],
-                rootMargin: '0px'
-            }
+            { threshold: [0, 0.1], rootMargin: '0px' }
         );
         
-        // Start observing all reveal elements
         this.revealElements.forEach(element => {
             this.revealObserver.observe(element);
         });
+    }
 
-        // Add scroll event listener to continuously check positions
+    setupScrollListener() {
         window.addEventListener('scroll', () => {
             requestAnimationFrame(() => {
                 this.revealElements.forEach(element => {
@@ -97,39 +85,17 @@ export class Navbar {
     checkRevealElement(element) {
         const triggerRect = this.trigger.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
-        
-        // Show element if it's below the trigger's bottom edge
-        if (elementRect.top > triggerRect.bottom) {
-            this.showRevealElement(element);
-        } else {
-            this.hideRevealElement(element);
-        }
+        this.toggleElement(element, elementRect.top > triggerRect.bottom);
     }
 
-    showNavbar() {
-        this.navbar.style.opacity = '1';
-        this.navbar.style.transform = 'translateY(0)';
-    }
-
-    hideNavbar() {
-        this.navbar.style.opacity = '0';
-        this.navbar.style.transform = 'translateY(-100%)';
+    toggleElement(element, show) {
+        const className = element === this.navbar ? 'navbar-visible' : 'reveal-visible';
+        element.classList.toggle(className, show);
     }
     
     hideRevealElements() {
         this.revealElements.forEach(element => {
-            element.style.opacity = '0';
-            element.style.transform = 'translateY(20px)';
+            this.toggleElement(element, false);
         });
-    }
-    
-    hideRevealElement(element) {
-        element.style.opacity = '0';
-        element.style.transform = 'translateY(20px)';
-    }
-    
-    showRevealElement(element) {
-        element.style.opacity = '1';
-        element.style.transform = 'translateY(0)';
     }
 } 

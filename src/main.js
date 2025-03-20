@@ -5,9 +5,6 @@
  * It initializes all components and sets up global functionality.
  */
 
-// Import styles
-import './main.css';
-
 // Import components
 import { VideoPlayer } from './components/video-player/VideoPlayer';
 import { LogoSlider } from './components/logo-slider';
