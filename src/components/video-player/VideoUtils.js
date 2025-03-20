@@ -94,6 +94,10 @@ export function buildVideoUrl(videoId, params, quality = null) {
         urlParams.append('quality', quality);
     }
 
+    // Disable responsive scaling
+    urlParams.append('responsive', '0');
+    urlParams.append('dnt', '1');
+
     return `https://player.vimeo.com/video/${videoId}?${urlParams.toString()}`;
 }
 

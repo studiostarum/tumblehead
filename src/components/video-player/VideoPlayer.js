@@ -166,9 +166,10 @@ export class VideoPlayer {
         player.ready().then(async () => {
             try {
                 await player.play();
+
                 const spinner = previewWrapper.querySelector('.loading-spinner');
                 if (spinner) {
-                    spinner.style.display = 'none'; // Completely hide the spinner
+                    spinner.style.display = 'none';
                     spinner.classList.add('hidden');
                 }
                 previewIframe.classList.add('loaded');
@@ -201,6 +202,7 @@ export class VideoPlayer {
                         this.openLightbox(container);
                     });
                 }
+
             } catch (error) {
                 console.error('Preview playback error:', error);
                 handleVideoError(container, player);

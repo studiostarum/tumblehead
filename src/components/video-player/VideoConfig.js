@@ -15,12 +15,16 @@ export const VIDEO_MODES = {
             controls: 0,
             playsinline: 1,
             transparent: 1,
-            autopause: 0
+            autopause: 0,
+            responsive: 0,
+            dnt: 1
         },
         lightboxParams: {
             autoplay: 1,
             controls: 1,
-            autopause: 0
+            autopause: 0,
+            responsive: 0,
+            dnt: 1
         }
     },
     'preview-only': {
@@ -34,7 +38,9 @@ export const VIDEO_MODES = {
             controls: 0,
             playsinline: 1,
             transparent: 1,
-            autopause: 0
+            autopause: 0,
+            responsive: 0,
+            dnt: 1
         }
     }
 };
@@ -47,12 +53,14 @@ export const PLAYER_CONFIG = {
         loop: true,
         controls: false,
         playsinline: true,
-        autopause: false
+        autopause: false,
+        responsive: false
     },
     lightbox: {
         autopause: false,
         muted: true,
         background: false,
-        autopause: false
+        autopause: false,
+        responsive: false
     }
 };
