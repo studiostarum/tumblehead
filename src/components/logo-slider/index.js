@@ -16,9 +16,15 @@ export class LogoSlider {
         this.totalShift = 0;
         this.safetyBuffer = 2;
         this.lastTimestamp = null;
+        this.maxTransform = 100; // Maximum transform value in REMs before reset
 
-        // Add GPU optimization hint
+        // Add GPU optimization hint and container styles
         this.slider.style.willChange = 'transform';
+        this.container.style.overflow = 'hidden';
+        this.container.style.position = 'relative';
+        this.slider.style.position = 'relative';
+        this.slider.style.display = 'flex';
+        this.slider.style.width = 'max-content';
         
         this.init();
     }
@@ -66,6 +72,22 @@ export class LogoSlider {
         this.allLogos = [...this.slider.children];
     }
 
+    resetTransformIfNeeded() {
+        const currentTransform = Math.abs(this.position - this.totalShift);
+        if (currentTransform > this.maxTransform) {
+            // Calculate how many complete logo sets we've moved through
+            let totalWidth = 0;
+            const originalSetWidth = this.logos.reduce((sum, logo) => sum + this.pxToRem(logo.offsetWidth), 0);
+            const sets = Math.floor(currentTransform / originalSetWidth);
+            
+            if (sets > 0) {
+                const resetAmount = sets * originalSetWidth;
+                this.position += resetAmount;
+                this.totalShift += resetAmount;
+            }
+        }
+    }
+
     animate() {
         const tick = (timestamp) => {
             // Initialize lastTimestamp on first run
@@ -102,6 +124,9 @@ export class LogoSlider {
                 this.position = -overshoot;
                 this.totalShift += logoWidth;
             }
+
+            // Reset transform values if they get too large
+            this.resetTransformIfNeeded();
 
             // Apply the transform with hardware acceleration for smoother animation
             const adjustedPosition = this.position - this.totalShift;
@@ -166,6 +191,13 @@ export class LogoSlider {
         window.removeEventListener('resize', this.handleResize.bind(this));
         document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
         this.slider.style.willChange = 'auto';
+        
+        // Clean up added styles
+        this.container.style.overflow = '';
+        this.container.style.position = '';
+        this.slider.style.position = '';
+        this.slider.style.display = '';
+        this.slider.style.width = '';
     }
 }
 
