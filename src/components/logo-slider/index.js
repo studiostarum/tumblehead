@@ -6,13 +6,22 @@ export class LogoSlider {
         this.slider = this.container.querySelector('.logo-slider_track');
         if (!this.slider) return;
 
-        this.logos = [...this.slider.children];
+        // Get only non-aria-hidden logos as originals
+        this.logos = [...this.slider.children].filter(logo => !logo.getAttribute('aria-hidden'));
         if (!this.logos.length) return;
+
+        // Clean up any existing clones
+        [...this.slider.children].forEach(child => {
+            if (child.getAttribute('aria-hidden')) {
+                this.slider.removeChild(child);
+            }
+        });
 
         this.animationFrameId = null;
         this.resizeTimeout = null;
         this.position = 0;
         this.speed = 0.03125; // REM per frame
+        this.totalShift = 0; // Track total shift for position calculations
 
         // Add GPU optimization hint
         this.slider.style.willChange = 'transform';
@@ -22,6 +31,10 @@ export class LogoSlider {
 
     pxToRem(px) {
         return px / parseFloat(getComputedStyle(document.documentElement).fontSize);
+    }
+
+    remToPx(rem) {
+        return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
     }
 
     init() {
@@ -34,16 +47,16 @@ export class LogoSlider {
     }
 
     setupClones() {
-        // Calculate required clones
+        // Calculate minimum required clones based on viewport width
         const viewportWidth = window.innerWidth;
-        const sliderWidth = this.slider.offsetWidth;
-        const requiredWidth = viewportWidth * 2;
-        const numClones = Math.ceil(requiredWidth / sliderWidth);
+        const singleSetWidth = this.logos.reduce((total, logo) => total + logo.offsetWidth, 0);
+        const minSetsNeeded = Math.ceil((viewportWidth * 1.5) / singleSetWidth);
+        const numClones = Math.max(1, minSetsNeeded - 1); // Ensure at least one set of clones
 
         // Create document fragment for better performance
         const fragment = document.createDocumentFragment();
 
-        // Clone logos
+        // Clone logos only as many times as needed
         for (let i = 0; i < numClones; i++) {
             this.logos.forEach(logo => {
                 const clone = logo.cloneNode(true);
@@ -54,24 +67,39 @@ export class LogoSlider {
 
         // Batch DOM update
         this.slider.appendChild(fragment);
+        
+        // Update logos array with all items including clones
+        this.allLogos = [...this.slider.children];
     }
 
     animate() {
         const tick = () => {
             this.position -= this.speed;
             
-            // Get the width of one complete set of logos in REMs
-            const firstSetWidthPx = this.logos[0].offsetWidth * this.logos.length;
-            const firstSetWidthRem = this.pxToRem(firstSetWidthPx);
+            // Check if first logo is out of view
+            const firstLogo = this.allLogos[0];
+            const logoWidth = this.pxToRem(firstLogo.offsetWidth);
             
-            // Instead of resetting abruptly, check if we need to seamlessly reset
-            if (Math.abs(this.position) >= firstSetWidthRem) {
-                // Adjust position by the width of one set to create seamless loop
-                this.position += firstSetWidthRem;
+            if (Math.abs(this.position) >= logoWidth) {
+                // Calculate the exact overshoot amount
+                const overshoot = Math.abs(this.position) - logoWidth;
+                
+                // Move first logo to the end without changing visual position
+                this.slider.style.transform = `translate3d(0rem, 0, 0)`;
+                this.slider.appendChild(firstLogo);
+                
+                // Update our array of all logos
+                this.allLogos = [...this.slider.children];
+                
+                // Reset position accounting for the moved logo and overshoot
+                this.position = -overshoot;
+                this.totalShift += logoWidth;
             }
 
             // Apply the transform with hardware acceleration for smoother animation
-            this.slider.style.transform = `translate3d(${this.position}rem, 0, 0)`;
+            const adjustedPosition = this.position - this.totalShift;
+            this.slider.style.transform = `translate3d(${adjustedPosition}rem, 0, 0)`;
+            
             this.animationFrameId = requestAnimationFrame(tick);
         };
 
@@ -85,19 +113,36 @@ export class LogoSlider {
         }
 
         this.resizeTimeout = window.setTimeout(() => {
-            const viewportWidth = window.innerWidth;
-            const sliderWidth = this.slider.offsetWidth;
-            const requiredWidth = viewportWidth * 2;
+            // Clean up existing clones
+            [...this.slider.children].forEach(child => {
+                if (child.getAttribute('aria-hidden')) {
+                    this.slider.removeChild(child);
+                }
+            });
 
-            if (sliderWidth < requiredWidth) {
-                const fragment = document.createDocumentFragment();
+            // Recalculate minimum required clones
+            const viewportWidth = window.innerWidth;
+            const singleSetWidth = this.logos.reduce((total, logo) => total + logo.offsetWidth, 0);
+            const minSetsNeeded = Math.ceil((viewportWidth * 1.5) / singleSetWidth);
+            const numClones = Math.max(1, minSetsNeeded - 1);
+
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < numClones; i++) {
                 this.logos.forEach(logo => {
                     const clone = logo.cloneNode(true);
                     clone.setAttribute('aria-hidden', 'true');
                     fragment.appendChild(clone);
                 });
-                this.slider.appendChild(fragment);
             }
+            
+            this.slider.appendChild(fragment);
+            // Update all logos after adding new clones
+            this.allLogos = [...this.slider.children];
+            
+            // Reset position and shift to prevent jumps
+            this.position = 0;
+            this.totalShift = 0;
+            this.slider.style.transform = 'translate3d(0rem, 0, 0)';
         }, 150); // Debounce delay
     }
 
@@ -127,6 +172,13 @@ export class LogoSlider {
         window.removeEventListener('resize', this.handleResize.bind(this));
         document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
         this.slider.style.willChange = 'auto';
+
+        // Clean up clones on destroy
+        [...this.slider.children].forEach(child => {
+            if (child.getAttribute('aria-hidden')) {
+                this.slider.removeChild(child);
+            }
+        });
     }
 }
 
