@@ -78,7 +78,7 @@ export class LogoSlider {
             this.lastTimestamp = timestamp;
 
             // Calculate movement based on time elapsed (convert to seconds)
-            const movement = (deltaTime / 100) * this.speed;
+            const movement = (deltaTime / 250) * this.speed;
             this.position -= movement;
             
             // Check if first logo is completely out of view (plus safety buffer)
