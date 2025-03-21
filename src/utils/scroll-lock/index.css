@@ -5,7 +5,7 @@
     top: 0;
     right: 0;
     height: 100vh;
-    width: 0.9375rem;
+    width: var(--scrollbar-width);
     /* Match the scrollbar width */
     background: transparent;
     opacity: 0;
@@ -25,13 +25,13 @@
 /* Specific elements padding */
 
 .scroll-lock.active .section {
-    padding-right: calc(2vw + 0.9375rem);
+    padding-right: calc(2vw + var(--scrollbar-width));
 }
 
 .scroll-lock.active .navbar {
-    padding-right: calc(2vw + 0.9375rem);
+    padding-right: calc(2vw + var(--scrollbar-width));
 }
 
 .scroll-lock.active .nav-menu-wrapper {
-    padding-right: 0.9375rem;
+    padding-right: var(--scrollbar-width);
 }
