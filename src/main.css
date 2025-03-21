@@ -10,3 +10,4 @@
 @import './components/video-player/index.css';
 @import './components/logo-slider/index.css';
 @import './components/navbar/index.css';
+@import './utils/scroll-lock/index.css';

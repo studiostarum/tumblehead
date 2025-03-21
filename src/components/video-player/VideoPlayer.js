@@ -3,6 +3,7 @@ import { createIcons, icons } from 'lucide';
 import { VIDEO_MODES, PLAYER_CONFIG } from './VideoConfig';
 import { getOptimalQuality, getVimeoThumbnail, updateLoadingProgress, buildVideoUrl, extractVimeoId } from './VideoUtils';
 import { handleVideoError } from './VideoError';
+import { scrollLock } from '../../utils/scroll-lock/index';
 
 export class VideoPlayer {
     constructor() {
@@ -267,6 +268,9 @@ export class VideoPlayer {
         const lightboxUrl = buildVideoUrl(videoId, lightboxParams);
         iframe.src = lightboxUrl;
         
+        // Lock scrolling
+        scrollLock.lock();
+        
         // Show lightbox
         this.lightbox.classList.add('active');
         this.isLightboxOpen = true;
@@ -286,6 +290,9 @@ export class VideoPlayer {
 
     closeLightbox() {
         if (this.lightbox) {
+            // Unlock scrolling
+            scrollLock.unlock();
+            
             this.lightbox.classList.remove('active');
             this.isLightboxOpen = false;
             

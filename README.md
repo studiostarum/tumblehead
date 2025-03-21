@@ -15,6 +15,11 @@ Custom Webflow features for the Tumblehead Animation website.
   - Smooth animation
   - Responsive design
   - Dynamic logo cloning
+- [Scroll Lock Utility](src/utils/scroll-lock/README.md)
+  - Prevents content shift when locking scroll
+  - Smooth transitions
+  - Maintains scroll position
+  - Handles fixed elements padding
 - Webflow CMS Integration
 
 ## Quick Start
@@ -28,6 +33,17 @@ Custom Webflow features for the Tumblehead Animation website.
      role="button" 
      aria-label="Click to play video in fullscreen">
 </div>
+
+<!-- Using Scroll Lock -->
+<script>
+import { scrollLock } from './src/utils/scroll-lock';
+
+// Lock scrolling
+scrollLock.lock();
+
+// Unlock scrolling
+scrollLock.unlock();
+</script>
 ```
 
 ## Getting Started
