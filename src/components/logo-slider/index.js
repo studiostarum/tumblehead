@@ -9,65 +9,124 @@ export class LogoSlider {
         this.logos = [...this.slider.children];
         if (!this.logos.length) return;
 
+        this.animationFrameId = null;
+        this.resizeTimeout = null;
+        this.position = 0;
+        this.speed = 0.03125; // REM per frame
+
+        // Add GPU optimization hint
+        this.slider.style.willChange = 'transform';
+        
         this.init();
     }
 
+    pxToRem(px) {
+        return px / parseFloat(getComputedStyle(document.documentElement).fontSize);
+    }
+
     init() {
+        this.setupClones();
+        this.animate();
+        window.addEventListener('resize', this.handleResize.bind(this));
+        
+        // Add visibility change handling for better performance
+        document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+    }
+
+    setupClones() {
         // Calculate required clones
         const viewportWidth = window.innerWidth;
         const sliderWidth = this.slider.offsetWidth;
         const requiredWidth = viewportWidth * 2;
         const numClones = Math.ceil(requiredWidth / sliderWidth);
 
+        // Create document fragment for better performance
+        const fragment = document.createDocumentFragment();
+
         // Clone logos
         for (let i = 0; i < numClones; i++) {
             this.logos.forEach(logo => {
                 const clone = logo.cloneNode(true);
                 clone.setAttribute('aria-hidden', 'true');
-                this.slider.appendChild(clone);
+                fragment.appendChild(clone);
             });
         }
 
-        // Initialize animation
-        this.animate();
-
-        // Handle resize
-        window.addEventListener('resize', this.handleResize.bind(this));
+        // Batch DOM update
+        this.slider.appendChild(fragment);
     }
 
     animate() {
-        let position = 0;
-        const speed = 0.5; // Pixels per frame (slow speed)
-
         const tick = () => {
-            position -= speed;
-
-            // Reset position when we've scrolled one full set of logos
-            const firstSetWidth = this.logos[0].offsetWidth * this.logos.length;
-            if (Math.abs(position) >= firstSetWidth) {
-                position = 0;
+            this.position -= this.speed;
+            
+            // Get the width of one complete set of logos in REMs
+            const firstSetWidthPx = this.logos[0].offsetWidth * this.logos.length;
+            const firstSetWidthRem = this.pxToRem(firstSetWidthPx);
+            
+            // Instead of resetting abruptly, check if we need to seamlessly reset
+            if (Math.abs(this.position) >= firstSetWidthRem) {
+                // Adjust position by the width of one set to create seamless loop
+                this.position += firstSetWidthRem;
             }
 
-            this.slider.style.transform = `translateX(${position}px)`;
-            requestAnimationFrame(tick);
+            // Apply the transform with hardware acceleration for smoother animation
+            this.slider.style.transform = `translate3d(${this.position}rem, 0, 0)`;
+            this.animationFrameId = requestAnimationFrame(tick);
         };
 
-        requestAnimationFrame(tick);
+        this.animationFrameId = requestAnimationFrame(tick);
     }
 
     handleResize() {
-        // Recalculate clone requirements on resize
-        const viewportWidth = window.innerWidth;
-        const sliderWidth = this.slider.offsetWidth;
-        const requiredWidth = viewportWidth * 2;
-
-        if (sliderWidth < requiredWidth) {
-            this.logos.forEach(logo => {
-                const clone = logo.cloneNode(true);
-                clone.setAttribute('aria-hidden', 'true');
-                this.slider.appendChild(clone);
-            });
+        // Debounce resize handler
+        if (this.resizeTimeout) {
+            window.clearTimeout(this.resizeTimeout);
         }
+
+        this.resizeTimeout = window.setTimeout(() => {
+            const viewportWidth = window.innerWidth;
+            const sliderWidth = this.slider.offsetWidth;
+            const requiredWidth = viewportWidth * 2;
+
+            if (sliderWidth < requiredWidth) {
+                const fragment = document.createDocumentFragment();
+                this.logos.forEach(logo => {
+                    const clone = logo.cloneNode(true);
+                    clone.setAttribute('aria-hidden', 'true');
+                    fragment.appendChild(clone);
+                });
+                this.slider.appendChild(fragment);
+            }
+        }, 150); // Debounce delay
+    }
+
+    handleVisibilityChange() {
+        if (document.hidden) {
+            // Pause animation when tab is not visible
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
+        } else {
+            // Resume animation when tab becomes visible
+            if (!this.animationFrameId) {
+                this.animate();
+            }
+        }
+    }
+
+    destroy() {
+        // Cleanup method
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        if (this.resizeTimeout) {
+            window.clearTimeout(this.resizeTimeout);
+        }
+        window.removeEventListener('resize', this.handleResize.bind(this));
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+        this.slider.style.willChange = 'auto';
     }
 }
 
