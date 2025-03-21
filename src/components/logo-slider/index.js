@@ -12,9 +12,10 @@ export class LogoSlider {
         this.animationFrameId = null;
         this.resizeTimeout = null;
         this.position = 0;
-        this.speed = 0.03125; // REM per frame
-        this.totalShift = 0; // Track total shift for position calculations
-        this.safetyBuffer = 2; // REMs of extra space before moving items
+        this.speed = 0.5; // REMs per second
+        this.totalShift = 0;
+        this.safetyBuffer = 2;
+        this.lastTimestamp = null;
 
         // Add GPU optimization hint
         this.slider.style.willChange = 'transform';
@@ -66,8 +67,19 @@ export class LogoSlider {
     }
 
     animate() {
-        const tick = () => {
-            this.position -= this.speed;
+        const tick = (timestamp) => {
+            // Initialize lastTimestamp on first run
+            if (!this.lastTimestamp) {
+                this.lastTimestamp = timestamp;
+            }
+
+            // Calculate time elapsed since last frame
+            const deltaTime = timestamp - this.lastTimestamp;
+            this.lastTimestamp = timestamp;
+
+            // Calculate movement based on time elapsed (convert to seconds)
+            const movement = (deltaTime / 100) * this.speed;
+            this.position -= movement;
             
             // Check if first logo is completely out of view (plus safety buffer)
             const firstLogo = this.allLogos[0];
@@ -133,6 +145,8 @@ export class LogoSlider {
                 cancelAnimationFrame(this.animationFrameId);
                 this.animationFrameId = null;
             }
+            // Reset timestamp so we don't get a huge jump when returning
+            this.lastTimestamp = null;
         } else {
             // Resume animation when tab becomes visible
             if (!this.animationFrameId) {
