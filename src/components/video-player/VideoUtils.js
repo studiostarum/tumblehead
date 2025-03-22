@@ -20,12 +20,12 @@ export async function getConnectionSpeed() {
 export async function getOptimalQuality() {
     const speed = await getConnectionSpeed();
     const qualities = {
-        'slow-2g': '360p',
-        '2g': '360p',
-        '3g': '720p',
-        '4g': 'auto'
+        'slow-2g': '540p',
+        '2g': '720p',
+        '3g': '1080p',
+        '4g': '1440p'
     };
-    return qualities[speed] || 'auto';
+    return qualities[speed] || '1080p'; // Default to 1080p instead of auto
 }
 
 /**
@@ -35,11 +35,36 @@ export async function getOptimalQuality() {
  */
 export async function getVimeoThumbnail(videoId) {
     try {
-        const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}`);
+        // Request maximum size and quality in the oEmbed call
+        const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}&width=2560&height=1440`);
         const data = await response.json();
-        // Get the highest resolution thumbnail
-        const thumbnailUrl = data.thumbnail_url.replace(/_\d+x\d+\./, '_1920x1080.');
-        return thumbnailUrl;
+        
+        // Try to get the highest quality thumbnail possible
+        // First try the pictures object if available (newer API)
+        if (data.thumbnail_url) {
+            // Replace with the highest resolution possible
+            // Vimeo supports: 1920x1080, 2560x1440, 3840x2160
+            const highResUrl = data.thumbnail_url
+                .replace(/_\d+x\d+\./, '_3840x2160.') // Try 4K first
+                .replace(/&w=\d+&h=\d+/, '&w=3840&h=2160');
+                
+            // Verify if high-res exists, if not fallback to 1440p
+            try {
+                const testResponse = await fetch(highResUrl, { method: 'HEAD' });
+                if (!testResponse.ok) {
+                    return data.thumbnail_url
+                        .replace(/_\d+x\d+\./, '_2560x1440.')
+                        .replace(/&w=\d+&h=\d+/, '&w=2560&h=1440');
+                }
+                return highResUrl;
+            } catch (e) {
+                // Fallback to 1440p if 4K fails
+                return data.thumbnail_url
+                    .replace(/_\d+x\d+\./, '_2560x1440.')
+                    .replace(/&w=\d+&h=\d+/, '&w=2560&h=1440');
+            }
+        }
+        return null;
     } catch (error) {
         console.error('Error fetching thumbnail:', error);
         return null;

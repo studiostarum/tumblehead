@@ -12,10 +12,12 @@ export class VideoPlayer {
         this.preloadedVideos = new Map();
         this.currentLightboxContainer = null;
         this.isLightboxOpen = false;
+        this.activeVideos = new Set(); // Track currently playing videos
+        this.isPageVisible = true; // Track page visibility
 
         // Initialize Intersection Observer
         this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
-            threshold: 0.1,
+            threshold: 0.2,
             rootMargin: '50px'
         });
 
@@ -99,8 +101,30 @@ export class VideoPlayer {
 
     handleIntersection(entries) {
         entries.forEach(entry => {
+            const containerId = entry.target.dataset.videoId;
+            const mode = entry.target.dataset.videoMode;
+            const playerKey = `${containerId}-${mode}`;
+            const playerData = this.players.get(playerKey);
+            
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
+                
+                // If we have a player and it's not already active, play it
+                if (playerData && !this.activeVideos.has(playerKey)) {
+                    this.activeVideos.add(playerKey);
+                    playerData.player.play().catch(err => {
+                        console.warn('Could not play video:', err);
+                        this.activeVideos.delete(playerKey);
+                    });
+                }
+            } else {
+                // If leaving viewport, pause video and remove from active set
+                if (playerData && this.activeVideos.has(playerKey)) {
+                    this.activeVideos.delete(playerKey);
+                    playerData.player.pause().catch(err => {
+                        console.warn('Could not pause video:', err);
+                    });
+                }
             }
         });
     }
@@ -116,6 +140,14 @@ export class VideoPlayer {
         if (!config || !videoId) {
             console.error('Invalid video configuration or URL:', rawVideoInput);
             return;
+        }
+
+        // Handle custom aspect ratios
+        if (container.dataset.aspectRatio) {
+            container.style.setProperty('--custom-aspect-ratio', container.dataset.aspectRatio);
+        }
+        if (container.dataset.mobileAspectRatio) {
+            container.style.setProperty('--mobile-aspect-ratio', container.dataset.mobileAspectRatio);
         }
 
         // Update the data attribute with the extracted ID for consistency
@@ -156,28 +188,71 @@ export class VideoPlayer {
         const player = new Player(previewIframe);
         
         // Store player reference with container info
-        this.players.set(`${videoId}-${mode}`, {
+        const playerKey = `${videoId}-${mode}`;
+        this.players.set(playerKey, {
             container,
             player,
             wrapper: previewWrapper,
-            videoId
+            videoId,
+            isPlaying: false
+        });
+
+        // Add play state handling
+        player.on('play', () => {
+            const playerData = this.players.get(playerKey);
+            if (playerData) {
+                playerData.isPlaying = true;
+                
+                // Force hide spinner with direct DOM manipulation
+                const spinner = playerData.wrapper.querySelector('.loading-spinner');
+                if (spinner) {
+                    spinner.style.display = 'none';
+                    spinner.style.opacity = '0';
+                    spinner.style.visibility = 'hidden';
+                    spinner.classList.add('hidden');
+                }
+                
+                previewIframe.classList.add('loaded');
+                
+                // Hide thumbnail once video is playing
+                const thumbnail = previewWrapper.querySelector('.thumbnail');
+                if (thumbnail) thumbnail.classList.add('hidden');
+                
+                // Show play button if present
+                if (playButton) {
+                    playButton.classList.add('visible');
+                }
+            }
+        });
+
+        player.on('pause', () => {
+            const playerData = this.players.get(playerKey);
+            if (playerData) {
+                playerData.isPlaying = false;
+            }
         });
 
         // Handle video load
         player.ready().then(async () => {
             try {
-                await player.play();
-
+                const playerData = this.players.get(playerKey);
+                if (!playerData) return;
+                
+                // Immediately hide spinner when player is ready
                 const spinner = previewWrapper.querySelector('.loading-spinner');
                 if (spinner) {
                     spinner.style.display = 'none';
+                    spinner.style.opacity = '0';
+                    spinner.style.visibility = 'hidden';
                     spinner.classList.add('hidden');
                 }
-                previewIframe.classList.add('loaded');
-                const thumbnail = previewWrapper.querySelector('.thumbnail');
-                if (thumbnail) thumbnail.classList.add('hidden');
-                if (playButton) {
-                    playButton.classList.add('visible');
+
+                // Play immediately if visible and page is active
+                if (container.classList.contains('visible') && this.isPageVisible) {
+                    this.activeVideos.add(playerKey);
+                    await player.play();
+                } else {
+                    await player.pause();
                 }
 
                 // Get custom start and end times from data attributes (with defaults)
@@ -193,7 +268,10 @@ export class VideoPlayer {
                 player.on('timeupdate', async (data) => {
                     if (data.seconds >= endTime) {
                         await player.setCurrentTime(startTime);
-                        await player.play();
+                        // Only auto-play again if this video is still active
+                        if (this.activeVideos.has(playerKey)) {
+                            await player.play();
+                        }
                     }
                 });
 
@@ -207,6 +285,32 @@ export class VideoPlayer {
             } catch (error) {
                 console.error('Preview playback error:', error);
                 handleVideoError(container, player);
+            }
+        });
+
+        // Add resize event handling
+        player.on('resize', (data) => {
+            const { videoWidth, videoHeight } = data;
+            const containerAspect = container.clientWidth / container.clientHeight;
+            const videoAspect = videoWidth / videoHeight;
+            
+            previewIframe.style.position = 'absolute';
+            previewIframe.style.top = '50%';
+            previewIframe.style.left = '50%';
+            previewIframe.style.transform = 'translate(-50%, -50%)';
+            
+            if (videoAspect > containerAspect) {
+                // Video is wider - fit to height
+                const height = container.clientHeight;
+                const width = height * videoAspect;
+                previewIframe.style.height = `${height}px`;
+                previewIframe.style.width = `${width}px`;
+            } else {
+                // Video is taller - fit to width
+                const width = container.clientWidth;
+                const height = width / videoAspect;
+                previewIframe.style.width = `${width}px`;
+                previewIframe.style.height = `${height}px`;
             }
         });
     }
@@ -237,6 +341,12 @@ export class VideoPlayer {
         // Handle window resize for responsive behavior
         window.addEventListener('resize', () => {
             this.handleResize();
+        });
+        
+        // Add page visibility listener
+        document.addEventListener('visibilitychange', () => {
+            this.isPageVisible = document.visibilityState === 'visible';
+            this.handleVisibilityChange();
         });
     }
 
@@ -324,6 +434,17 @@ export class VideoPlayer {
         });
     }
 
+    // Add a forceful cleanup method for spinners
+    forceHideSpinners() {
+        // Hide all spinners in the document
+        document.querySelectorAll('.loading-spinner').forEach(spinner => {
+            spinner.style.display = 'none';
+            spinner.style.opacity = '0';
+            spinner.style.visibility = 'hidden';
+            spinner.classList.add('hidden');
+        });
+    }
+
     init() {
         // Initialize Lucide icons
         createIcons({ icons });
@@ -332,6 +453,40 @@ export class VideoPlayer {
         this.videoContainers.forEach(container => {
             this.initializeContainer(container);
         });
+        
+        // Force hide spinners after a delay to catch any that might still be visible
+        setTimeout(() => {
+            this.forceHideSpinners();
+        }, 3000);
+    }
+
+    // Handle page visibility changes
+    handleVisibilityChange() {
+        if (this.isPageVisible) {
+            // Resume videos when page becomes visible again
+            this.activeVideos.forEach(playerKey => {
+                const playerData = this.players.get(playerKey);
+                if (playerData) {
+                    playerData.player.play().catch(err => {
+                        console.warn('Could not resume video:', err);
+                    });
+                }
+            });
+            
+            // Force hide any spinners that might still be showing
+            setTimeout(() => {
+                this.forceHideSpinners();
+            }, 1000);
+        } else {
+            // Pause all videos when page is not visible
+            this.players.forEach((playerData, key) => {
+                if (this.activeVideos.has(key)) {
+                    playerData.player.pause().catch(err => {
+                        console.warn('Could not pause video:', err);
+                    });
+                }
+            });
+        }
     }
 }
 

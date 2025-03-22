@@ -17,14 +17,18 @@ export const VIDEO_MODES = {
             transparent: 1,
             autopause: 0,
             responsive: 0,
-            dnt: 1
+            dnt: 1,
+            quality: '1080p',
+            speed: 1
         },
         lightboxParams: {
             autoplay: 1,
             controls: 1,
             autopause: 0,
             responsive: 0,
-            dnt: 1
+            dnt: 1,
+            quality: '1440p',
+            speed: 1
         }
     },
     'preview-only': {
@@ -40,7 +44,9 @@ export const VIDEO_MODES = {
             transparent: 1,
             autopause: 0,
             responsive: 0,
-            dnt: 1
+            dnt: 1,
+            quality: '1080p',
+            speed: 1
         }
     }
 };
@@ -54,13 +60,17 @@ export const PLAYER_CONFIG = {
         controls: false,
         playsinline: true,
         autopause: false,
-        responsive: false
+        responsive: false,
+        quality: '1080p',
+        speed: 1
     },
     lightbox: {
         autopause: false,
         muted: true,
         background: false,
         autopause: false,
-        responsive: false
+        responsive: false,
+        quality: '1440p',
+        speed: 1
     }
 };

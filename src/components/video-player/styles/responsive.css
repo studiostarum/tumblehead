@@ -57,6 +57,7 @@
 
 /* Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
+
     .video-container,
     .preview-wrapper iframe,
     .thumbnail,
@@ -69,5 +70,62 @@
 
     .loading-spinner {
         animation: none;
+    }
+}
+
+/* Mobile styles */
+@media screen and (max-width: 767px) {
+    .video-container {
+        min-height: 200px;
+        aspect-ratio: 16/9;
+    }
+}
+
+/* Tablet styles */
+@media screen and (min-width: 768px) and (max-width: 991px) {
+    .video-container {
+        min-height: 250px;
+        aspect-ratio: 16/9;
+    }
+}
+
+/* Desktop styles */
+@media screen and (min-width: 992px) {
+    .video-container {
+        min-height: 300px;
+        aspect-ratio: 16/9;
+    }
+}
+
+/* Large desktop styles */
+@media screen and (min-width: 1200px) {
+    .video-container {
+        min-height: 400px;
+        aspect-ratio: 16/9;
+    }
+}
+
+/* Handle ultra-wide screens */
+@media screen and (min-width: 1920px) {
+    .video-container {
+        min-height: 500px;
+        max-height: 80vh;
+        aspect-ratio: 16/9;
+    }
+}
+
+/* Portrait mode adjustments */
+@media screen and (orientation: portrait) {
+    .video-container {
+        aspect-ratio: 9/16;
+        min-height: 400px;
+    }
+}
+
+/* Handle smaller screens in portrait */
+@media screen and (orientation: portrait) and (max-width: 767px) {
+    .video-container {
+        aspect-ratio: 9/16;
+        min-height: 300px;
     }
 }
