@@ -2,14 +2,13 @@
 .video-container {
     position: relative;
     width: 100%;
-    /* Default aspect ratio if not specified */
-    aspect-ratio: var(--video-aspect-ratio, 16/9);
-    min-height: 300px;
+    min-height: 18.75rem;
     overflow: hidden;
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(1.25rem);
     transition: opacity 0.5s ease, transform 0.5s ease;
-    background-color: rgba(0, 0, 0, 0.1); /* Subtle background while loading */
+    background-color: rgba(0, 0, 0, 0.1);
+    /* Subtle background while loading */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -21,7 +20,7 @@
 }
 
 /* Apply mobile aspect ratio if data attribute is present */
-@media screen and (max-width: 767px) {
+@media screen and (max-width: 47.9375rem) {
     .video-container[data-mobile-aspect-ratio] {
         aspect-ratio: var(--mobile-aspect-ratio);
     }
@@ -71,8 +70,8 @@
 }
 
 /* Hide spinner when iframe is loaded */
-.preview-wrapper iframe.loaded + .loading-spinner,
-.preview-wrapper iframe.loaded ~ .loading-spinner {
+.preview-wrapper iframe.loaded+.loading-spinner,
+.preview-wrapper iframe.loaded~.loading-spinner {
     display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;
@@ -111,9 +110,9 @@
     transform: translate(-50%, -50%);
     background: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: .9375rem 1.5625rem;
+    border-radius: .5rem;
+    font-size: .875rem;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -126,9 +125,9 @@
 
 /* Accessibility focus styles */
 .video-container:focus-within {
-    outline: 3px solid #4A90E2;
-    outline-offset: 2px;
-    border-radius: 8px;
+    outline: .1875rem solid #4A90E2;
+    outline-offset: .125rem;
+    border-radius: .5rem;
 }
 
 /* Remove outline when lightbox is active */
