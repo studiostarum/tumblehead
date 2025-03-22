@@ -18,7 +18,7 @@ export const VIDEO_MODES = {
             autopause: 0,
             responsive: 0,
             dnt: 1,
-            quality: '1080p',
+            quality: '540p',
             speed: 1
         },
         lightboxParams: {
@@ -45,7 +45,7 @@ export const VIDEO_MODES = {
             autopause: 0,
             responsive: 0,
             dnt: 1,
-            quality: '1080p',
+            quality: '540p',
             speed: 1
         }
     }

@@ -35,34 +35,15 @@ export async function getOptimalQuality() {
  */
 export async function getVimeoThumbnail(videoId) {
     try {
-        // Request maximum size and quality in the oEmbed call
-        const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}&width=2560&height=1440`);
+        // Request a more appropriate size for previews
+        const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}&width=1280&height=720`);
         const data = await response.json();
         
-        // Try to get the highest quality thumbnail possible
-        // First try the pictures object if available (newer API)
         if (data.thumbnail_url) {
-            // Replace with the highest resolution possible
-            // Vimeo supports: 1920x1080, 2560x1440, 3840x2160
-            const highResUrl = data.thumbnail_url
-                .replace(/_\d+x\d+\./, '_3840x2160.') // Try 4K first
-                .replace(/&w=\d+&h=\d+/, '&w=3840&h=2160');
-                
-            // Verify if high-res exists, if not fallback to 1440p
-            try {
-                const testResponse = await fetch(highResUrl, { method: 'HEAD' });
-                if (!testResponse.ok) {
-                    return data.thumbnail_url
-                        .replace(/_\d+x\d+\./, '_2560x1440.')
-                        .replace(/&w=\d+&h=\d+/, '&w=2560&h=1440');
-                }
-                return highResUrl;
-            } catch (e) {
-                // Fallback to 1440p if 4K fails
-                return data.thumbnail_url
-                    .replace(/_\d+x\d+\./, '_2560x1440.')
-                    .replace(/&w=\d+&h=\d+/, '&w=2560&h=1440');
-            }
+            // Use 720p for previews - good balance of quality and performance
+            return data.thumbnail_url
+                .replace(/_\d+x\d+\./, '_1280x720.')
+                .replace(/&w=\d+&h=\d+/, '&w=1280&h=720');
         }
         return null;
     } catch (error) {

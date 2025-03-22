@@ -449,15 +449,50 @@ export class VideoPlayer {
         // Initialize Lucide icons
         createIcons({ icons });
 
-        // Initialize each video container
+        // Initialize only visible video containers initially
         this.videoContainers.forEach(container => {
-            this.initializeContainer(container);
+            if (this.isElementInViewport(container)) {
+                this.initializeContainer(container);
+            }
+        });
+
+        // Set up intersection observer for lazy loading
+        const lazyLoadObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const container = entry.target;
+                    if (!container.dataset.initialized) {
+                        this.initializeContainer(container);
+                        container.dataset.initialized = 'true';
+                    }
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '50px'
+        });
+
+        // Observe all video containers for lazy loading
+        this.videoContainers.forEach(container => {
+            if (!this.isElementInViewport(container)) {
+                lazyLoadObserver.observe(container);
+            }
         });
         
         // Force hide spinners after a delay to catch any that might still be visible
         setTimeout(() => {
             this.forceHideSpinners();
         }, 3000);
+    }
+
+    isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
     }
 
     // Handle page visibility changes
