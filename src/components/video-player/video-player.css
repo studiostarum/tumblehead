@@ -3,6 +3,7 @@
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform; /* Optimize performance */
 }
 
 [data-scroll-reveal].visible {
@@ -16,11 +17,22 @@
         opacity: 0;
         transform: translateY(20px);
         transition: none; /* Disable transition initially */
+        visibility: hidden; /* Hide elements completely */
+        will-change: opacity, transform, visibility; /* Optimize performance */
     }
 
     [data-scroll-reveal].visible {
         opacity: 1;
         transform: translateY(0);
-        transition: opacity 0.6s ease-out, transform 0.6s ease-out; /* Re-enable transition when visible */
+        visibility: visible; /* Show elements when visible class is added */
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out, visibility 0s; /* Smooth transition with visibility */
+    }
+
+    /* Add a subtle fade-in for elements that are about to be revealed */
+    [data-scroll-reveal].about-to-reveal {
+        opacity: 0.5;
+        transform: translateY(10px);
+        visibility: visible;
+        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
     }
 } 

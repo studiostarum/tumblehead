@@ -17,6 +17,9 @@ export class VideoPlayer {
         this.resizeTimeout = null; // For debouncing resize events
         this.prefetchQueue = new Set(); // Track videos being prefetched
         this.hasScrolled = false; // Track if user has scrolled on small screens
+        this.scrollThreshold = 20; // Percentage of scroll to trigger reveal
+        this.scrollRevealElements = new Set(); // Track all scroll reveal elements
+        this.aboutToRevealTimeout = null; // For debouncing about-to-reveal state
 
         // Initialize Intersection Observer for videos
         this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
@@ -65,17 +68,39 @@ export class VideoPlayer {
         const isSmallScreen = window.innerWidth <= 767;
         
         entries.forEach(entry => {
+            const element = entry.target;
+            
             if (entry.isIntersecting) {
-                // On small screens, only show if user has scrolled 20% down
+                // On small screens, only show if user has scrolled threshold down
                 if (isSmallScreen) {
                     const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-                    if (scrollPercent >= 20 || this.hasScrolled) {
-                        entry.target.classList.add('visible');
+                    
+                    if (scrollPercent >= this.scrollThreshold || this.hasScrolled) {
+                        // Clear any pending about-to-reveal timeout
+                        if (this.aboutToRevealTimeout) {
+                            clearTimeout(this.aboutToRevealTimeout);
+                        }
+                        
+                        // Add visible class immediately
+                        element.classList.add('visible');
                         this.hasScrolled = true;
+                    } else if (scrollPercent >= this.scrollThreshold - 5) {
+                        // When approaching threshold, add about-to-reveal class
+                        element.classList.add('about-to-reveal');
+                        
+                        // Set timeout to remove about-to-reveal class if not scrolled further
+                        this.aboutToRevealTimeout = setTimeout(() => {
+                            if (!this.hasScrolled) {
+                                element.classList.remove('about-to-reveal');
+                            }
+                        }, 1000);
                     }
                 } else {
-                    entry.target.classList.add('visible');
+                    element.classList.add('visible');
                 }
+            } else if (isSmallScreen && !this.hasScrolled) {
+                // On small screens, ensure elements stay hidden until scrolling begins
+                element.classList.remove('visible', 'about-to-reveal');
             }
         });
     }
@@ -467,18 +492,33 @@ export class VideoPlayer {
             }, 100);
         });
 
-        // Add scroll event listener for small screens
+        // Add scroll event listener for small screens with throttling
         const isSmallScreen = window.innerWidth <= 767;
         if (isSmallScreen) {
+            let lastScrollTime = 0;
+            const scrollThrottle = 100; // Throttle to 100ms
+
             window.addEventListener('scroll', () => {
+                const now = Date.now();
+                if (now - lastScrollTime < scrollThrottle) return;
+                lastScrollTime = now;
+
                 const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-                if (scrollPercent >= 20 && !this.hasScrolled) {
+                
+                if (scrollPercent >= this.scrollThreshold && !this.hasScrolled) {
                     this.hasScrolled = true;
                     // Recheck all scroll reveal elements
-                    document.querySelectorAll('[data-scroll-reveal]').forEach(element => {
+                    this.scrollRevealElements.forEach(element => {
                         if (this.isElementInViewport(element)) {
                             element.classList.add('visible');
+                            element.classList.remove('about-to-reveal');
                         }
+                    });
+                } else if (scrollPercent < this.scrollThreshold && this.hasScrolled) {
+                    // If user scrolls back to top, reset the scroll state
+                    this.hasScrolled = false;
+                    this.scrollRevealElements.forEach(element => {
+                        element.classList.remove('visible', 'about-to-reveal');
                     });
                 }
             });
@@ -630,8 +670,9 @@ export class VideoPlayer {
             }
         });
 
-        // Set up scroll reveal observer
+        // Set up scroll reveal observer and track elements
         document.querySelectorAll('[data-scroll-reveal]').forEach(element => {
+            this.scrollRevealElements.add(element);
             this.scrollRevealObserver.observe(element);
         });
         
