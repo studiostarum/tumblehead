@@ -10,6 +10,8 @@ Custom Webflow features for the Tumblehead Animation website.
   - Responsive design
   - Accessibility features
   - Zero-config HTML structure
+  - Portrait mode support
+  - Client-friendly documentation ([English](src/components/video-player/CLIENT_GUIDE.md) | [Danish](src/components/video-player/CLIENT_GUIDE_DK.md))
 - [Logo Slider Component](src/components/logo-slider/README.md) with Webflow CMS Integration
   - Infinite scrolling
   - Smooth animation
@@ -68,6 +70,8 @@ npm run preview
 ├── src/
 │   ├── components/
 │   │   ├── video-player/    # Video player component
+│   │   │   ├── CLIENT_GUIDE.md    # English client guide
+│   │   │   └── CLIENT_GUIDE_DK.md # Danish client guide
 │   │   ├── logo-slider/     # Logo slider component
 │   │   └── ...
 │   ├── main.js             # Main entry point

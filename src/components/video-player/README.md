@@ -11,7 +11,9 @@ A responsive, accessible video player component with Vimeo integration, featurin
 - Automatic element injection
 - Smart video quality selection
 - Multiple video modes
+- Portrait mode support
 - Webflow CMS compatible
+- Client-friendly documentation ([English](CLIENT_GUIDE.md) | [Danish](CLIENT_GUIDE_DK.md))
 
 ## Usage
 
@@ -38,6 +40,14 @@ The component requires only the base container with data attributes. All other e
      data-video-start-time="5"
      data-video-end-time="20">
 </div>
+
+<!-- With portrait mode support -->
+<div class="video-container" 
+     data-video-mode="preview-with-lightbox" 
+     data-video-id="landscape-video-id"
+     data-portrait-video-id="portrait-video-id"
+     data-responsive>
+</div>
 ```
 
 ### Required Attributes
@@ -53,6 +63,10 @@ The component requires only the base container with data attributes. All other e
 
 - `data-video-start-time` - Start time in seconds for preview playback (default: 0)
 - `data-video-end-time` - End time in seconds for preview playback (default: start time + 30)
+- `data-portrait-video-id` - Alternative video ID for portrait mode (9:16)
+- `data-responsive` - Enable responsive sizing
+- `data-aspect-ratio` - Custom aspect ratio (e.g., "16/9")
+- `data-mobile-aspect-ratio` - Different aspect ratio for mobile devices
 
 ### Webflow CMS Integration
 
@@ -113,12 +127,20 @@ export const VIDEO_MODES = {
             controls: 0,
             playsinline: 1,
             transparent: 1,
-            autopause: 0
+            autopause: 0,
+            responsive: 0,
+            dnt: 1,
+            quality: '540p',
+            speed: 1
         },
         lightboxParams: {
             autoplay: 1,
             controls: 1,
-            autopause: 0
+            autopause: 0,
+            responsive: 0,
+            dnt: 1,
+            quality: '1440p',
+            speed: 1
         }
     },
     'preview-only': {
