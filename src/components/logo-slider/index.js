@@ -16,7 +16,7 @@ export class LogoSlider {
         this.totalShift = 0;
         this.safetyBuffer = 2;
         this.lastTimestamp = null;
-        this.maxTransform = 100; // Maximum transform value in REMs before reset
+        this.originalSetWidth = 0; // Will be calculated in setupClones
 
         // Add GPU optimization hint and container styles
         this.slider.style.willChange = 'transform';
@@ -53,6 +53,9 @@ export class LogoSlider {
         const requiredWidth = viewportWidth * 2;
         const numClones = Math.ceil(requiredWidth / sliderWidth);
 
+        // Calculate original set width
+        this.originalSetWidth = this.logos.reduce((sum, logo) => sum + this.pxToRem(logo.offsetWidth), 0);
+
         // Create document fragment for better performance
         const fragment = document.createDocumentFragment();
 
@@ -74,14 +77,14 @@ export class LogoSlider {
 
     resetTransformIfNeeded() {
         const currentTransform = Math.abs(this.position - this.totalShift);
-        if (currentTransform > this.maxTransform) {
-            // Calculate how many complete logo sets we've moved through
-            let totalWidth = 0;
-            const originalSetWidth = this.logos.reduce((sum, logo) => sum + this.pxToRem(logo.offsetWidth), 0);
-            const sets = Math.floor(currentTransform / originalSetWidth);
+        
+        // Reset when we've moved through at least one complete set
+        if (currentTransform >= this.originalSetWidth) {
+            // Calculate how many complete sets we've moved through
+            const sets = Math.floor(currentTransform / this.originalSetWidth);
             
             if (sets > 0) {
-                const resetAmount = sets * originalSetWidth;
+                const resetAmount = sets * this.originalSetWidth;
                 this.position += resetAmount;
                 this.totalShift += resetAmount;
             }
