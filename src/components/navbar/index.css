@@ -1,5 +1,5 @@
-/* Navbar transition styles */
-[data-element="navbar"] {
+/* Navbar transition styles - only for homepage */
+[data-page="home"] [data-element="navbar"] {
     opacity: 0;
     transform: translateY(-100%);
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -16,14 +16,14 @@
 
 /* Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    [data-element="navbar"],
+    [data-page="home"] [data-element="navbar"],
     [data-scroll-reveal] {
         transition: none;
     }
 }
 
 /* These classes will be added by JavaScript to show elements */
-.navbar-visible {
+[data-page="home"] [data-element="navbar"].navbar-visible {
     opacity: 1 !important;
     transform: translateY(0) !important;
 }
