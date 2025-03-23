@@ -11,7 +11,7 @@ export class Navbar {
         // Get all reveal elements
         this.revealElements = document.querySelectorAll('[data-scroll-reveal]');
 
-        if (!this.navbar || !this.trigger) return;
+        if (!this.navbar) return;
 
         // Initialize
         this.init();
@@ -23,7 +23,9 @@ export class Navbar {
         this.hideRevealElements();
 
         // Setup observers
-        this.setupTriggerObserver();
+        if (this.trigger) {
+            this.setupTriggerObserver();
+        }
         this.setupRevealObserver();
 
         // Add scroll event listener
@@ -76,13 +78,15 @@ export class Navbar {
 
         this.menuObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
-                const isMenuOpen = this.menuWrapper.style.display === 'block' &&
-                    this.menuWrapper.style.opacity === '1';
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const isMenuOpen = this.menuWrapper.style.display === 'block' &&
+                        this.menuWrapper.style.opacity === '1';
 
-                if (isMenuOpen) {
-                    scrollLock.lock();
-                } else {
-                    scrollLock.unlock();
+                    if (isMenuOpen) {
+                        scrollLock.lock();
+                    } else {
+                        scrollLock.unlock();
+                    }
                 }
             });
         });
@@ -128,6 +132,12 @@ export class Navbar {
         }
     }
 
+    hideRevealElements() {
+        this.revealElements.forEach(element => {
+            element.classList.remove('reveal-visible');
+        });
+    }
+
     isElementInViewport(element) {
         const rect = element.getBoundingClientRect();
         return (
@@ -145,20 +155,19 @@ export class Navbar {
     }
 
     checkRevealElement(element) {
-        const triggerRect = this.trigger.getBoundingClientRect();
-        const elementRect = element.getBoundingClientRect();
-        this.toggleElement(element, elementRect.top > triggerRect.bottom);
+        if (this.trigger) {
+            const triggerRect = this.trigger.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            this.toggleElement(element, elementRect.top > triggerRect.bottom);
+        } else {
+            // If no trigger element, show element when it's in viewport
+            this.toggleElement(element, this.isElementInViewport(element));
+        }
     }
 
     toggleElement(element, show) {
         const className = element === this.navbar ? 'navbar-visible' : 'reveal-visible';
         element.classList.toggle(className, show);
-    }
-
-    hideRevealElements() {
-        this.revealElements.forEach(element => {
-            this.toggleElement(element, false);
-        });
     }
 
     // Cleanup method to disconnect observers
