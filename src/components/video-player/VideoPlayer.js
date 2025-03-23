@@ -18,7 +18,7 @@ export class VideoPlayer {
 
         // Initialize Intersection Observer with dynamic rootMargin
         this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
-            threshold: 0.2,
+            threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
             rootMargin: this.getRootMargin()
         });
 
@@ -37,12 +37,14 @@ export class VideoPlayer {
         const isLandscapeMobile = window.innerWidth <= 767 && window.innerHeight < window.innerWidth;
         
         if (isLandscapeMobile) {
-            // Add 20% offset for landscape mobile
-            return '50% 0px';
+            // Calculate a percentage based on viewport height
+            const viewportHeight = window.innerHeight;
+            const margin = Math.round((viewportHeight * 0.8)) + 'px'; // 80% of viewport height
+            return `${margin} 0px -100px 0px`;
         }
         
         // Default margin for other screen sizes
-        return '50px';
+        return '0px 0px -100px 0px';
     }
 
     createLightbox() {
@@ -408,7 +410,7 @@ export class VideoPlayer {
                 // Update observer rootMargin
                 this.observer.disconnect();
                 this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
-                    threshold: 0.2,
+                    threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
                     rootMargin: this.getRootMargin()
                 });
                 

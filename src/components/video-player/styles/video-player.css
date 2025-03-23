@@ -5,13 +5,15 @@
     min-height: 18.75rem;
     overflow: hidden;
     opacity: 0;
-    transform: translateY(1.25rem);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateY(2.5rem);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     background-color: rgba(0, 0, 0, 0.1);
     /* Subtle background while loading */
     display: flex;
     align-items: center;
     justify-content: center;
+    will-change: transform, opacity;
 }
 
 /* Apply custom aspect ratio if data attribute is present */
@@ -29,6 +31,13 @@
 .video-container.visible {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* Landscape mobile specific styles */
+@media screen and (max-width: 767px) and (orientation: landscape) {
+    .video-container {
+        transform: translateY(3.75rem);
+    }
 }
 
 .video-container[data-video-mode="preview-with-lightbox"] {
