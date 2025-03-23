@@ -173,11 +173,22 @@ export class LogoSlider {
                 cancelAnimationFrame(this.animationFrameId);
                 this.animationFrameId = null;
             }
+            // Store the current transform value before pausing
+            const currentTransform = this.slider.style.transform;
+            if (currentTransform) {
+                const match = currentTransform.match(/translate3d\(([-\d.]+)rem/);
+                if (match) {
+                    this.position = parseFloat(match[1]) + this.totalShift;
+                }
+            }
             // Reset timestamp so we don't get a huge jump when returning
             this.lastTimestamp = null;
         } else {
             // Resume animation when tab becomes visible
             if (!this.animationFrameId) {
+                // Ensure the slider is in the correct position before resuming
+                const adjustedPosition = this.position - this.totalShift;
+                this.slider.style.transform = `translate3d(${adjustedPosition}rem, 0, 0)`;
                 this.animate();
             }
         }
