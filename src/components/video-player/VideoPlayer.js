@@ -15,11 +15,24 @@ export class VideoPlayer {
         this.activeVideos = new Set(); // Track currently playing videos
         this.isPageVisible = true; // Track page visibility
         this.resizeTimeout = null; // For debouncing resize events
+        this.prefetchQueue = new Set(); // Track videos being prefetched
 
-        // Initialize Intersection Observer with dynamic rootMargin
+        // Initialize Intersection Observer for videos
         this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
-            threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
-            rootMargin: this.getRootMargin()
+            threshold: 0.2,
+            rootMargin: '50px'
+        });
+
+        // Initialize Scroll Reveal Observer
+        this.scrollRevealObserver = new IntersectionObserver(this.handleScrollReveal.bind(this), {
+            threshold: 0.2,
+            rootMargin: this.getScrollRevealRootMargin()
+        });
+
+        // Initialize Prefetch Observer with larger rootMargin
+        this.prefetchObserver = new IntersectionObserver(this.handlePrefetch.bind(this), {
+            threshold: 0,
+            rootMargin: '200px' // Start prefetching when video is 200px from viewport
         });
 
         // Create lightbox first
@@ -32,19 +45,37 @@ export class VideoPlayer {
         this.init();
     }
 
-    getRootMargin() {
-        // Check if we're in landscape mobile view
-        const isLandscapeMobile = window.innerWidth <= 767 && window.innerHeight < window.innerWidth;
+    getScrollRevealRootMargin() {
+        // Check if we're in landscape mode on mobile
+        const isLandscapeMobile = window.matchMedia('(orientation: landscape) and (max-height: 767px)').matches;
         
+        // Return different rootMargin based on screen size and orientation
         if (isLandscapeMobile) {
-            // Calculate a percentage based on viewport height
-            const viewportHeight = window.innerHeight;
-            const margin = Math.round((viewportHeight * 0.8)) + 'px'; // 80% of viewport height
-            return `${margin} 0px -100px 0px`;
+            return '100px'; // Show later on landscape mobile
         }
-        
-        // Default margin for other screen sizes
-        return '0px 0px -100px 0px';
+        return '50px'; // Default margin
+    }
+
+    handleScrollReveal(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }
+
+    updateScrollRevealRootMargin() {
+        // Update the scroll reveal observer's rootMargin
+        this.scrollRevealObserver.disconnect();
+        this.scrollRevealObserver = new IntersectionObserver(this.handleScrollReveal.bind(this), {
+            threshold: 0.2,
+            rootMargin: this.getScrollRevealRootMargin()
+        });
+
+        // Re-observe all scroll reveal elements
+        document.querySelectorAll('[data-scroll-reveal]').forEach(element => {
+            this.scrollRevealObserver.observe(element);
+        });
     }
 
     createLightbox() {
@@ -407,20 +438,17 @@ export class VideoPlayer {
 
             // Set new timeout
             this.resizeTimeout = setTimeout(() => {
-                // Update observer rootMargin
-                this.observer.disconnect();
-                this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
-                    threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
-                    rootMargin: this.getRootMargin()
-                });
-                
-                // Re-observe all containers
-                this.videoContainers.forEach(container => {
-                    this.observer.observe(container);
-                });
-
                 this.handleResize();
+                this.updateScrollRevealRootMargin();
             }, 250); // Wait 250ms after last resize event
+        });
+
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            // Wait for orientation change to complete
+            setTimeout(() => {
+                this.updateScrollRevealRootMargin();
+            }, 100);
         });
     }
 
@@ -500,16 +528,24 @@ export class VideoPlayer {
     }
 
     handleResize() {
-        // Reinitialize all visible video containers
+        // Reinitialize only visible video containers
         this.videoContainers.forEach(container => {
             if (this.isElementInViewport(container)) {
-                const playerKey = `${container.dataset.videoId}-${container.dataset.videoMode}`;
-                const playerData = this.players.get(playerKey);
-                
-                if (playerData) {
-                    // Reinitialize the container
-                    this.initializeContainer(container);
-                }
+                this.initializeContainer(container);
+            }
+        });
+
+        // Update prefetch observer
+        this.prefetchObserver.disconnect();
+        this.prefetchObserver = new IntersectionObserver(this.handlePrefetch.bind(this), {
+            threshold: 0,
+            rootMargin: '200px'
+        });
+
+        // Re-observe containers for prefetching
+        this.videoContainers.forEach(container => {
+            if (!this.isElementInViewport(container)) {
+                this.prefetchObserver.observe(container);
             }
         });
     }
@@ -556,7 +592,14 @@ export class VideoPlayer {
         this.videoContainers.forEach(container => {
             if (!this.isElementInViewport(container)) {
                 lazyLoadObserver.observe(container);
+                // Also observe for prefetching
+                this.prefetchObserver.observe(container);
             }
+        });
+
+        // Set up scroll reveal observer
+        document.querySelectorAll('[data-scroll-reveal]').forEach(element => {
+            this.scrollRevealObserver.observe(element);
         });
         
         // Force hide spinners after a delay to catch any that might still be visible
@@ -602,6 +645,23 @@ export class VideoPlayer {
                 }
             });
         }
+    }
+
+    handlePrefetch(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const container = entry.target;
+                const videoId = container.dataset.videoId;
+                
+                // Only prefetch if not already initialized or in prefetch queue
+                if (videoId && !container.dataset.initialized && !this.prefetchQueue.has(videoId)) {
+                    this.prefetchQueue.add(videoId);
+                    this.preloadVideo(videoId).then(() => {
+                        this.prefetchQueue.delete(videoId);
+                    });
+                }
+            }
+        });
     }
 }
 
