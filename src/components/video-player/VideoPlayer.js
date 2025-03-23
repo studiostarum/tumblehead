@@ -16,6 +16,7 @@ export class VideoPlayer {
         this.isPageVisible = true; // Track page visibility
         this.resizeTimeout = null; // For debouncing resize events
         this.prefetchQueue = new Set(); // Track videos being prefetched
+        this.hasScrolled = false; // Track if user has scrolled on small screens
 
         // Initialize Intersection Observer for videos
         this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
@@ -48,18 +49,33 @@ export class VideoPlayer {
     getScrollRevealRootMargin() {
         // Check if we're in landscape mode on mobile
         const isLandscapeMobile = window.matchMedia('(orientation: landscape) and (max-height: 767px)').matches;
+        const isSmallScreen = window.innerWidth <= 767;
         
         // Return different rootMargin based on screen size and orientation
         if (isLandscapeMobile) {
             return '100px'; // Show later on landscape mobile
         }
+        if (isSmallScreen) {
+            return '50px'; // Default margin for small screens
+        }
         return '50px'; // Default margin
     }
 
     handleScrollReveal(entries) {
+        const isSmallScreen = window.innerWidth <= 767;
+        
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
+                // On small screens, only show if user has scrolled 20% down
+                if (isSmallScreen) {
+                    const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+                    if (scrollPercent >= 20 || this.hasScrolled) {
+                        entry.target.classList.add('visible');
+                        this.hasScrolled = true;
+                    }
+                } else {
+                    entry.target.classList.add('visible');
+                }
             }
         });
     }
@@ -450,6 +466,23 @@ export class VideoPlayer {
                 this.updateScrollRevealRootMargin();
             }, 100);
         });
+
+        // Add scroll event listener for small screens
+        const isSmallScreen = window.innerWidth <= 767;
+        if (isSmallScreen) {
+            window.addEventListener('scroll', () => {
+                const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+                if (scrollPercent >= 20 && !this.hasScrolled) {
+                    this.hasScrolled = true;
+                    // Recheck all scroll reveal elements
+                    document.querySelectorAll('[data-scroll-reveal]').forEach(element => {
+                        if (this.isElementInViewport(element)) {
+                            element.classList.add('visible');
+                        }
+                    });
+                }
+            });
+        }
     }
 
     openLightbox(container) {
