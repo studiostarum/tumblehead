@@ -14,6 +14,7 @@ export class VideoPlayer {
         this.isLightboxOpen = false;
         this.activeVideos = new Set(); // Track currently playing videos
         this.isPageVisible = true; // Track page visibility
+        this.resizeTimeout = null; // For debouncing resize events
 
         // Initialize Intersection Observer
         this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
@@ -130,11 +131,32 @@ export class VideoPlayer {
     }
 
     async initializeContainer(container) {
+        // Remove existing observer
+        this.observer.unobserve(container);
+
+        // Clean up existing player if it exists
+        const playerKey = `${container.dataset.videoId}-${container.dataset.videoMode}`;
+        const existingPlayerData = this.players.get(playerKey);
+        if (existingPlayerData) {
+            // Destroy existing player
+            if (existingPlayerData.player) {
+                await existingPlayerData.player.destroy();
+            }
+            // Remove from players map
+            this.players.delete(playerKey);
+        }
+
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+
+        // Re-observe the container
         this.observer.observe(container);
 
         const mode = container.dataset.videoMode;
         const rawVideoInput = container.dataset.videoId;
-        const portraitVideoId = container.dataset.portraitVideoId; // New portrait video ID
+        const portraitVideoId = container.dataset.portraitVideoId;
         const videoId = extractVimeoId(rawVideoInput);
         const config = VIDEO_MODES[mode];
         
@@ -204,7 +226,6 @@ export class VideoPlayer {
         const player = new Player(previewIframe);
         
         // Store player reference with container info
-        const playerKey = `${videoId}-${mode}`;
         this.players.set(playerKey, {
             container,
             player,
@@ -356,15 +377,23 @@ export class VideoPlayer {
             });
         }
 
-        // Handle window resize for responsive behavior
-        window.addEventListener('resize', () => {
-            this.handleResize();
-        });
-        
-        // Add page visibility listener
+        // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             this.isPageVisible = document.visibilityState === 'visible';
             this.handleVisibilityChange();
+        });
+
+        // Handle window resize with debouncing
+        window.addEventListener('resize', () => {
+            // Clear existing timeout
+            if (this.resizeTimeout) {
+                clearTimeout(this.resizeTimeout);
+            }
+
+            // Set new timeout
+            this.resizeTimeout = setTimeout(() => {
+                this.handleResize();
+            }, 250); // Wait 250ms after last resize event
         });
     }
 
@@ -444,11 +473,17 @@ export class VideoPlayer {
     }
 
     handleResize() {
-        // Update player dimensions or handle responsive behavior
-        this.players.forEach(({ player }) => {
-            player.getVideoHeight().then(height => {
-                // Adjust player size if needed
-            });
+        // Reinitialize all visible video containers
+        this.videoContainers.forEach(container => {
+            if (this.isElementInViewport(container)) {
+                const playerKey = `${container.dataset.videoId}-${container.dataset.videoMode}`;
+                const playerData = this.players.get(playerKey);
+                
+                if (playerData) {
+                    // Reinitialize the container
+                    this.initializeContainer(container);
+                }
+            }
         });
     }
 
