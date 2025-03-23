@@ -686,12 +686,25 @@ export class VideoPlayer {
                 const container = entry.target;
                 const videoId = container.dataset.videoId;
                 
-                // Only prefetch if not already initialized or in prefetch queue
-                if (videoId && !container.dataset.initialized && !this.prefetchQueue.has(videoId)) {
+                // Only prefetch if:
+                // 1. We have a valid video ID
+                // 2. The container hasn't been initialized yet
+                // 3. The video isn't already in the prefetch queue
+                // 4. The video ID is a valid Vimeo ID (numeric)
+                if (videoId && 
+                    !container.dataset.initialized && 
+                    !this.prefetchQueue.has(videoId) &&
+                    /^\d+$/.test(videoId)) {
+                    
                     this.prefetchQueue.add(videoId);
-                    this.preloadVideo(videoId).then(() => {
-                        this.prefetchQueue.delete(videoId);
-                    });
+                    this.preloadVideo(videoId)
+                        .then(() => {
+                            this.prefetchQueue.delete(videoId);
+                        })
+                        .catch(error => {
+                            console.warn(`Failed to prefetch video ${videoId}:`, error);
+                            this.prefetchQueue.delete(videoId);
+                        });
                 }
             }
         });
@@ -702,7 +715,7 @@ export class VideoPlayer {
             // Get optimal quality for prefetching
             const quality = await getOptimalQuality();
             
-            // Create a temporary iframe for prefetching
+            // Create a temporary player for prefetching
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
             iframe.src = buildVideoUrl(videoId, {
@@ -723,22 +736,36 @@ export class VideoPlayer {
             // Add to document temporarily
             document.body.appendChild(iframe);
             
-            // Create a promise that resolves when the iframe loads
-            const loadPromise = new Promise((resolve) => {
-                iframe.onload = () => {
-                    // Remove the iframe after a short delay
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                        resolve();
-                    }, 5000); // Keep iframe for 5 seconds to allow prefetching
-                };
+            // Create a promise that resolves when the player is ready
+            const loadPromise = new Promise((resolve, reject) => {
+                // Create a temporary player instance
+                const tempPlayer = new Player(iframe);
+                
+                // Set a timeout to prevent hanging
+                const timeout = setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    reject(new Error('Prefetch timeout'));
+                }, 10000); // 10 second timeout
+                
+                // Try to load the video
+                tempPlayer.ready().then(() => {
+                    clearTimeout(timeout);
+                    // Remove the iframe after successful load
+                    document.body.removeChild(iframe);
+                    resolve();
+                }).catch(error => {
+                    clearTimeout(timeout);
+                    document.body.removeChild(iframe);
+                    reject(error);
+                });
             });
             
             // Return the promise
             return loadPromise;
         } catch (error) {
             console.warn('Error prefetching video:', error);
-            return Promise.resolve(); // Resolve even on error to prevent queue blocking
+            // Don't block the queue on error
+            return Promise.resolve();
         }
     }
 }
