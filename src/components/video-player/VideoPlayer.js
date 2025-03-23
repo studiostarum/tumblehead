@@ -134,6 +134,7 @@ export class VideoPlayer {
 
         const mode = container.dataset.videoMode;
         const rawVideoInput = container.dataset.videoId;
+        const portraitVideoId = container.dataset.portraitVideoId; // New portrait video ID
         const videoId = extractVimeoId(rawVideoInput);
         const config = VIDEO_MODES[mode];
         
@@ -177,9 +178,24 @@ export class VideoPlayer {
         // Create and insert preview iframe
         const quality = await getOptimalQuality();
         const previewIframe = document.createElement('iframe');
-        const previewUrl = buildVideoUrl(videoId, config.previewParams, quality);
         
-        previewIframe.src = previewUrl;
+        // Set up portrait mode handling
+        const handlePortraitMode = () => {
+            if (portraitVideoId && window.matchMedia('(orientation: portrait)').matches) {
+                const portraitUrl = buildVideoUrl(portraitVideoId, config.previewParams, quality);
+                previewIframe.src = portraitUrl;
+            } else {
+                const landscapeUrl = buildVideoUrl(videoId, config.previewParams, quality);
+                previewIframe.src = landscapeUrl;
+            }
+        };
+
+        // Initial URL setup
+        handlePortraitMode();
+
+        // Listen for orientation changes
+        window.addEventListener('orientationchange', handlePortraitMode);
+        
         previewIframe.allow = 'autoplay; fullscreen';
         previewIframe.style.pointerEvents = 'none';
         previewWrapper.insertBefore(previewIframe, previewWrapper.firstChild);
@@ -194,7 +210,9 @@ export class VideoPlayer {
             player,
             wrapper: previewWrapper,
             videoId,
-            isPlaying: false
+            portraitVideoId,
+            isPlaying: false,
+            handlePortraitMode
         });
 
         // Add play state handling
@@ -353,7 +371,7 @@ export class VideoPlayer {
     openLightbox(container) {
         if (!this.lightbox || !this.lightboxContent) return;
 
-        const videoId = container.dataset.videoId;
+        const videoId = container.dataset.videoId; // Always use landscape video for lightbox
         const mode = container.dataset.videoMode;
         const config = VIDEO_MODES[mode];
         
