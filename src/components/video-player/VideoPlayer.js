@@ -663,6 +663,51 @@ export class VideoPlayer {
             }
         });
     }
+
+    async preloadVideo(videoId) {
+        try {
+            // Get optimal quality for prefetching
+            const quality = await getOptimalQuality();
+            
+            // Create a temporary iframe for prefetching
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = buildVideoUrl(videoId, {
+                background: 1,
+                autoplay: 0,
+                loop: 0,
+                muted: 1,
+                controls: 0,
+                playsinline: 1,
+                transparent: 1,
+                autopause: 0,
+                responsive: 0,
+                dnt: 1,
+                quality: quality,
+                speed: 1
+            });
+            
+            // Add to document temporarily
+            document.body.appendChild(iframe);
+            
+            // Create a promise that resolves when the iframe loads
+            const loadPromise = new Promise((resolve) => {
+                iframe.onload = () => {
+                    // Remove the iframe after a short delay
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                        resolve();
+                    }, 5000); // Keep iframe for 5 seconds to allow prefetching
+                };
+            });
+            
+            // Return the promise
+            return loadPromise;
+        } catch (error) {
+            console.warn('Error prefetching video:', error);
+            return Promise.resolve(); // Resolve even on error to prevent queue blocking
+        }
+    }
 }
 
 // Export initialization function
