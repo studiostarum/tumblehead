@@ -16,10 +16,10 @@ export class VideoPlayer {
         this.isPageVisible = true; // Track page visibility
         this.resizeTimeout = null; // For debouncing resize events
 
-        // Initialize Intersection Observer
+        // Initialize Intersection Observer with dynamic rootMargin
         this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
             threshold: 0.2,
-            rootMargin: '50px'
+            rootMargin: this.getRootMargin()
         });
 
         // Create lightbox first
@@ -30,6 +30,19 @@ export class VideoPlayer {
         
         // Finally initialize
         this.init();
+    }
+
+    getRootMargin() {
+        // Check if we're in landscape mobile view
+        const isLandscapeMobile = window.innerWidth <= 696 && window.innerHeight < window.innerWidth;
+        
+        if (isLandscapeMobile) {
+            // Add 20% offset for landscape mobile
+            return '20% 0px';
+        }
+        
+        // Default margin for other screen sizes
+        return '50px';
     }
 
     createLightbox() {
@@ -392,6 +405,18 @@ export class VideoPlayer {
 
             // Set new timeout
             this.resizeTimeout = setTimeout(() => {
+                // Update observer rootMargin
+                this.observer.disconnect();
+                this.observer = new IntersectionObserver(this.handleIntersection.bind(this), {
+                    threshold: 0.2,
+                    rootMargin: this.getRootMargin()
+                });
+                
+                // Re-observe all containers
+                this.videoContainers.forEach(container => {
+                    this.observer.observe(container);
+                });
+
                 this.handleResize();
             }, 250); // Wait 250ms after last resize event
         });
