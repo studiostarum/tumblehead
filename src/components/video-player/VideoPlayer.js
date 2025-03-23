@@ -38,7 +38,7 @@ export class VideoPlayer {
         
         if (isLandscapeMobile) {
             // Add 20% offset for landscape mobile
-            return '20% 0px';
+            return '50% 0px';
         }
         
         // Default margin for other screen sizes
