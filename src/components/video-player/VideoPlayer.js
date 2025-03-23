@@ -34,7 +34,7 @@ export class VideoPlayer {
 
     getRootMargin() {
         // Check if we're in landscape mobile view
-        const isLandscapeMobile = window.innerWidth <= 696 && window.innerHeight < window.innerWidth;
+        const isLandscapeMobile = window.innerWidth <= 767 && window.innerHeight < window.innerWidth;
         
         if (isLandscapeMobile) {
             // Add 20% offset for landscape mobile
