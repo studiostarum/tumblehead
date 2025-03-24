@@ -23,7 +23,8 @@ export const VIDEO_MODES = {
             preload: 'auto',
             cache: 1,
             player_id: 0,
-            api: 1
+            api: 1,
+            origin: window.location.origin
         },
         lightboxParams: {
             autoplay: 1,
@@ -36,7 +37,8 @@ export const VIDEO_MODES = {
             preload: 'auto',
             cache: 1,
             player_id: 0,
-            api: 1
+            api: 1,
+            origin: window.location.origin
         }
     },
     'preview-only': {
@@ -58,7 +60,8 @@ export const VIDEO_MODES = {
             preload: 'auto',
             cache: 1,
             player_id: 0,
-            api: 1
+            api: 1,
+            origin: window.location.origin
         }
     }
 };
@@ -78,7 +81,8 @@ export const PLAYER_CONFIG = {
         preload: 'auto',
         cache: 1,
         player_id: 0,
-        api: 1
+        api: 1,
+        origin: window.location.origin
     },
     lightbox: {
         autopause: false,
@@ -91,6 +95,7 @@ export const PLAYER_CONFIG = {
         preload: 'auto',
         cache: 1,
         player_id: 0,
-        api: 1
+        api: 1,
+        origin: window.location.origin
     }
 };

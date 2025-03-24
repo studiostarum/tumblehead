@@ -111,8 +111,11 @@ export function buildVideoUrl(videoId, params, quality = null) {
         urlParams.append('preload', 'auto');
     }
 
-    // Add cache hint
+    // Add cache and performance hints
     urlParams.append('cache', '1');
+    urlParams.append('player_id', '0');
+    urlParams.append('api', '1');
+    urlParams.append('origin', window.location.origin);
 
     return `https://player.vimeo.com/video/${videoId}?${urlParams.toString()}`;
 }

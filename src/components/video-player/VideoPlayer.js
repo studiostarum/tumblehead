@@ -601,12 +601,8 @@ export class VideoPlayer {
     }
 
     handleResize() {
-        // Reinitialize only visible video containers
-        this.videoContainers.forEach(container => {
-            if (this.isElementInViewport(container)) {
-                this.initializeContainer(container);
-            }
-        });
+        // Only update scroll reveal root margin and prefetch observer
+        this.updateScrollRevealRootMargin();
 
         // Update prefetch observer
         this.prefetchObserver.disconnect();
