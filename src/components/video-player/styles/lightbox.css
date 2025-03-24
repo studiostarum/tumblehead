@@ -27,7 +27,7 @@
 .lightbox-content {
     position: relative;
     width: 90%;
-    max-width: 1200px;
+    max-width: 75rem;
     aspect-ratio: 16/9;
     transform: scale(0.95);
     opacity: 0;
@@ -45,7 +45,7 @@
     border: none;
     opacity: 0;
     transition: opacity 0.5s ease;
-    border-radius: 8px;
+    border-radius: .5rem;
 }
 
 .lightbox iframe.loaded {
@@ -55,12 +55,12 @@
 /* Close button styles */
 .close-button {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 1.25rem;
+    right: 1.25rem;
     color: white;
     background: rgba(0, 0, 0, 0.5);
     border: none;
-    padding: 12px;
+    padding: .75rem;
     cursor: pointer;
     border-radius: 50%;
     display: flex;
@@ -68,7 +68,7 @@
     justify-content: center;
     transition: all 0.3s ease;
     z-index: 1001;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(.25rem);
     opacity: 0;
     transform: scale(0.9);
 }
@@ -84,8 +84,8 @@
 }
 
 .close-button svg {
-    width: 24px;
-    height: 24px;
+    width: 1.5rem;
+    height: 1.5rem;
     stroke-width: 2.5;
 }
 
