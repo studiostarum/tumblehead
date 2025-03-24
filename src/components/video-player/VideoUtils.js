@@ -20,12 +20,12 @@ export async function getConnectionSpeed() {
 export async function getOptimalQuality() {
     const speed = await getConnectionSpeed();
     const qualities = {
-        'slow-2g': '540p',
-        '2g': '720p',
-        '3g': '1080p',
-        '4g': '1440p'
+        'slow-2g': '360p',  // Lower quality for very slow connections
+        '2g': '540p',
+        '3g': '720p',
+        '4g': '1080p'
     };
-    return qualities[speed] || '1080p'; // Default to 1080p instead of auto
+    return qualities[speed] || '720p'; // Default to 720p for better performance
 }
 
 /**
@@ -84,8 +84,8 @@ export function buildVideoUrl(videoId, params, quality = null) {
     
     // Add all params from config
     Object.entries(params).forEach(([key, value]) => {
-        // Skip null values
-        if (value === null) return;
+        // Skip null values and duplicates
+        if (value === null || urlParams.has(key)) return;
         
         // Handle special parameters
         if (key === 't') {
@@ -95,14 +95,24 @@ export function buildVideoUrl(videoId, params, quality = null) {
         }
     });
 
-    // Add quality if provided
-    if (quality) {
+    // Add quality if provided and not already set
+    if (quality && !urlParams.has('quality')) {
         urlParams.append('quality', quality);
     }
 
-    // Disable responsive scaling
-    urlParams.append('responsive', '0');
-    urlParams.append('dnt', '1');
+    // Add performance optimization parameters
+    if (!urlParams.has('responsive')) {
+        urlParams.append('responsive', '0');
+    }
+    if (!urlParams.has('dnt')) {
+        urlParams.append('dnt', '1');
+    }
+    if (!urlParams.has('preload')) {
+        urlParams.append('preload', 'auto');
+    }
+
+    // Add cache hint
+    urlParams.append('cache', '1');
 
     return `https://player.vimeo.com/video/${videoId}?${urlParams.toString()}`;
 }

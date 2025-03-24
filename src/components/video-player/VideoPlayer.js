@@ -753,12 +753,21 @@ export class VideoPlayer {
 
     async preloadVideo(videoId) {
         try {
+            // Skip if already prefetching or prefetched
+            if (this.prefetchQueue.has(videoId)) {
+                return Promise.resolve();
+            }
+
+            this.prefetchQueue.add(videoId);
+            
             // Get optimal quality for prefetching
             const quality = await getOptimalQuality();
             
             // Create a temporary player for prefetching
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
+            
+            // Use minimal parameters for faster loading
             iframe.src = buildVideoUrl(videoId, {
                 background: 1,
                 autoplay: 0,
@@ -771,7 +780,12 @@ export class VideoPlayer {
                 responsive: 0,
                 dnt: 1,
                 quality: quality,
-                speed: 1
+                speed: 1,
+                preload: 'auto',
+                cache: 1,
+                player_id: 0,
+                api: 1,
+                origin: window.location.origin
             });
             
             // Add to document temporarily
@@ -779,14 +793,13 @@ export class VideoPlayer {
             
             // Create a promise that resolves when the player is ready
             const loadPromise = new Promise((resolve, reject) => {
-                // Create a temporary player instance
                 const tempPlayer = new Player(iframe);
                 
-                // Set a timeout to prevent hanging
+                // Set a shorter timeout for prefetching
                 const timeout = setTimeout(() => {
                     document.body.removeChild(iframe);
                     reject(new Error('Prefetch timeout'));
-                }, 10000); // 10 second timeout
+                }, 3000); // Reduced to 3 seconds for faster feedback
                 
                 // Try to load the video
                 tempPlayer.ready().then(() => {

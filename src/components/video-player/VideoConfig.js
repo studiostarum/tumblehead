@@ -19,7 +19,11 @@ export const VIDEO_MODES = {
             responsive: 0,
             dnt: 1,
             quality: '540p',
-            speed: 1
+            speed: 1,
+            preload: 'auto',
+            cache: 1,
+            player_id: 0,
+            api: 1
         },
         lightboxParams: {
             autoplay: 1,
@@ -27,8 +31,12 @@ export const VIDEO_MODES = {
             autopause: 0,
             responsive: 0,
             dnt: 1,
-            quality: '1440p',
-            speed: 1
+            quality: '1080p',
+            speed: 1,
+            preload: 'auto',
+            cache: 1,
+            player_id: 0,
+            api: 1
         }
     },
     'preview-only': {
@@ -46,7 +54,11 @@ export const VIDEO_MODES = {
             responsive: 0,
             dnt: 1,
             quality: '540p',
-            speed: 1
+            speed: 1,
+            preload: 'auto',
+            cache: 1,
+            player_id: 0,
+            api: 1
         }
     }
 };
@@ -61,8 +73,12 @@ export const PLAYER_CONFIG = {
         playsinline: true,
         autopause: false,
         responsive: false,
-        quality: '1080p',
-        speed: 1
+        quality: '720p',
+        speed: 1,
+        preload: 'auto',
+        cache: 1,
+        player_id: 0,
+        api: 1
     },
     lightbox: {
         autopause: false,
@@ -70,7 +86,11 @@ export const PLAYER_CONFIG = {
         background: false,
         autopause: false,
         responsive: false,
-        quality: '1440p',
-        speed: 1
+        quality: '1080p',
+        speed: 1,
+        preload: 'auto',
+        cache: 1,
+        player_id: 0,
+        api: 1
     }
 };
