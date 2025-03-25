@@ -205,14 +205,6 @@ export class VideoPlayer {
                         this.activeVideos.delete(playerKey);
                     });
                 }
-            } else {
-                // If leaving viewport, pause video and remove from active set
-                if (playerData && this.activeVideos.has(playerKey)) {
-                    this.activeVideos.delete(playerKey);
-                    playerData.player.pause().catch(err => {
-                        console.warn('Could not pause video:', err);
-                    });
-                }
             }
         });
     }
@@ -634,36 +626,9 @@ export class VideoPlayer {
         // Initialize Lucide icons
         createIcons({ icons });
 
-        // Initialize only visible video containers initially
+        // Initialize all video containers at once
         this.videoContainers.forEach(container => {
-            if (this.isElementInViewport(container)) {
-                this.initializeContainer(container);
-            }
-        });
-
-        // Set up intersection observer for lazy loading
-        const lazyLoadObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const container = entry.target;
-                    if (!container.dataset.initialized) {
-                        this.initializeContainer(container);
-                        container.dataset.initialized = 'true';
-                    }
-                }
-            });
-        }, {
-            threshold: 0.1,
-            rootMargin: '50px'
-        });
-
-        // Observe all video containers for lazy loading
-        this.videoContainers.forEach(container => {
-            if (!this.isElementInViewport(container)) {
-                lazyLoadObserver.observe(container);
-                // Also observe for prefetching
-                this.prefetchObserver.observe(container);
-            }
+            this.initializeContainer(container);
         });
 
         // Set up scroll reveal observer and track elements
