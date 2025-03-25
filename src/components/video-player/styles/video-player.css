@@ -2,7 +2,7 @@
 .video-container {
     position: relative;
     width: 100%;
-    min-height: 18.75rem;
+    min-height: 30rem;
     overflow: hidden;
     opacity: 0;
     transform: translateY(2.5rem);

@@ -63,7 +63,6 @@
 /* Mobile styles */
 @media screen and (max-width: 47.9375rem) {
     .video-container[data-responsive] {
-        min-height: 12.5rem;
         aspect-ratio: 16/9;
     }
 }
@@ -71,7 +70,6 @@
 /* Tablet styles */
 @media screen and (min-width: 48rem) and (max-width: 61.9375rem) {
     .video-container[data-responsive] {
-        min-height: 15.625rem;
         aspect-ratio: 16/9;
     }
 }
@@ -79,7 +77,6 @@
 /* Desktop styles */
 @media screen and (min-width: 62rem) {
     .video-container[data-responsive] {
-        min-height: 18.75rem;
         aspect-ratio: 16/9;
     }
 }
@@ -87,7 +84,6 @@
 /* Large desktop styles */
 @media screen and (min-width: 75rem) {
     .video-container[data-responsive] {
-        min-height: 25rem;
         aspect-ratio: 16/9;
     }
 }
@@ -95,7 +91,6 @@
 /* Handle ultra-wide screens */
 @media screen and (min-width: 120rem) {
     .video-container[data-responsive] {
-        min-height: 31.25rem;
         max-height: 80vh;
         aspect-ratio: 16/9;
     }
@@ -105,7 +100,6 @@
 @media screen and (orientation: portrait) {
     .video-container[data-responsive] {
         aspect-ratio: 9/16;
-        min-height: 25rem;
     }
 }
 
@@ -113,6 +107,5 @@
 @media screen and (orientation: portrait) and (max-width: 47.9375rem) {
     .video-container[data-responsive] {
         aspect-ratio: 9/16;
-        min-height: 18.75rem;
     }
 }
