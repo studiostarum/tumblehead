@@ -210,9 +210,6 @@ export class VideoPlayer {
     }
 
     async initializeContainer(container) {
-        // Remove existing observer
-        this.observer.unobserve(container);
-
         // Clean up existing player if it exists
         const playerKey = `${container.dataset.videoId}-${container.dataset.videoMode}`;
         const existingPlayerData = this.players.get(playerKey);
@@ -229,9 +226,6 @@ export class VideoPlayer {
         while (container.firstChild) {
             container.removeChild(container.firstChild);
         }
-
-        // Re-observe the container
-        this.observer.observe(container);
 
         const mode = container.dataset.videoMode;
         const rawVideoInput = container.dataset.videoId;
@@ -365,12 +359,10 @@ export class VideoPlayer {
                     spinner.classList.add('hidden');
                 }
 
-                // Play immediately if visible and page is active
-                if (container.classList.contains('visible') && this.isPageVisible) {
+                // Always play the video if page is visible
+                if (this.isPageVisible) {
                     this.activeVideos.add(playerKey);
                     await player.play();
-                } else {
-                    await player.pause();
                 }
 
                 // Get custom start and end times from data attributes (with defaults)
