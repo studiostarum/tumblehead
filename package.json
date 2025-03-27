@@ -1,6 +1,6 @@
 {
   "name": "tumblehead",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tumblehead website with animated navbar",
   "main": "src/main.js",
   "type": "module",
