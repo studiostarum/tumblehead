@@ -42,7 +42,7 @@ export class VideoPlayer extends HTMLElement {
     this.useLightbox = this.getAttribute('data-lightbox') === 'true';
     this.responsive = this.getAttribute('data-responsive') === 'true';
     
-    console.log('Video Player initialized with ID:', this.videoId, 'and dimensions:', this.offsetWidth, 'x', this.offsetHeight);
+    // console.log('Video Player initialized with ID:', this.videoId, 'and dimensions:', this.offsetWidth, 'x', this.offsetHeight);
     
     // Load Vimeo API
     this.loadVimeoAPI();
@@ -92,7 +92,7 @@ export class VideoPlayer extends HTMLElement {
       
       // Apply the scale
       iframe.style.transform = `translate(-50%, -50%) scale(${scale})`;
-      console.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight, 'Scale:', scale);
+      // console.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight, 'Scale:', scale);
       
       // Check if we're in portrait mode (9:16) and adjust quality if needed
       const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;
@@ -131,7 +131,7 @@ export class VideoPlayer extends HTMLElement {
     // Only update if quality needs to change
     if (player && targetQuality) {
       console.log(`Adjusting quality for ${isPortrait ? 'portrait' : 'landscape'} mode to: ${targetQuality}`);
-      player.setQuality(targetQuality);
+      this.safelySetQuality(player, targetQuality);
     }
   }
 
@@ -171,8 +171,7 @@ export class VideoPlayer extends HTMLElement {
     iframe.id = `video-player-background-${this.videoId}`;
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1`;
     iframe.setAttribute('frameborder', '0');
-    iframe.setAttribute('allowfullscreen', '');
-    iframe.setAttribute('allow', 'autoplay; fullscreen');
+    iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
     
     // Initialize Vimeo player if API is loaded
     if (window.Vimeo && window.Vimeo.Player) {
@@ -248,8 +247,7 @@ export class VideoPlayer extends HTMLElement {
     iframe.height = '100%';
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?autoplay=1&byline=0&title=0&autopause=0`;
     iframe.setAttribute('frameborder', '0');
-    iframe.setAttribute('allowfullscreen', '');
-    iframe.setAttribute('allow', 'autoplay; fullscreen');
+    iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
     
     this.lightbox.setContent(iframe);
     
@@ -287,7 +285,7 @@ export class VideoPlayer extends HTMLElement {
           
           // Always use highest quality for lightbox
           // Lightbox is fullscreen/larger, so we want best quality regardless of connection
-          this.lightboxPlayer.setQuality('1080p');
+          this.safelySetQuality(this.lightboxPlayer, '1080p');
           
           // Add event listeners to handle background video
           this.lightboxPlayer.on('play', () => {
@@ -357,7 +355,8 @@ export class VideoPlayer extends HTMLElement {
     } catch (error) {
       console.warn('Error setting quality based on connection:', error);
       // Default to 720p if anything fails
-      player.setQuality('720p');
+      this.connectionQuality = 'medium';
+      this.safelySetQuality(player, '720p');
     }
   }
   
@@ -368,17 +367,20 @@ export class VideoPlayer extends HTMLElement {
     
     console.log(`Connection type: ${effectiveType}, speed: ${downlink} Mbps`);
     
+    let targetQuality;
     if (effectiveType === '4g' && downlink > 5) {
-      player.setQuality('1080p');
+      targetQuality = '1080p';
       this.connectionQuality = 'high';
     } else if (effectiveType === '4g' || (effectiveType === '3g' && downlink > 2)) {
-      player.setQuality('720p');
+      targetQuality = '720p';
       this.connectionQuality = 'medium';
     } else {
-      player.setQuality('540p');
+      targetQuality = '540p';
       this.connectionQuality = 'low';
     }
     
+    // Safely set quality
+    this.safelySetQuality(player, targetQuality);
     console.log(`Video quality set to: ${this.connectionQuality}`);
   }
   
@@ -399,25 +401,40 @@ export class VideoPlayer extends HTMLElement {
         console.log(`Measured connection speed: ${speedMbps.toFixed(2)} Mbps`);
         
         // Set quality based on measured speed
+        let targetQuality;
         if (speedMbps > 5) {
-          player.setQuality('1080p');
+          targetQuality = '1080p';
           this.connectionQuality = 'high';
         } else if (speedMbps > 2) {
-          player.setQuality('720p');
+          targetQuality = '720p';
           this.connectionQuality = 'medium';
         } else {
-          player.setQuality('540p');
+          targetQuality = '540p';
           this.connectionQuality = 'low';
         }
         
+        // Safely set quality
+        this.safelySetQuality(player, targetQuality);
         console.log(`Video quality set to: ${this.connectionQuality}`);
       })
       .catch(error => {
         console.warn('Error measuring connection speed:', error);
         // Default to 720p
-        player.setQuality('720p');
         this.connectionQuality = 'medium';
+        this.safelySetQuality(player, '720p');
       });
+  }
+  
+  safelySetQuality(player, quality) {
+    if (!player) return;
+    
+    try {
+      player.setQuality(quality).catch(error => {
+        console.warn(`Could not set quality to ${quality}:`, error.message || 'Quality setting not supported');
+      });
+    } catch (error) {
+      console.warn(`Error setting quality to ${quality}:`, error.message || 'Quality setting not supported');
+    }
   }
 }
 
