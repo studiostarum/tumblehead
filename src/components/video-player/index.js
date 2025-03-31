@@ -1,5 +1,45 @@
 import { Lightbox } from '../lightbox';
 
+// Determine if we're in production mode
+const isProduction = () => {
+  try {
+    return process.env.NODE_ENV === 'production';
+  } catch (e) {
+    // If process.env is not available, check for other indicators
+    return window.location.hostname !== 'localhost' && 
+           window.location.hostname !== '127.0.0.1';
+  }
+};
+
+// Debug mode can be enabled with ?debug=video in the URL
+const isDebugEnabled = () => {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.has('debug') && 
+          (urlParams.get('debug') === 'video' || urlParams.get('debug') === 'true');
+  } catch (e) {
+    return false;
+  }
+};
+
+// Logger utility to suppress logs in production
+const logger = {
+  log: (...args) => {
+    if (!isProduction() || isDebugEnabled()) {
+      console.log('[VideoPlayer]', ...args);
+    }
+  },
+  warn: (...args) => {
+    if (!isProduction() || isDebugEnabled()) {
+      console.warn('[VideoPlayer]', ...args);
+    }
+  },
+  error: (...args) => {
+    // Always log errors, even in production, but add component name for easier debugging
+    console.error('[VideoPlayer]', ...args);
+  }
+};
+
 export class VideoPlayer extends HTMLElement {
   constructor() {
     super();
@@ -13,10 +53,18 @@ export class VideoPlayer extends HTMLElement {
     this.lightboxPlayer = null;
     this.responsive = false;
     this.connectionQuality = 'high'; // Default assumption
+    this.loadingStatus = 'loading'; // Track loading status
+    this.posterImage = null; // Poster image URL
+    this.performanceMode = false; // Low performance mode for mobile/low-power devices
+    this.debugMode = isDebugEnabled(); // Check if debug mode is enabled
+    
+    if (this.debugMode) {
+      logger.log('Debug mode enabled for VideoPlayer');
+    }
   }
 
   static get observedAttributes() {
-    return ['data-video-id', 'data-lightbox', 'data-responsive'];
+    return ['data-video-id', 'data-lightbox', 'data-responsive', 'data-poster', 'data-performance-mode'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -35,20 +83,35 @@ export class VideoPlayer extends HTMLElement {
       this.updateResponsiveState();
       this.render();
     }
+    
+    if (name === 'data-poster' && newValue !== oldValue) {
+      this.posterImage = newValue;
+      this.updatePosterImage();
+    }
+    
+    if (name === 'data-performance-mode' && newValue !== oldValue) {
+      this.performanceMode = newValue === 'true';
+      this.updatePerformanceMode();
+    }
   }
 
   connectedCallback() {
     this.videoId = this.extractVideoId(this.getAttribute('data-video-id'));
     this.useLightbox = this.getAttribute('data-lightbox') === 'true';
     this.responsive = this.getAttribute('data-responsive') === 'true';
+    this.posterImage = this.getAttribute('data-poster');
+    this.performanceMode = this.getAttribute('data-performance-mode') === 'true';
     
-    // console.log('Video Player initialized with ID:', this.videoId, 'and dimensions:', this.offsetWidth, 'x', this.offsetHeight);
+    // Auto-detect if performance mode should be enabled
+    if (this.getAttribute('data-performance-mode') === null) {
+      this.detectPerformanceMode();
+    }
     
     // Load Vimeo API
     this.loadVimeoAPI();
     
-    // Initial render
-    this.render();
+    // Add intersection observer for lazy loading
+    this.setupLazyLoading();
     
     // Initialize lightbox if needed
     if (this.useLightbox) {
@@ -68,6 +131,28 @@ export class VideoPlayer extends HTMLElement {
   disconnectedCallback() {
     // Clean up resize listener when element is removed
     window.removeEventListener('resize', this.resizeHandler);
+    
+    // Clean up intersection observer
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+    
+    // Clean up visibility observer
+    if (this.visibilityObserver) {
+      this.visibilityObserver.disconnect();
+    }
+    
+    // Remove visibility change listener
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+    
+    // Clean up video players
+    if (this.backgroundPlayer) {
+      this.backgroundPlayer.destroy();
+    }
+    
+    if (this.lightboxPlayer) {
+      this.lightboxPlayer.destroy();
+    }
   }
 
   handleResize() {
@@ -92,7 +177,7 @@ export class VideoPlayer extends HTMLElement {
       
       // Apply the scale
       iframe.style.transform = `translate(-50%, -50%) scale(${scale})`;
-      // console.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight, 'Scale:', scale);
+      // logger.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight, 'Scale:', scale);
       
       // Check if we're in portrait mode (9:16) and adjust quality if needed
       const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;
@@ -101,37 +186,8 @@ export class VideoPlayer extends HTMLElement {
       if (this.backgroundPlayer && isPortrait) {
         // For portrait mode, we need higher quality since we're zooming more
         // This ensures portrait mode looks sharp even with more zooming
-        this.adjustQualityForViewport(this.backgroundPlayer, isPortrait);
+        this.safelySetQuality(this.backgroundPlayer, '1080p');
       }
-    }
-  }
-  
-  adjustQualityForViewport(player, isPortrait) {
-    // Get current connection quality baseline
-    let targetQuality;
-    
-    if (isPortrait) {
-      // In portrait mode, bump up quality by one level if possible
-      if (this.connectionQuality === 'low') {
-        targetQuality = '720p'; // Bump from 540p to 720p
-      } else if (this.connectionQuality === 'medium' || this.connectionQuality === 'high') {
-        targetQuality = '1080p'; // Go to max quality for better zoom
-      }
-    } else {
-      // In landscape, use the connection-based quality
-      if (this.connectionQuality === 'high') {
-        targetQuality = '1080p';
-      } else if (this.connectionQuality === 'medium') {
-        targetQuality = '720p';
-      } else {
-        targetQuality = '540p';
-      }
-    }
-    
-    // Only update if quality needs to change
-    if (player && targetQuality) {
-      console.log(`Adjusting quality for ${isPortrait ? 'portrait' : 'landscape'} mode to: ${targetQuality}`);
-      this.safelySetQuality(player, targetQuality);
     }
   }
 
@@ -165,13 +221,40 @@ export class VideoPlayer extends HTMLElement {
   }
 
   createBackgroundVideo() {
+    const elements = [];
+    
+    // Add poster image (if available)
+    if (this.posterImage) {
+      const poster = document.createElement('div');
+      poster.className = 'video-player__poster';
+      poster.style.backgroundImage = `url(${this.posterImage})`;
+      elements.push(poster);
+    }
+    
+    // Add loading spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'video-player__spinner';
+    elements.push(spinner);
+    
     // Create iframe for background video
     const iframe = document.createElement('iframe');
     iframe.className = 'video-player__background';
     iframe.id = `video-player-background-${this.videoId}`;
-    iframe.src = `https://player.vimeo.com/video/${this.videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1`;
+    
+    // Always use a lower quality for background videos
+    // Instead of trying to set quality via API, set it in the URL
+    let videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=540p';
+    
+    // Use even lower quality in performance mode
+    if (this.performanceMode) {
+      videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p';
+    }
+    
+    iframe.src = `https://player.vimeo.com/video/${this.videoId}?${videoParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+    iframe.setAttribute('loading', 'lazy'); // Add native lazy loading
+    iframe.setAttribute('fetchpriority', 'high'); // Prioritize fetching but still lazy load
     
     // Initialize Vimeo player if API is loaded
     if (window.Vimeo && window.Vimeo.Player) {
@@ -182,28 +265,44 @@ export class VideoPlayer extends HTMLElement {
           this.backgroundPlayer.setVolume(0); // Ensure it's muted
           this.backgroundPlayer.setLoop(true); // Ensure it loops
           
-          // Set quality based on connection speed
-          this.setQualityBasedOnConnection(this.backgroundPlayer);
+          // Instead of trying to set quality directly, we'll monitor player events
+          this.monitorPlayerPerformance(this.backgroundPlayer);
+
+          // Monitor loading state
+          this.backgroundPlayer.on('loaded', () => {
+            this.loadingStatus = 'loaded';
+            this.querySelector('.video-player__spinner')?.classList.add('hidden');
+            iframe.classList.add('loaded');
+            
+            // Fade out poster image when video is loaded
+            const poster = this.querySelector('.video-player__poster');
+            if (poster) {
+              poster.classList.add('hidden');
+            }
+          });
+
+          // Handle errors
+          this.backgroundPlayer.on('error', (error) => {
+            logger.error('Vimeo player error:', error);
+            this.loadingStatus = 'error';
+            // Show error state
+            const spinner = this.querySelector('.video-player__spinner');
+            if (spinner) {
+              spinner.classList.add('error');
+            }
+          });
           
-          // After setting base quality, check if we need to adjust based on viewport
-          const isPortrait = this.offsetWidth < this.offsetHeight || 
-                            (this.offsetWidth / this.offsetHeight) < 1;
+          // Implement adaptive buffering
+          this.adaptiveBuffering(this.backgroundPlayer);
           
-          // If we're in portrait mode initially, bump up quality
-          if (isPortrait) {
-            setTimeout(() => {
-              this.adjustQualityForViewport(this.backgroundPlayer, isPortrait);
-            }, 500); // Allow time for connection quality to be set first
-          }
-          
-          console.log('Background player initialized');
+          logger.log('Background player initialized');
         } catch (e) {
-          console.error('Failed to initialize Vimeo player:', e);
+          logger.error('Failed to initialize Vimeo player:', e);
         }
       }, 0);
     }
     
-    const elements = [iframe];
+    elements.push(iframe);
     
     if (this.useLightbox) {
       // Create overlay with play button
@@ -241,11 +340,15 @@ export class VideoPlayer extends HTMLElement {
   openLightbox() {
     if (!this.lightbox) return;
     
+    // Set lightbox active state
+    this.classList.add('lightbox-active');
+    
     // Create a new iframe for the lightbox without stopping the background video
     const iframe = document.createElement('iframe');
     iframe.width = '100%';
     iframe.height = '100%';
-    iframe.src = `https://player.vimeo.com/video/${this.videoId}?autoplay=1&byline=0&title=0&autopause=0`;
+    // For lightbox videos, set a higher quality since they're fullscreen and in focus
+    iframe.src = `https://player.vimeo.com/video/${this.videoId}?autoplay=1&byline=0&title=0&autopause=0&quality=1080p`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
     
@@ -269,6 +372,9 @@ export class VideoPlayer extends HTMLElement {
       // Restore the original close method
       this.lightbox.close = originalClose;
       
+      // Remove lightbox active state
+      this.classList.remove('lightbox-active');
+      
       // Ensure background player is still playing
       if (this.backgroundPlayer) {
         this.backgroundPlayer.play();
@@ -283,9 +389,8 @@ export class VideoPlayer extends HTMLElement {
         try {
           this.lightboxPlayer = new window.Vimeo.Player(iframe);
           
-          // Always use highest quality for lightbox
-          // Lightbox is fullscreen/larger, so we want best quality regardless of connection
-          this.safelySetQuality(this.lightboxPlayer, '1080p');
+          // No longer try to set quality via API for lightbox player
+          // Instead, we use the URL parameter
           
           // Add event listeners to handle background video
           this.lightboxPlayer.on('play', () => {
@@ -295,7 +400,7 @@ export class VideoPlayer extends HTMLElement {
             }
           });
         } catch (e) {
-          console.error('Failed to initialize lightbox player:', e);
+          logger.error('Failed to initialize lightbox player:', e);
         }
       }, 100);
     }
@@ -335,105 +440,503 @@ export class VideoPlayer extends HTMLElement {
     }
   }
 
-  setQualityBasedOnConnection(player) {
-    try {
-      // Check if Network Information API is available
-      if (navigator.connection) {
-        const connection = navigator.connection;
-        
-        // Add event listener for connection changes
-        connection.addEventListener('change', () => {
-          this.updateQualityForConnection(player, connection);
-        });
-        
-        // Set initial quality
-        this.updateQualityForConnection(player, connection);
-      } else {
-        // Fallback for browsers without Network Information API
-        this.checkConnectionSpeedWithRequest(player);
-      }
-    } catch (error) {
-      console.warn('Error setting quality based on connection:', error);
-      // Default to 720p if anything fails
-      this.connectionQuality = 'medium';
-      this.safelySetQuality(player, '720p');
-    }
-  }
-  
-  updateQualityForConnection(player, connection) {
-    // effectiveType values: 'slow-2g', '2g', '3g', or '4g'
-    const effectiveType = connection.effectiveType;
-    const downlink = connection.downlink; // Mbps
-    
-    console.log(`Connection type: ${effectiveType}, speed: ${downlink} Mbps`);
-    
-    let targetQuality;
-    if (effectiveType === '4g' && downlink > 5) {
-      targetQuality = '1080p';
-      this.connectionQuality = 'high';
-    } else if (effectiveType === '4g' || (effectiveType === '3g' && downlink > 2)) {
-      targetQuality = '720p';
-      this.connectionQuality = 'medium';
-    } else {
-      targetQuality = '540p';
-      this.connectionQuality = 'low';
-    }
-    
-    // Safely set quality
-    this.safelySetQuality(player, targetQuality);
-    console.log(`Video quality set to: ${this.connectionQuality}`);
-  }
-  
-  checkConnectionSpeedWithRequest(player) {
-    // Measure connection speed with a small sample download
-    const startTime = new Date().getTime();
-    const url = 'https://www.google.com/images/phd/px.gif'; // Tiny image for testing
-    
-    fetch(url, { cache: 'no-store' })
-      .then(response => response.blob())
-      .then(data => {
-        const endTime = new Date().getTime();
-        const duration = (endTime - startTime) / 1000; // seconds
-        const bitsLoaded = data.size * 8;
-        const speedBps = bitsLoaded / duration;
-        const speedMbps = speedBps / 1000000;
-        
-        console.log(`Measured connection speed: ${speedMbps.toFixed(2)} Mbps`);
-        
-        // Set quality based on measured speed
-        let targetQuality;
-        if (speedMbps > 5) {
-          targetQuality = '1080p';
-          this.connectionQuality = 'high';
-        } else if (speedMbps > 2) {
-          targetQuality = '720p';
-          this.connectionQuality = 'medium';
-        } else {
-          targetQuality = '540p';
-          this.connectionQuality = 'low';
-        }
-        
-        // Safely set quality
-        this.safelySetQuality(player, targetQuality);
-        console.log(`Video quality set to: ${this.connectionQuality}`);
-      })
-      .catch(error => {
-        console.warn('Error measuring connection speed:', error);
-        // Default to 720p
-        this.connectionQuality = 'medium';
-        this.safelySetQuality(player, '720p');
-      });
-  }
-  
   safelySetQuality(player, quality) {
     if (!player) return;
     
     try {
-      player.setQuality(quality).catch(error => {
-        console.warn(`Could not set quality to ${quality}:`, error.message || 'Quality setting not supported');
-      });
+      // First check if quality setting is even supported for this player instance
+      if (typeof player.getQualities !== 'function' || typeof player.setQuality !== 'function') {
+        if (this.debugMode) {
+          logger.warn('Quality API not available for this player');
+        }
+        return;
+      }
+      
+      // Use a Promise.catch pattern to properly handle any rejection
+      player.getQualities()
+        .then(qualities => {
+          if (qualities && qualities.length > 0) {
+            return player.setQuality(quality);
+          } else {
+            if (this.debugMode) {
+              logger.warn('No quality options available for this video');
+            }
+            return Promise.reject(new Error('No quality options available'));
+          }
+        })
+        .catch(error => {
+          // Don't log in production unless debug mode is on
+          if (this.debugMode) {
+            logger.warn(`Quality setting failed: ${error.message || 'Unknown error'}`);
+          }
+          // No need to rethrow - just silently handle the error
+        });
     } catch (error) {
-      console.warn(`Error setting quality to ${quality}:`, error.message || 'Quality setting not supported');
+      // Catch any synchronous errors
+      if (this.debugMode) {
+        logger.warn(`Error in quality setting: ${error.message || 'Unknown error'}`);
+      }
+    }
+  }
+
+  monitorPlayerPerformance(player) {
+    if (!player) return;
+    
+    try {
+      // Set default connection quality
+      if (navigator.connection) {
+        const connection = navigator.connection;
+        const effectiveType = connection.effectiveType; // 'slow-2g', '2g', '3g', or '4g'
+        const downlink = connection.downlink; // Mbps
+        
+        if (effectiveType === '4g' && downlink > 5) {
+          this.connectionQuality = 'high';
+        } else if (effectiveType === '4g' || (effectiveType === '3g' && downlink > 2)) {
+          this.connectionQuality = 'medium';
+        } else {
+          this.connectionQuality = 'low';
+        }
+      } else {
+        // Default to medium if can't detect
+        this.connectionQuality = 'medium';
+      }
+      
+      // Monitor for rebuffering events - safely add event listeners
+      try {
+        player.on('bufferstart', () => {
+          // If we start buffering, try to reload with lower quality
+          if (this.connectionQuality === 'high') {
+            this.connectionQuality = 'medium';
+            if (this.debugMode) {
+              logger.log('Buffering detected, reducing connection quality to medium');
+            }
+          } else if (this.connectionQuality === 'medium') {
+            this.connectionQuality = 'low';
+            if (this.debugMode) {
+              logger.log('Buffering detected, reducing connection quality to low');
+            }
+          }
+        });
+      } catch (error) {
+        // Silently handle event registration errors
+        if (this.debugMode) {
+          logger.warn('Error registering buffer event:', error.message);
+        }
+      }
+      
+    } catch (error) {
+      if (this.debugMode) {
+        logger.warn('Error monitoring player performance:', error.message);
+      }
+    }
+  }
+
+  detectPerformanceMode() {
+    // Check for low-power or mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const hasLowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
+    const hasSlowCPU = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+    
+    // Enable performance mode for mobile or low-spec devices
+    if (isMobile || hasLowMemory || hasSlowCPU) {
+      this.performanceMode = true;
+      logger.log('Auto-enabled performance mode for low-power device');
+    }
+  }
+
+  updatePerformanceMode() {
+    if (this.performanceMode) {
+      // Apply performance mode optimizations
+      this.classList.add('performance-mode');
+      
+      // If already has a background player, adjust settings
+      if (this.backgroundPlayer) {
+        // Safely set quality using our error-handling method
+        this.safelySetQuality(this.backgroundPlayer, '540p');
+        
+        // Try to reduce frame rate if possible - using try/catch for safety
+        try {
+          // Some services support frame rate control
+          if (typeof this.backgroundPlayer.setPlaybackRate === 'function') {
+            this.backgroundPlayer.setPlaybackRate(0.9) // Slightly slower playback
+              .catch(error => {
+                // Silently handle any errors when setting playback rate
+                if (this.debugMode) {
+                  logger.warn('Could not set playback rate:', error.message);
+                }
+              });
+          }
+        } catch (error) {
+          if (this.debugMode) {
+            logger.warn('Could not apply frame rate optimization:', error.message);
+          }
+        }
+      }
+    } else {
+      this.classList.remove('performance-mode');
+      
+      // Restore normal quality settings if player exists
+      if (this.backgroundPlayer) {
+        this.monitorPlayerPerformance(this.backgroundPlayer);
+      }
+    }
+  }
+
+  setupLazyLoading() {
+    // Create IntersectionObserver to only load video when visible
+    if ('IntersectionObserver' in window) {
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          // When element becomes visible
+          if (entry.isIntersecting) {
+            // Initial render only when visible
+            this.render();
+            // Disconnect observer after loading
+            this.observer.disconnect();
+            
+            // Setup visibility observer to pause/play based on visibility
+            this.setupVisibilityObserver();
+          }
+        });
+      }, {
+        rootMargin: '200px 0px', // Load video when within 200px of viewport
+        threshold: 0.01
+      });
+      
+      this.observer.observe(this);
+    } else {
+      // Fallback for browsers without IntersectionObserver
+      this.render();
+      this.setupVisibilityObserver();
+    }
+    
+    // Also handle page visibility changes
+    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+  }
+  
+  setupVisibilityObserver() {
+    // Create another observer to track when video is in viewport
+    if ('IntersectionObserver' in window) {
+      this.visibilityObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            // Play video when visible
+            if (this.backgroundPlayer) {
+              this.backgroundPlayer.play();
+              this.classList.remove('video-paused');
+            }
+        } else {
+            // Pause video when not visible (only if not in lightbox mode)
+            if (this.backgroundPlayer && !this.classList.contains('lightbox-active')) {
+              this.backgroundPlayer.pause();
+              this.classList.add('video-paused');
+            }
+          }
+        });
+      }, {
+        rootMargin: '0px',
+        threshold: 0.1 // Consider visible when at least 10% is visible
+      });
+      
+      this.visibilityObserver.observe(this);
+    }
+  }
+  
+  handleVisibilityChange() {
+    if (document.hidden) {
+      // Page is hidden, pause video
+      if (this.backgroundPlayer) {
+        this.backgroundPlayer.pause();
+      }
+    } else {
+      // Page is visible again, resume if video was playing and is in viewport
+      const isInViewport = this.isElementInViewport(this);
+      if (this.backgroundPlayer && isInViewport && !this.classList.contains('video-paused')) {
+        this.backgroundPlayer.play();
+      }
+    }
+  }
+  
+  isElementInViewport(el) {
+    const rect = el.getBoundingClientRect();
+    return (
+      rect.top >= -rect.height &&
+      rect.left >= -rect.width &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) + rect.height &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth) + rect.width
+    );
+  }
+
+  updatePosterImage() {
+    const poster = this.querySelector('.video-player__poster');
+    if (this.posterImage && poster) {
+      poster.style.backgroundImage = `url(${this.posterImage})`;
+    }
+  }
+
+  adaptiveBuffering(player) {
+    if (!player) return;
+    
+    try {
+      // Get buffering events - wrap each event listener in try/catch
+      try {
+        player.on('bufferstart', () => {
+          if (this.debugMode) {
+            logger.log('Buffer started');
+          }
+          this.querySelector('.video-player__spinner')?.classList.remove('hidden');
+        });
+      } catch (e) {
+        if (this.debugMode) {
+          logger.warn('Error setting bufferstart event:', e.message);
+        }
+      }
+      
+      try {
+        player.on('bufferend', () => {
+          if (this.debugMode) {
+            logger.log('Buffer ended');
+          }
+          this.querySelector('.video-player__spinner')?.classList.add('hidden');
+        });
+      } catch (e) {
+        if (this.debugMode) {
+          logger.warn('Error setting bufferend event:', e.message);
+        }
+      }
+      
+      // Adapt to rebuffering by potentially reducing quality
+      let bufferCount = 0;
+      const bufferStartTime = Date.now();
+      
+      try {
+        player.on('bufferstart', () => {
+          bufferCount++;
+          
+          // If buffering frequently (more than 3 times in 30 seconds), reduce quality
+          const timeElapsed = (Date.now() - bufferStartTime) / 1000;
+          if (bufferCount > 3 && timeElapsed < 30) {
+            if (this.debugMode) {
+              logger.log('Frequent buffering detected, considering reload at lower quality');
+            }
+            
+            // Step down quality
+            if (this.connectionQuality === 'high') {
+              this.connectionQuality = 'medium';
+              // Instead of trying to set quality, enable performance mode
+              if (!this.performanceMode) {
+                this.performanceMode = true;
+                this.updatePerformanceMode();
+                if (this.debugMode) {
+                  logger.log('Enabled performance mode due to buffering issues');
+                }
+              }
+            } else if (this.connectionQuality === 'medium') {
+              this.connectionQuality = 'low';
+              // Already in performance mode, consider reloading the video
+              this.considerReloadingVideo();
+            }
+            
+            // Reset buffer count after adjusting
+            bufferCount = 0;
+          }
+        });
+      } catch (e) {
+        if (this.debugMode) {
+          logger.warn('Error setting adaptive buffer handling:', e.message);
+        }
+      }
+      
+      // Monitor playback progress to detect stalls - using a safer approach
+      let lastPlaybackTime = 0;
+      let stuckCounter = 0;
+      let intervalId = null;
+      
+      const monitorPlayback = () => {
+        if (!player || !this.backgroundPlayer) {
+          if (intervalId) {
+            clearInterval(intervalId);
+          }
+          return;
+        }
+        
+        player.getCurrentTime()
+          .then(currentTime => {
+            // If time has not advanced in 3 seconds
+            if (Math.abs(currentTime - lastPlaybackTime) < 0.1) {
+              stuckCounter++;
+              
+              // If stuck for more than 3 checks (approx 3 seconds), trigger quality reduction
+              if (stuckCounter >= 3) {
+                if (this.debugMode) {
+                  logger.log('Playback stalled, considering reload at lower quality');
+                }
+                
+                // Reduce quality
+                if (this.connectionQuality === 'high') {
+                  this.connectionQuality = 'medium';
+                  // Enable performance mode
+                  if (!this.performanceMode) {
+                    this.performanceMode = true;
+                    this.updatePerformanceMode();
+                  }
+                } else if (this.connectionQuality === 'medium') {
+                  this.connectionQuality = 'low';
+                  // Consider reloading video at lowest quality
+                  this.considerReloadingVideo();
+                }
+                
+                // Reset counter
+                stuckCounter = 0;
+              }
+            } else {
+              // Reset counter when playback continues
+              stuckCounter = 0;
+            }
+            
+            lastPlaybackTime = currentTime;
+          })
+          .catch(err => {
+            // Silently fail individual checks - just keep monitoring
+            if (this.debugMode) {
+              logger.warn('Error checking playback progress:', err.message);
+            }
+          });
+      };
+      
+      // Start the monitoring interval
+      intervalId = setInterval(monitorPlayback, 1000);
+      
+      // Clean up interval when component is destroyed
+      this.addEventListener('disconnected', () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      });
+      
+    } catch (error) {
+      if (this.debugMode) {
+        logger.warn('Error setting up adaptive buffering:', error.message);
+      }
+    }
+  }
+  
+  considerReloadingVideo() {
+    // Only reload if we're already at low connection quality and having issues
+    if (this.connectionQuality === 'low' && this.performanceMode && this.backgroundPlayer) {
+      if (this.debugMode) {
+        logger.log('Considering reloading video at lowest quality');
+      }
+      
+      try {
+        // Check if the video has been playing for at least 10 seconds
+        this.backgroundPlayer.getCurrentTime()
+          .then(time => {
+            // Only reload if we've been playing for a while (persistent issues)
+            if (time > 10) {
+              if (this.debugMode) {
+                logger.log('Reloading video at lowest quality');
+              }
+              
+              // Store current time
+              const currentTime = time;
+              
+              // Create new iframe with lowest quality setting
+              const oldIframe = this.querySelector('.video-player__background');
+              if (oldIframe) {
+                // Show loading spinner
+                this.querySelector('.video-player__spinner')?.classList.remove('hidden');
+                
+                // Create new iframe with lowest quality
+                const newIframe = document.createElement('iframe');
+                newIframe.className = 'video-player__background';
+                newIframe.id = `video-player-background-${this.videoId}`;
+                newIframe.src = `https://player.vimeo.com/video/${this.videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p`;
+                newIframe.setAttribute('frameborder', '0');
+                newIframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+                
+                try {
+                  // Replace old iframe with new one - wrapped in try/catch
+                  oldIframe.parentNode.replaceChild(newIframe, oldIframe);
+                  
+                  // Initialize new player
+                  if (window.Vimeo && window.Vimeo.Player) {
+                    setTimeout(() => {
+                      try {
+                        // Safely destroy old player
+                        try {
+                          if (this.backgroundPlayer) {
+                            this.backgroundPlayer.destroy().catch(e => {
+                              // Silently handle destroy errors
+                              if (this.debugMode) {
+                                logger.warn('Could not destroy previous player:', e.message);
+                              }
+                            });
+                          }
+                        } catch (e) {
+                          // Ignore errors when destroying the old player
+                          if (this.debugMode) {
+                            logger.warn('Error destroying previous player:', e.message);
+                          }
+                        }
+                        
+                        // Create new player
+                        this.backgroundPlayer = new window.Vimeo.Player(newIframe);
+                        
+                        // Apply basic settings
+                        Promise.all([
+                          this.backgroundPlayer.setVolume(0).catch(() => {}),
+                          this.backgroundPlayer.setLoop(true).catch(() => {})
+                        ]).then(() => {
+                          // After applying basic settings, try to seek to previous position
+                          return this.backgroundPlayer.setCurrentTime(currentTime).catch(err => {
+                            if (this.debugMode) {
+                              logger.warn('Could not seek to previous position:', err.message);
+                            }
+                          });
+                        }).catch(() => {
+                          // Silently ignore promise.all errors
+                        });
+                        
+                        // Setup new event listeners
+                        try {
+                          this.backgroundPlayer.on('loaded', () => {
+                            newIframe.classList.add('loaded');
+                            this.querySelector('.video-player__spinner')?.classList.add('hidden');
+                          });
+                        } catch (e) {
+                          // Silently handle event subscription errors
+                        }
+                        
+                        if (this.debugMode) {
+                          logger.log('Reinitialized player at lowest quality');
+                        }
+                      } catch (e) {
+                        if (this.debugMode) {
+                          logger.error('Failed to reinitialize player:', e.message);
+                        }
+                      }
+                    }, 0);
+                  }
+                } catch (e) {
+                  if (this.debugMode) {
+                    logger.warn('Error replacing iframe:', e.message);
+                  }
+                }
+              }
+            }
+          })
+          .catch(err => {
+            if (this.debugMode) {
+              logger.warn('Error getting current time:', err.message);
+            }
+          });
+      } catch (e) {
+        if (this.debugMode) {
+          logger.warn('Error in reload process:', e.message);
+        }
+      }
     }
   }
 }
