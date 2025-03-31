@@ -46,6 +46,20 @@ video-player.responsive {
   transform-style: flat;
   backface-visibility: hidden;
   will-change: transform; /* Optimize transform performance */
+  /* Fix for videos showing incorrectly positioned */
+  object-fit: cover;
+  object-position: center center;
+}
+
+/* Add this wrapper to fix inconsistent iframe positioning */
+.video-player__background-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 2;
 }
 
 .video-player__poster {

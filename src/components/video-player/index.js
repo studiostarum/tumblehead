@@ -359,8 +359,13 @@ export class VideoPlayer extends HTMLElement {
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
 
-    // Add iframe to DOM
-    elements.push(iframe);
+    // Create a wrapper for the iframe to help with positioning
+    const backgroundWrapper = document.createElement('div');
+    backgroundWrapper.className = 'video-player__background-wrapper';
+    backgroundWrapper.appendChild(iframe);
+    
+    // Add wrapper to DOM
+    elements.push(backgroundWrapper);
 
     // Set a direct fallback timer to ensure thumbnail fades out even if player fails
     const directFallbackTimer = setTimeout(() => {
