@@ -8,42 +8,11 @@
     <link rel="stylesheet" href="main.css">
 </head>
 
-<body
-    style="background-color: #000; min-height: 100vh; margin: 0; padding: 2rem 0; display: flex; flex-direction: column; gap: 2rem;">
-    <section
-        style="display: flex; flex-direction: row; gap: 2rem; max-width: 90rem; margin: 0 auto; padding: 2rem 0; width: 100%;">
-
-        <div class="video-container" data-video-id="https://vimeo.com/389461796"></div>
-        <div class="video-container" data-video-id="https://vimeo.com/75406915" data-lightbox="true"></div>
-
-        <!-- <div class="video-container" data-video-id="933270643"></div> -->
-    </section>
-
-    <section>
-        <!-- Logo Slider Example -->
-        <div class="logo-slider">
-            <div class="logo-slider_track">
-                <!-- Example Logo Items (these would come from Webflow CMS) -->
-                <div class="logo-slider_item">
-                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+1" alt="Sample Logo 1"
-                        loading="lazy">
-                </div>
-                <div class="logo-slider_item">
-                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+2" alt="Sample Logo 2"
-                        loading="lazy">
-                </div>
-                <div class="logo-slider_item">
-                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+3" alt="Sample Logo 3"
-                        loading="lazy">
-                </div>
-                <div class="logo-slider_item">
-                    <img src="https://placehold.co/200x100/e9e9e9/999999?text=Logo+4" alt="Sample Logo 4"
-                        loading="lazy">
-                </div>
-            </div>
-        </div>
-    </section>
-
+<body style="background-color: #000; margin: 0;">
+    <div style="display: flex; gap: 1rem; max-width: 90rem; margin: 0 auto; padding: 1rem;">
+        <video-player data-video-id="75406915" data-lightbox="true"></video-player>
+        <video-player data-video-id="75406915" data-lightbox="false"></video-player>
+    </div>
     <script type="module" src="/main.js"></script>
 </body>
 
