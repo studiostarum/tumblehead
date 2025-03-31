@@ -241,9 +241,9 @@ export class VideoPlayer extends HTMLElement {
         scale = videoAspect / containerAspect * 1.2;
       }
       
-      // Apply the scale
+      // Apply the scale with consistent transform origin
+      iframe.style.transformOrigin = 'center center';
       iframe.style.transform = `translate(-50%, -50%) scale(${scale})`;
-      // logger.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight, 'Scale:', scale);
       
       // Check if we're in portrait mode (9:16) and adjust quality if needed
       const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;

@@ -38,6 +38,7 @@ video-player.responsive {
   height: 100%;
   transform: translate(-50%, -50%) scale(1.2);
   /* Reduced scale for better performance */
+  transform-origin: center center;
   pointer-events: none;
   opacity: 1;
   /* Always visible */
@@ -165,6 +166,7 @@ video-player.performance-mode .video-player__background {
   /* Disable GPU acceleration hints */
   transform: translate(-50%, -50%) scale(1.1);
   /* Less scaling for better performance */
+  transform-origin: center center;
   filter: none;
   /* Ensure no filters are applied */
   transition: none;
@@ -186,11 +188,13 @@ video-player.performance-mode {
   .video-player__background {
     transform: translate(-50%, -50%) scale(1.1);
     /* Less scaling on mobile */
+    transform-origin: center center;
   }
 
   video-player.performance-mode .video-player__background {
     transform: translate(-50%, -50%) scale(1.0);
     /* No scaling in performance mode */
+    transform-origin: center center;
   }
 
   video-player {
@@ -248,7 +252,6 @@ video-player.video-paused:hover::before {
 
 /* Optimize for reduced motion and performance */
 @media (prefers-reduced-motion: reduce) {
-
   .video-player__background,
   .video-player__play-button,
   .video-player__overlay,
@@ -281,10 +284,10 @@ video-player.video-paused:hover::before {
 
 /* Add support for low data mode */
 @media (prefers-reduced-data: reduce) {
-
   video-player.performance-mode .video-player__background,
   .video-player__background {
     transform: translate(-50%, -50%) scale(1.0);
+    transform-origin: center center;
     /* No scaling in data saver mode */
   }
 }
@@ -299,12 +302,12 @@ video-player.video-paused:hover::before {
 
 /* Prefers-reduced-motion query */
 @media (prefers-reduced-motion: reduce) {
-
   .video-player__background,
   .video-player__play-button,
   .video-player__overlay {
     transition: none !important;
     animation: none !important;
-    transform: none !important;
+    transform: translate(-50%, -50%) scale(1.0) !important;
+    transform-origin: center center !important;
   }
 }
