@@ -6,16 +6,31 @@ video-player {
   position: relative;
   height: 100%;
   aspect-ratio: 16/9;
+  /* Default for non-responsive */
   background-color: #eee;
+}
+
+/* Responsive mode settings */
+video-player.responsive {
+  aspect-ratio: 9/16;
+  /* Mobile first for responsive mode */
+}
+
+@media screen and (min-width: 768px) {
+  video-player.responsive {
+    aspect-ratio: 16/9;
+    /* Desktop for responsive mode */
+  }
 }
 
 .video-player__background {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 50%;
+  left: 50%;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  transform: translate(-50%, -50%) scale(1.5);
+  pointer-events: none;
 }
 
 .video-player__overlay {

@@ -11,10 +11,11 @@ export class VideoPlayer extends HTMLElement {
     this.resizeHandler = this.handleResize.bind(this);
     this.backgroundPlayer = null;
     this.lightboxPlayer = null;
+    this.responsive = false;
   }
 
   static get observedAttributes() {
-    return ['data-video-id', 'data-lightbox'];
+    return ['data-video-id', 'data-lightbox', 'data-responsive'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -27,11 +28,18 @@ export class VideoPlayer extends HTMLElement {
       this.useLightbox = newValue === 'true';
       this.render();
     }
+    
+    if (name === 'data-responsive' && newValue !== oldValue) {
+      this.responsive = newValue === 'true';
+      this.updateResponsiveState();
+      this.render();
+    }
   }
 
   connectedCallback() {
     this.videoId = this.extractVideoId(this.getAttribute('data-video-id'));
     this.useLightbox = this.getAttribute('data-lightbox') === 'true';
+    this.responsive = this.getAttribute('data-responsive') === 'true';
     
     console.log('Video Player initialized with ID:', this.videoId, 'and dimensions:', this.offsetWidth, 'x', this.offsetHeight);
     
@@ -46,8 +54,14 @@ export class VideoPlayer extends HTMLElement {
       this.lightbox = new Lightbox();
     }
 
+    // Update responsive state
+    this.updateResponsiveState();
+
     // Add resize listener for responsive behavior
     window.addEventListener('resize', this.resizeHandler);
+    
+    // Initial resize calculation
+    setTimeout(() => this.handleResize(), 100);
   }
 
   disconnectedCallback() {
@@ -56,9 +70,28 @@ export class VideoPlayer extends HTMLElement {
   }
 
   handleResize() {
-    // Update any necessary dimensions or refresh iframe if needed
-    if (this.querySelector('.video-player__background')) {
-      console.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight);
+    // Calculate appropriate scale based on container dimensions
+    const iframe = this.querySelector('.video-player__background');
+    if (iframe) {
+      // Adjust scale based on aspect ratio differences
+      const containerAspect = this.offsetWidth / this.offsetHeight;
+      // Default 16:9 video aspect ratio, but could be adjusted dynamically if known
+      const videoAspect = 16/9;
+      
+      let scale = 1.5; // Default scale
+      
+      // Adjust scale based on aspect ratio comparison
+      if (containerAspect > videoAspect) {
+        // Container is wider than video, need to scale width more
+        scale = containerAspect / videoAspect * 1.2;
+      } else {
+        // Container is taller than video, need to scale height more
+        scale = videoAspect / containerAspect * 1.2;
+      }
+      
+      // Apply the scale
+      iframe.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      console.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight, 'Scale:', scale);
     }
   }
 
@@ -96,7 +129,7 @@ export class VideoPlayer extends HTMLElement {
     const iframe = document.createElement('iframe');
     iframe.className = 'video-player__background';
     iframe.id = `video-player-background-${this.videoId}`;
-    iframe.src = `https://player.vimeo.com/video/${this.videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0`;
+    iframe.src = `https://player.vimeo.com/video/${this.videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allowfullscreen', '');
     iframe.setAttribute('allow', 'autoplay; fullscreen');
@@ -109,6 +142,10 @@ export class VideoPlayer extends HTMLElement {
           this.backgroundPlayer = new window.Vimeo.Player(iframe);
           this.backgroundPlayer.setVolume(0); // Ensure it's muted
           this.backgroundPlayer.setLoop(true); // Ensure it loops
+          
+          // Set quality to force higher resolution
+          this.backgroundPlayer.setQuality('1080p');
+          
           console.log('Background player initialized');
         } catch (e) {
           console.error('Failed to initialize Vimeo player:', e);
@@ -232,6 +269,17 @@ export class VideoPlayer extends HTMLElement {
     
     // Add necessary styling directly to the custom element
     this.classList.add('video-player');
+    
+    // Update responsive state
+    this.updateResponsiveState();
+  }
+
+  updateResponsiveState() {
+    if (this.responsive) {
+      this.classList.add('responsive');
+    } else {
+      this.classList.remove('responsive');
+    }
   }
 }
 
