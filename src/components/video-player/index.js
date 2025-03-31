@@ -12,6 +12,7 @@ export class VideoPlayer extends HTMLElement {
     this.backgroundPlayer = null;
     this.lightboxPlayer = null;
     this.responsive = false;
+    this.connectionQuality = 'high'; // Default assumption
   }
 
   static get observedAttributes() {
@@ -92,6 +93,45 @@ export class VideoPlayer extends HTMLElement {
       // Apply the scale
       iframe.style.transform = `translate(-50%, -50%) scale(${scale})`;
       console.log('Video player resized to:', this.offsetWidth, 'x', this.offsetHeight, 'Scale:', scale);
+      
+      // Check if we're in portrait mode (9:16) and adjust quality if needed
+      const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;
+      
+      // Reassess quality when player is resized, especially for portrait mode
+      if (this.backgroundPlayer && isPortrait) {
+        // For portrait mode, we need higher quality since we're zooming more
+        // This ensures portrait mode looks sharp even with more zooming
+        this.adjustQualityForViewport(this.backgroundPlayer, isPortrait);
+      }
+    }
+  }
+  
+  adjustQualityForViewport(player, isPortrait) {
+    // Get current connection quality baseline
+    let targetQuality;
+    
+    if (isPortrait) {
+      // In portrait mode, bump up quality by one level if possible
+      if (this.connectionQuality === 'low') {
+        targetQuality = '720p'; // Bump from 540p to 720p
+      } else if (this.connectionQuality === 'medium' || this.connectionQuality === 'high') {
+        targetQuality = '1080p'; // Go to max quality for better zoom
+      }
+    } else {
+      // In landscape, use the connection-based quality
+      if (this.connectionQuality === 'high') {
+        targetQuality = '1080p';
+      } else if (this.connectionQuality === 'medium') {
+        targetQuality = '720p';
+      } else {
+        targetQuality = '540p';
+      }
+    }
+    
+    // Only update if quality needs to change
+    if (player && targetQuality) {
+      console.log(`Adjusting quality for ${isPortrait ? 'portrait' : 'landscape'} mode to: ${targetQuality}`);
+      player.setQuality(targetQuality);
     }
   }
 
@@ -143,8 +183,19 @@ export class VideoPlayer extends HTMLElement {
           this.backgroundPlayer.setVolume(0); // Ensure it's muted
           this.backgroundPlayer.setLoop(true); // Ensure it loops
           
-          // Set quality to force higher resolution
-          this.backgroundPlayer.setQuality('1080p');
+          // Set quality based on connection speed
+          this.setQualityBasedOnConnection(this.backgroundPlayer);
+          
+          // After setting base quality, check if we need to adjust based on viewport
+          const isPortrait = this.offsetWidth < this.offsetHeight || 
+                            (this.offsetWidth / this.offsetHeight) < 1;
+          
+          // If we're in portrait mode initially, bump up quality
+          if (isPortrait) {
+            setTimeout(() => {
+              this.adjustQualityForViewport(this.backgroundPlayer, isPortrait);
+            }, 500); // Allow time for connection quality to be set first
+          }
           
           console.log('Background player initialized');
         } catch (e) {
@@ -234,6 +285,10 @@ export class VideoPlayer extends HTMLElement {
         try {
           this.lightboxPlayer = new window.Vimeo.Player(iframe);
           
+          // Always use highest quality for lightbox
+          // Lightbox is fullscreen/larger, so we want best quality regardless of connection
+          this.lightboxPlayer.setQuality('1080p');
+          
           // Add event listeners to handle background video
           this.lightboxPlayer.on('play', () => {
             // Ensure background video keeps playing when lightbox video plays
@@ -280,6 +335,89 @@ export class VideoPlayer extends HTMLElement {
     } else {
       this.classList.remove('responsive');
     }
+  }
+
+  setQualityBasedOnConnection(player) {
+    try {
+      // Check if Network Information API is available
+      if (navigator.connection) {
+        const connection = navigator.connection;
+        
+        // Add event listener for connection changes
+        connection.addEventListener('change', () => {
+          this.updateQualityForConnection(player, connection);
+        });
+        
+        // Set initial quality
+        this.updateQualityForConnection(player, connection);
+      } else {
+        // Fallback for browsers without Network Information API
+        this.checkConnectionSpeedWithRequest(player);
+      }
+    } catch (error) {
+      console.warn('Error setting quality based on connection:', error);
+      // Default to 720p if anything fails
+      player.setQuality('720p');
+    }
+  }
+  
+  updateQualityForConnection(player, connection) {
+    // effectiveType values: 'slow-2g', '2g', '3g', or '4g'
+    const effectiveType = connection.effectiveType;
+    const downlink = connection.downlink; // Mbps
+    
+    console.log(`Connection type: ${effectiveType}, speed: ${downlink} Mbps`);
+    
+    if (effectiveType === '4g' && downlink > 5) {
+      player.setQuality('1080p');
+      this.connectionQuality = 'high';
+    } else if (effectiveType === '4g' || (effectiveType === '3g' && downlink > 2)) {
+      player.setQuality('720p');
+      this.connectionQuality = 'medium';
+    } else {
+      player.setQuality('540p');
+      this.connectionQuality = 'low';
+    }
+    
+    console.log(`Video quality set to: ${this.connectionQuality}`);
+  }
+  
+  checkConnectionSpeedWithRequest(player) {
+    // Measure connection speed with a small sample download
+    const startTime = new Date().getTime();
+    const url = 'https://www.google.com/images/phd/px.gif'; // Tiny image for testing
+    
+    fetch(url, { cache: 'no-store' })
+      .then(response => response.blob())
+      .then(data => {
+        const endTime = new Date().getTime();
+        const duration = (endTime - startTime) / 1000; // seconds
+        const bitsLoaded = data.size * 8;
+        const speedBps = bitsLoaded / duration;
+        const speedMbps = speedBps / 1000000;
+        
+        console.log(`Measured connection speed: ${speedMbps.toFixed(2)} Mbps`);
+        
+        // Set quality based on measured speed
+        if (speedMbps > 5) {
+          player.setQuality('1080p');
+          this.connectionQuality = 'high';
+        } else if (speedMbps > 2) {
+          player.setQuality('720p');
+          this.connectionQuality = 'medium';
+        } else {
+          player.setQuality('540p');
+          this.connectionQuality = 'low';
+        }
+        
+        console.log(`Video quality set to: ${this.connectionQuality}`);
+      })
+      .catch(error => {
+        console.warn('Error measuring connection speed:', error);
+        // Default to 720p
+        player.setQuality('720p');
+        this.connectionQuality = 'medium';
+      });
   }
 }
 
