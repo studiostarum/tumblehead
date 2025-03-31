@@ -57,6 +57,9 @@ export class VideoPlayer extends HTMLElement {
     this.posterImage = null; // Poster image URL
     this.performanceMode = false; // Low performance mode for mobile/low-power devices
     this.debugMode = isDebugEnabled(); // Check if debug mode is enabled
+    this.startTime = 0; // Default start time in seconds
+    this.endTime = null; // Default end time (null means play to end)
+    this.loopCheckInterval = null; // Interval to check for loop points
     
     if (this.debugMode) {
       logger.log('Debug mode enabled for VideoPlayer');
@@ -64,7 +67,7 @@ export class VideoPlayer extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['data-video-id', 'data-lightbox', 'data-responsive', 'data-poster', 'data-performance-mode'];
+    return ['data-video-id', 'data-lightbox', 'data-responsive', 'data-poster', 'data-performance-mode', 'data-start-time', 'data-end-time'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -93,6 +96,16 @@ export class VideoPlayer extends HTMLElement {
       this.performanceMode = newValue === 'true';
       this.updatePerformanceMode();
     }
+    
+    if (name === 'data-start-time' && newValue !== oldValue) {
+      this.startTime = this.parseTimeValue(newValue, 0);
+      this.updateLoopSettings();
+    }
+    
+    if (name === 'data-end-time' && newValue !== oldValue) {
+      this.endTime = this.parseTimeValue(newValue, null);
+      this.updateLoopSettings();
+    }
   }
 
   connectedCallback() {
@@ -101,6 +114,8 @@ export class VideoPlayer extends HTMLElement {
     this.responsive = this.getAttribute('data-responsive') === 'true';
     this.posterImage = this.getAttribute('data-poster');
     this.performanceMode = this.getAttribute('data-performance-mode') === 'true';
+    this.startTime = this.parseTimeValue(this.getAttribute('data-start-time'), 0);
+    this.endTime = this.parseTimeValue(this.getAttribute('data-end-time'), null);
     
     // Auto-detect if performance mode should be enabled
     if (this.getAttribute('data-performance-mode') === null) {
@@ -144,6 +159,12 @@ export class VideoPlayer extends HTMLElement {
     
     // Remove visibility change listener
     document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+    
+    // Clean up loop check interval
+    if (this.loopCheckInterval) {
+      clearInterval(this.loopCheckInterval);
+      this.loopCheckInterval = null;
+    }
     
     // Clean up video players
     if (this.backgroundPlayer) {
@@ -245,9 +266,14 @@ export class VideoPlayer extends HTMLElement {
     // Instead of trying to set quality via API, set it in the URL
     let videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=540p';
     
+    // Add start time parameter if specified
+    if (this.startTime > 0) {
+      videoParams += `&#t=${this.startTime}s`;
+    }
+    
     // Use even lower quality in performance mode
     if (this.performanceMode) {
-      videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p';
+      videoParams = `background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p${this.startTime > 0 ? `&#t=${this.startTime}s` : ''}`;
     }
     
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${videoParams}`;
@@ -268,6 +294,9 @@ export class VideoPlayer extends HTMLElement {
           // Instead of trying to set quality directly, we'll monitor player events
           this.monitorPlayerPerformance(this.backgroundPlayer);
 
+          // Apply custom start/end times if specified
+          this.updateLoopSettings();
+
           // Monitor loading state
           this.backgroundPlayer.on('loaded', () => {
             this.loadingStatus = 'loaded';
@@ -279,7 +308,34 @@ export class VideoPlayer extends HTMLElement {
             if (poster) {
               poster.classList.add('hidden');
             }
+            
+            // Make sure we start at the right position
+            if (this.startTime > 0) {
+              this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+                if (this.debugMode) {
+                  logger.warn('Could not set initial start time:', e.message);
+                }
+              });
+            }
           });
+
+          // Setup ended event handler to handle looping with custom start/end times
+          if (this.endTime !== null) {
+            try {
+              this.backgroundPlayer.on('ended', () => {
+                // When video ends naturally, go back to start time
+                this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+                  if (this.debugMode) {
+                    logger.warn('Could not reset to start time after end:', e.message);
+                  }
+                });
+              });
+            } catch (e) {
+              if (this.debugMode) {
+                logger.warn('Could not set ended event handler:', e.message);
+              }
+            }
+          }
 
           // Handle errors
           this.backgroundPlayer.on('error', (error) => {
@@ -348,7 +404,13 @@ export class VideoPlayer extends HTMLElement {
     iframe.width = '100%';
     iframe.height = '100%';
     // For lightbox videos, set a higher quality since they're fullscreen and in focus
-    iframe.src = `https://player.vimeo.com/video/${this.videoId}?autoplay=1&byline=0&title=0&autopause=0&quality=1080p`;
+    // Also use the start time (if specified) for lightbox videos
+    let lightboxParams = 'autoplay=1&byline=0&title=0&autopause=0&quality=1080p';
+    if (this.startTime > 0) {
+      lightboxParams += `&#t=${this.startTime}s`;
+    }
+    
+    iframe.src = `https://player.vimeo.com/video/${this.videoId}?${lightboxParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
     
@@ -937,6 +999,99 @@ export class VideoPlayer extends HTMLElement {
           logger.warn('Error in reload process:', e.message);
         }
       }
+    }
+  }
+
+  // Parse time values from string to seconds
+  parseTimeValue(value, defaultValue) {
+    if (value === null || value === undefined) {
+      return defaultValue;
+    }
+    
+    // Try parsing as float (assuming seconds)
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+    
+    // Try parsing time format like "1:30" (1 min 30 sec)
+    const timeMatch = /^(\d+):(\d+)$/.exec(value);
+    if (timeMatch) {
+      const minutes = parseInt(timeMatch[1], 10);
+      const seconds = parseInt(timeMatch[2], 10);
+      return (minutes * 60) + seconds;
+    }
+    
+    return defaultValue;
+  }
+
+  updateLoopSettings() {
+    // Only update if we have a player
+    if (!this.backgroundPlayer) return;
+
+    try {
+      // Set the start time if not at beginning
+      if (this.startTime > 0) {
+        this.backgroundPlayer.getCurrentTime().then(currentTime => {
+          // Only seek if we're at the very beginning or if we're past our end time
+          // This prevents seeking while someone is already watching
+          if (currentTime < 0.1 || (this.endTime !== null && currentTime > this.endTime)) {
+            this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+              if (this.debugMode) {
+                logger.warn('Could not set start time:', e.message);
+              }
+            });
+          }
+        }).catch(e => {
+          if (this.debugMode) {
+            logger.warn('Could not get current time to set start time:', e.message);
+          }
+        });
+      }
+      
+      // Setup loop checking if we have both start and end times
+      this.setupLoopChecking();
+    } catch (e) {
+      if (this.debugMode) {
+        logger.warn('Error updating loop settings:', e.message);
+      }
+    }
+  }
+
+  setupLoopChecking() {
+    // Clear any existing interval
+    if (this.loopCheckInterval) {
+      clearInterval(this.loopCheckInterval);
+      this.loopCheckInterval = null;
+    }
+
+    // Only setup an interval if we have an end time
+    if (this.endTime !== null && this.backgroundPlayer) {
+      // Check every 250ms if we've reached the end time
+      this.loopCheckInterval = setInterval(() => {
+        if (!this.backgroundPlayer) {
+          clearInterval(this.loopCheckInterval);
+          this.loopCheckInterval = null;
+          return;
+        }
+
+        this.backgroundPlayer.getCurrentTime().then(currentTime => {
+          // If we've reached or passed the end time, loop back to start time
+          if (currentTime >= this.endTime) {
+            this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+              // Silently handle errors
+              if (this.debugMode) {
+                logger.warn('Could not loop back to start time:', e.message);
+              }
+            });
+          }
+        }).catch(e => {
+          // Silently handle errors
+          if (this.debugMode) {
+            logger.warn('Error in loop checking:', e.message);
+          }
+        });
+      }, 250);
     }
   }
 }
