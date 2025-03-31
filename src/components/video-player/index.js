@@ -469,27 +469,51 @@ export class VideoPlayer extends HTMLElement {
     // Set lightbox active state
     this.classList.add('lightbox-active');
     
+    // Create container for the iframe and poster
+    const container = document.createElement('div');
+    container.className = 'lightbox-iframe-container';
+    
     // Create a new iframe for the lightbox without stopping the background video
     const iframe = document.createElement('iframe');
     iframe.width = '100%';
     iframe.height = '100%';
-    // For lightbox videos, set a higher quality since they're fullscreen and in focus
-    // Also use the start time (if specified) for lightbox videos
-    let lightboxParams = 'autoplay=1&byline=0&title=0&autopause=0&quality=1080p';
-    if (this.startTime > 0) {
-      lightboxParams += `&#t=${this.startTime}s`;
-    }
     
+    // For lightbox videos, set a higher quality since they're fullscreen and in focus
+    // Always start at 0 for lightbox videos, ignoring the start time setting of the component
+    // Add preload=metadata to start loading the video faster
+    let lightboxParams = 'autoplay=1&byline=0&title=0&autopause=0&quality=1080p&preload=metadata';
+    
+    // Remove any start time parameter - always play from beginning
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${lightboxParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
     
-    this.lightbox.setContent(iframe);
+    // Add iframe to container
+    container.appendChild(iframe);
+    
+    // Create poster element for instant visual feedback
+    const poster = document.createElement('div');
+    poster.className = 'lightbox-poster';
+    
+    // Use the current poster image if available
+    if (this.posterImage) {
+      poster.style.backgroundImage = `url(${this.posterImage})`;
+    } else {
+      // Try to get a thumbnail from Vimeo if we don't have one
+      const thumbnailUrl = `https://vumbnail.com/${this.videoId}.jpg`;
+      poster.style.backgroundImage = `url(${thumbnailUrl})`;
+    }
+    
+    // Create a lightbox content structure with iframe and poster
+    const content = document.createDocumentFragment();
+    content.appendChild(container);
+    content.appendChild(poster);
+    
+    // Set content immediately to show the lightbox faster
+    this.lightbox.setContent(content);
+    this.lightbox.open();
     
     // Store a reference to the lightbox instance for the close event
-    const lightboxInstance = this.lightbox;
-    
-    // Set a callback for when the lightbox is closed
     const originalClose = this.lightbox.close.bind(this.lightbox);
     this.lightbox.close = () => {
       // Clean up lightbox player if it exists
@@ -509,56 +533,62 @@ export class VideoPlayer extends HTMLElement {
       
       // Ensure background player is always playing
       if (this.backgroundPlayer) {
-        this.backgroundPlayer.play().catch(err => {
-          // Retry play after a small delay if initial attempt fails
-          setTimeout(() => {
-            this.backgroundPlayer.play();
-          }, 500);
+        this.backgroundPlayer.play().catch(() => {
+          // Silent catch and quick retry
+          setTimeout(() => this.backgroundPlayer.play(), 100);
         });
       }
     };
     
-    this.lightbox.open();
-    
-    // Initialize the lightbox player after the iframe is added to the DOM
+    // Initialize the lightbox player immediately after setting content
     if (window.Vimeo && window.Vimeo.Player) {
+      // Initialize player with no delay
+      try {
+        this.lightboxPlayer = new window.Vimeo.Player(iframe);
+        
+        // Force immediate play
+        this.lightboxPlayer.play();
+        
+        // Hide poster once video starts playing
+        this.lightboxPlayer.on('play', () => {
+          poster.classList.add('hidden');
+          
+          // Make sure background video keeps playing
+          if (this.backgroundPlayer) {
+            this.backgroundPlayer.play();
+          }
+        });
+        
+        // Also handle the loaded event to hide poster
+        this.lightboxPlayer.on('loaded', () => {
+          setTimeout(() => {
+            poster.classList.add('hidden');
+          }, 100);
+        });
+        
+        this.lightboxPlayer.on('pause', () => {
+          if (this.backgroundPlayer) {
+            this.backgroundPlayer.play();
+          }
+        });
+      } catch (e) {
+        logger.error('Failed to initialize lightbox player:', e);
+        // Hide poster after a short timeout if player fails
+        setTimeout(() => {
+          poster.classList.add('hidden');
+        }, 1500);
+      }
+    } else {
+      // Hide poster after a delay if Vimeo API is not available
       setTimeout(() => {
-        try {
-          this.lightboxPlayer = new window.Vimeo.Player(iframe);
-          
-          // Add event listeners to handle background video
-          this.lightboxPlayer.on('play', () => {
-            // Ensure background video keeps playing when lightbox video plays
-            if (this.backgroundPlayer) {
-              this.backgroundPlayer.play();
-            }
-          });
-          
-          // Also ensure background video plays on pause or when lightbox player is paused
-          this.lightboxPlayer.on('pause', () => {
-            if (this.backgroundPlayer) {
-              this.backgroundPlayer.play();
-            }
-          });
-        } catch (e) {
-          logger.error('Failed to initialize lightbox player:', e);
-        }
-      }, 100);
+        poster.classList.add('hidden');
+      }, 1500);
     }
     
     // Force background video to keep playing
     if (this.backgroundPlayer) {
-      // Ensure background video plays immediately
+      // Quick play call
       this.backgroundPlayer.play();
-      
-      // Add additional attempts to make sure it plays
-      setTimeout(() => {
-        this.backgroundPlayer.play();
-      }, 200);
-      
-      setTimeout(() => {
-        this.backgroundPlayer.play();
-      }, 1000);
     }
   }
 

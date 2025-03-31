@@ -64,6 +64,24 @@ export class Lightbox {
     // Add new content
     if (typeof content === 'string') {
       this.content.insertAdjacentHTML('afterbegin', content);
+      
+      // Find any iframes that were added via HTML string
+      const iframes = this.content.querySelectorAll('iframe');
+      if (iframes.length > 0) {
+        this.contentIframes = Array.from(iframes);
+      }
+    } else if (content instanceof DocumentFragment) {
+      // For document fragments, add all nodes before the close button
+      const nodes = Array.from(content.childNodes);
+      nodes.forEach(node => {
+        this.content.insertBefore(node, this.closeButton);
+      });
+      
+      // Find any iframes in the added nodes
+      const iframes = this.content.querySelectorAll('iframe');
+      if (iframes.length > 0) {
+        this.contentIframes = Array.from(iframes);
+      }
     } else if (content instanceof HTMLElement) {
       this.content.insertBefore(content, this.closeButton);
       
