@@ -230,15 +230,25 @@ export class VideoPlayer extends HTMLElement {
       // Default 16:9 video aspect ratio, but could be adjusted dynamically if known
       const videoAspect = 16/9;
       
-      let scale = 1.5; // Default scale
+      let scale = 1.2; // Reduced default scale for better performance
+      
+      // Calculate container size in pixels
+      const containerSize = this.offsetWidth * this.offsetHeight;
+      const isLargePlayer = containerSize > 500000; // Threshold for "large" player (approx 800x625px)
       
       // Adjust scale based on aspect ratio comparison
       if (containerAspect > videoAspect) {
         // Container is wider than video, need to scale width more
-        scale = containerAspect / videoAspect * 1.2;
+        // Use smaller scale for large players to improve performance
+        scale = isLargePlayer ? 
+          containerAspect / videoAspect * 1.05 : 
+          containerAspect / videoAspect * 1.2;
       } else {
         // Container is taller than video, need to scale height more
-        scale = videoAspect / containerAspect * 1.2;
+        // Use smaller scale for large players to improve performance
+        scale = isLargePlayer ? 
+          videoAspect / containerAspect * 1.05 : 
+          videoAspect / containerAspect * 1.2;
       }
       
       // Apply the scale with consistent transform origin
@@ -248,12 +258,15 @@ export class VideoPlayer extends HTMLElement {
       // Check if we're in portrait mode (9:16) and adjust quality if needed
       const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;
       
-      // Reassess quality when player is resized, especially for portrait mode
-      // Only try to set quality if we haven't already determined it's not supported
-      if (this.backgroundPlayer && isPortrait && this.backgroundPlayer._qualitySettingSupported !== false) {
-        // For portrait mode, we need higher quality since we're zooming more
-        // This ensures portrait mode looks sharp even with more zooming
-        this.safelySetQuality(this.backgroundPlayer, '1080p');
+      // Large players don't need high quality when scaling less
+      if (this.backgroundPlayer && this.backgroundPlayer._qualitySettingSupported !== false) {
+        if (isPortrait && !isLargePlayer) {
+          // For portrait mode on smaller players, use higher quality
+          this.safelySetQuality(this.backgroundPlayer, '1080p');
+        } else if (isLargePlayer) {
+          // For large players, use medium quality since we're scaling less
+          this.safelySetQuality(this.backgroundPlayer, '720p');
+        }
       }
     }
   }

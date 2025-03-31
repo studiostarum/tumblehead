@@ -36,7 +36,7 @@ video-player.responsive {
   left: 50%;
   width: 100%;
   height: 100%;
-  transform: translate(-50%, -50%) scale(1.2);
+  transform: translate(-50%, -50%) scale(1);
   /* Reduced scale for better performance */
   transform-origin: center center;
   pointer-events: none;
@@ -45,6 +45,7 @@ video-player.responsive {
   z-index: 2; /* Higher z-index to ensure it's above the poster */
   transform-style: flat;
   backface-visibility: hidden;
+  will-change: transform; /* Optimize transform performance */
 }
 
 .video-player__poster {
@@ -164,7 +165,7 @@ video-player.performance-mode .video-player__background {
   /* Reduce animation complexity */
   will-change: auto;
   /* Disable GPU acceleration hints */
-  transform: translate(-50%, -50%) scale(1.1);
+  transform: translate(-50%, -50%) scale(1.05);
   /* Less scaling for better performance */
   transform-origin: center center;
   filter: none;
