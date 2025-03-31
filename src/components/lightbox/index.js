@@ -6,19 +6,7 @@ export class Lightbox {
     this.isActive = false;
     this.contentIframes = [];
     
-    this.init();
-  }
-
-  init() {
-    // Create lightbox container if it doesn't exist
-    if (!document.querySelector('.lightbox')) {
-      this.createLightbox();
-    } else {
-      this.lightbox = document.querySelector('.lightbox');
-      this.content = this.lightbox.querySelector('.lightbox-content');
-      this.closeButton = this.lightbox.querySelector('.lightbox-close');
-      this.setupListeners();
-    }
+    this.createLightbox();
   }
 
   createLightbox() {

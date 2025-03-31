@@ -71,20 +71,22 @@ export class VideoPlayer extends HTMLElement {
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
+    let shouldRender = false;
+    
     if (name === 'data-video-id' && newValue !== oldValue) {
       this.videoId = this.extractVideoId(newValue);
-      this.render();
+      shouldRender = true;
     }
     
     if (name === 'data-lightbox' && newValue !== oldValue) {
       this.useLightbox = newValue === 'true';
-      this.render();
+      shouldRender = true;
     }
     
     if (name === 'data-responsive' && newValue !== oldValue) {
       this.responsive = newValue === 'true';
       this.updateResponsiveState();
-      this.render();
+      shouldRender = true;
     }
     
     if (name === 'data-poster' && newValue !== oldValue) {
@@ -114,6 +116,13 @@ export class VideoPlayer extends HTMLElement {
     if (name === 'data-end-time' && newValue !== oldValue) {
       this.endTime = this.parseTimeValue(newValue, null);
       this.updateLoopSettings();
+    }
+    
+    // Only render if needed and after ensuring Vimeo API is loaded
+    if (shouldRender) {
+      this.loadVimeoAPI().then(() => {
+        this.render();
+      });
     }
   }
 
@@ -149,10 +158,11 @@ export class VideoPlayer extends HTMLElement {
     const isVisible = this.isElementInViewport(this);
     
     // Immediately load Vimeo API for all videos to reduce startup time
-    this.loadVimeoAPI();
-    
-    // Render immediately
-    this.render();
+    // Wait for Vimeo API to load before rendering
+    this.loadVimeoAPI().then(() => {
+      // Render immediately after API is loaded
+      this.render();
+    });
     
     // Initialize lightbox if needed
     if (this.useLightbox) {
@@ -262,19 +272,45 @@ export class VideoPlayer extends HTMLElement {
   }
 
   loadVimeoAPI() {
-    if (document.querySelector('script[src*="player.vimeo.com/api/player.js"]')) {
-      this.hasVimeoScript = true;
-      return;
-    }
-    
-    const script = document.createElement('script');
-    script.src = 'https://player.vimeo.com/api/player.js';
-    script.async = true;
-    script.onload = () => {
-      this.hasVimeoScript = true;
-    };
-    
-    document.head.appendChild(script);
+    // Return a promise that resolves when the API is loaded
+    return new Promise((resolve) => {
+      // If script is already loaded or in progress of loading
+      if (document.querySelector('script[src*="player.vimeo.com/api/player.js"]')) {
+        // If Vimeo is already available, resolve immediately
+        if (window.Vimeo && window.Vimeo.Player) {
+          this.hasVimeoScript = true;
+          resolve();
+          return;
+        }
+        
+        // Otherwise wait for existing script to load
+        const checkVimeo = setInterval(() => {
+          if (window.Vimeo && window.Vimeo.Player) {
+            clearInterval(checkVimeo);
+            this.hasVimeoScript = true;
+            resolve();
+          }
+        }, 100);
+        return;
+      }
+      
+      // Otherwise create and load the script
+      const script = document.createElement('script');
+      script.src = 'https://player.vimeo.com/api/player.js';
+      script.async = true;
+      script.onload = () => {
+        // Even after onload, Vimeo player might not be immediately available
+        const checkVimeo = setInterval(() => {
+          if (window.Vimeo && window.Vimeo.Player) {
+            clearInterval(checkVimeo);
+            this.hasVimeoScript = true;
+            resolve();
+          }
+        }, 100);
+      };
+      
+      document.head.appendChild(script);
+    });
   }
 
   createBackgroundVideo() {
@@ -319,48 +355,80 @@ export class VideoPlayer extends HTMLElement {
         logger.log('Direct fallback timer triggered - forcing thumbnail fade out');
       }
       this.classList.add('video-loaded');
-    }, 3000); // 3 second maximum wait
+    }, 3000);
     
-    // Initialize Vimeo player with a simpler approach
-    setTimeout(() => {
-      if (window.Vimeo && window.Vimeo.Player) {
-        try {
-          this.backgroundPlayer = new window.Vimeo.Player(iframe);
+    // Initialize Vimeo player
+    if (window.Vimeo && window.Vimeo.Player) {
+      try {
+        this.backgroundPlayer = new window.Vimeo.Player(iframe);
+        
+        // Always ensure background video plays for lightbox videos
+        if (this.useLightbox) {
+          this.backgroundPlayer.on('pause', () => {
+            // If it's a lightbox video, immediately resume playing if paused
+            this.backgroundPlayer.play();
+          });
+        }
+        
+        // Set up event handling for player
+        this.backgroundPlayer.on('loaded', () => {
+          clearTimeout(directFallbackTimer);
           
-          // Force fade out on any player event
+          // Force background play
+          this.backgroundPlayer.play().catch(err => {
+            logger.error('Could not play video', err);
+          });
+          
+          // Remove poster image when video is loaded
           const forceVideoLoaded = () => {
-            clearTimeout(directFallbackTimer);
+            // Add class to fade out poster
             this.classList.add('video-loaded');
+            
+            // Check support for quality API
+            if (this.performanceMode) {
+              // In performance mode, force lowest quality
+              this.safelySetQuality(this.backgroundPlayer, '240p');
+            } else {
+              // Otherwise use appropriate quality for device
+              this.checkQualityApiSupport(this.backgroundPlayer);
+            }
+            
             if (this.debugMode) {
-              logger.log('Forcing video-loaded class addition');
+              logger.log('Background video loaded, playing...');
             }
           };
           
-          // Add event handlers for all possible events
-          this.backgroundPlayer.on('loaded', forceVideoLoaded);
-          this.backgroundPlayer.on('play', forceVideoLoaded);
-          this.backgroundPlayer.on('playing', forceVideoLoaded);
-          this.backgroundPlayer.on('timeupdate', forceVideoLoaded);
-          
-          // Add another safety timeout inside the player initialization
-          setTimeout(forceVideoLoaded, 1000);
-          
-          // Handle errors by still forcing the fade
-          this.backgroundPlayer.on('error', (error) => {
-            logger.error('Vimeo player error:', error);
-            forceVideoLoaded(); // Force fade even on error
+          // Either force immediately or wait for play event
+          this.backgroundPlayer.getPlaying().then(playing => {
+            if (playing) {
+              forceVideoLoaded();
+            } else {
+              this.backgroundPlayer.on('play', forceVideoLoaded);
+            }
+          }).catch(() => {
+            // If we cannot get playing status, just force it
+            forceVideoLoaded();
           });
           
-        } catch (e) {
-          logger.error('Failed to initialize Vimeo player:', e);
-          // Force thumbnail fade even if player fails
-          this.classList.add('video-loaded');
-        }
-      } else {
-        // If Vimeo API isn't available, still fade out thumbnail
+          // Force background video to play on a regular interval for lightbox videos
+          if (this.useLightbox) {
+            setInterval(() => {
+              this.backgroundPlayer.play();
+            }, 2000);
+          }
+        });
+        
+        // Monitor performance to potentially reduce quality
+        this.monitorPlayerPerformance(this.backgroundPlayer);
+      } catch (e) {
+        logger.error('Failed to initialize Vimeo player:', e);
+        clearTimeout(directFallbackTimer);
         this.classList.add('video-loaded');
       }
-    }, 100);
+    } else {
+      logger.error('Vimeo API not loaded');
+      this.classList.add('video-loaded');
+    }
     
     if (this.useLightbox) {
       // Create overlay with play button
@@ -439,9 +507,14 @@ export class VideoPlayer extends HTMLElement {
       // Remove lightbox active state
       this.classList.remove('lightbox-active');
       
-      // Ensure background player is still playing
+      // Ensure background player is always playing
       if (this.backgroundPlayer) {
-        this.backgroundPlayer.play();
+        this.backgroundPlayer.play().catch(err => {
+          // Retry play after a small delay if initial attempt fails
+          setTimeout(() => {
+            this.backgroundPlayer.play();
+          }, 500);
+        });
       }
     };
     
@@ -453,12 +526,16 @@ export class VideoPlayer extends HTMLElement {
         try {
           this.lightboxPlayer = new window.Vimeo.Player(iframe);
           
-          // No longer try to set quality via API for lightbox player
-          // Instead, we use the URL parameter
-          
           // Add event listeners to handle background video
           this.lightboxPlayer.on('play', () => {
             // Ensure background video keeps playing when lightbox video plays
+            if (this.backgroundPlayer) {
+              this.backgroundPlayer.play();
+            }
+          });
+          
+          // Also ensure background video plays on pause or when lightbox player is paused
+          this.lightboxPlayer.on('pause', () => {
             if (this.backgroundPlayer) {
               this.backgroundPlayer.play();
             }
@@ -471,10 +548,17 @@ export class VideoPlayer extends HTMLElement {
     
     // Force background video to keep playing
     if (this.backgroundPlayer) {
-      // Small delay to make sure Vimeo API doesn't pause it automatically
+      // Ensure background video plays immediately
+      this.backgroundPlayer.play();
+      
+      // Add additional attempts to make sure it plays
       setTimeout(() => {
         this.backgroundPlayer.play();
       }, 200);
+      
+      setTimeout(() => {
+        this.backgroundPlayer.play();
+      }, 1000);
     }
   }
 
@@ -683,6 +767,13 @@ export class VideoPlayer extends HTMLElement {
       // Use a more aggressive threshold to only play videos when they're significantly visible
       this.visibilityObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
+          // Always play the background video when it's a lightbox video
+          if (this.useLightbox && this.backgroundPlayer) {
+            this.backgroundPlayer.play();
+            this.classList.remove('video-paused');
+            return;
+          }
+          
           if (entry.isIntersecting) {
             // Only play video when more visible (50% threshold)
             if (entry.intersectionRatio >= 0.5) {
@@ -692,8 +783,8 @@ export class VideoPlayer extends HTMLElement {
               }
             }
           } else {
-            // Pause video when not visible (only if not in lightbox mode)
-            if (this.backgroundPlayer && !this.classList.contains('lightbox-active')) {
+            // For non-lightbox videos, pause when not visible
+            if (this.backgroundPlayer && !this.useLightbox) {
               this.backgroundPlayer.pause();
               this.classList.add('video-paused');
             }
@@ -709,15 +800,21 @@ export class VideoPlayer extends HTMLElement {
   }
   
   handleVisibilityChange() {
+    // Always play lightbox background videos, even when tab is not visible
+    if (this.useLightbox && this.backgroundPlayer) {
+      this.backgroundPlayer.play();
+      return;
+    }
+    
     if (document.hidden) {
-      // Page is hidden, pause video
-      if (this.backgroundPlayer) {
+      // Page is hidden, pause video for non-lightbox videos
+      if (this.backgroundPlayer && !this.useLightbox) {
         this.backgroundPlayer.pause();
       }
     } else {
       // Page is visible again, resume if video was playing and is in viewport
       const isInViewport = this.isElementInViewport(this);
-      if (this.backgroundPlayer && isInViewport && !this.classList.contains('video-paused')) {
+      if (this.backgroundPlayer && (isInViewport || this.useLightbox) && !this.classList.contains('video-paused')) {
         this.backgroundPlayer.play();
       }
     }
