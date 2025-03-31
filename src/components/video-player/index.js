@@ -58,7 +58,8 @@ export class VideoPlayer extends HTMLElement {
     this.performanceMode = false; // Low performance mode for mobile/low-power devices
     this.debugMode = isDebugEnabled(); // Check if debug mode is enabled
     this.startTime = 0; // Default start time in seconds
-    this.endTime = null; // Default end time (null means play to end)
+    this.endTime = null; // Will be calculated as start time + 20 seconds unless explicitly set
+    this.defaultClipDuration = 20; // Default clip duration in seconds
     this.loopCheckInterval = null; // Interval to check for loop points
     
     if (this.debugMode) {
@@ -99,6 +100,15 @@ export class VideoPlayer extends HTMLElement {
     
     if (name === 'data-start-time' && newValue !== oldValue) {
       this.startTime = this.parseTimeValue(newValue, 0);
+      
+      // If end time was not explicitly set, update it to be start time + default duration
+      if (!this.hasAttribute('data-end-time')) {
+        this.endTime = this.startTime + this.defaultClipDuration;
+        if (this.debugMode) {
+          logger.log(`Auto-adjusting end time to ${this.endTime} seconds (${this.defaultClipDuration}s after start time)`);
+        }
+      }
+      
       this.updateLoopSettings();
     }
     
@@ -115,7 +125,16 @@ export class VideoPlayer extends HTMLElement {
     this.posterImage = this.getAttribute('data-poster');
     this.performanceMode = this.getAttribute('data-performance-mode') === 'true';
     this.startTime = this.parseTimeValue(this.getAttribute('data-start-time'), 0);
-    this.endTime = this.parseTimeValue(this.getAttribute('data-end-time'), null);
+    
+    // Set end time with smart defaults (start time + 20 seconds)
+    if (this.hasAttribute('data-end-time')) {
+      this.endTime = this.parseTimeValue(this.getAttribute('data-end-time'), null);
+    } else {
+      this.endTime = this.startTime + this.defaultClipDuration;
+      if (this.debugMode) {
+        logger.log(`Using default end time: ${this.endTime} seconds (${this.defaultClipDuration}s clip)`);
+      }
+    }
     
     // Auto-detect if performance mode should be enabled
     if (this.getAttribute('data-performance-mode') === null) {
@@ -204,7 +223,8 @@ export class VideoPlayer extends HTMLElement {
       const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;
       
       // Reassess quality when player is resized, especially for portrait mode
-      if (this.backgroundPlayer && isPortrait) {
+      // Only try to set quality if we haven't already determined it's not supported
+      if (this.backgroundPlayer && isPortrait && this.backgroundPlayer._qualitySettingSupported !== false) {
         // For portrait mode, we need higher quality since we're zooming more
         // This ensures portrait mode looks sharp even with more zooming
         this.safelySetQuality(this.backgroundPlayer, '1080p');
@@ -290,6 +310,9 @@ export class VideoPlayer extends HTMLElement {
           this.backgroundPlayer = new window.Vimeo.Player(iframe);
           this.backgroundPlayer.setVolume(0); // Ensure it's muted
           this.backgroundPlayer.setLoop(true); // Ensure it loops
+          
+          // Check if quality setting API is available for this player instance
+          this.checkQualityApiSupport(this.backgroundPlayer);
           
           // Instead of trying to set quality directly, we'll monitor player events
           this.monitorPlayerPerformance(this.backgroundPlayer);
@@ -505,6 +528,11 @@ export class VideoPlayer extends HTMLElement {
   safelySetQuality(player, quality) {
     if (!player) return;
     
+    // Skip quality setting entirely if we're in production mode and not in debug mode
+    if (isProduction() && !this.debugMode) {
+      return;
+    }
+    
     try {
       // First check if quality setting is even supported for this player instance
       if (typeof player.getQualities !== 'function' || typeof player.setQuality !== 'function') {
@@ -514,29 +542,51 @@ export class VideoPlayer extends HTMLElement {
         return;
       }
       
-      // Use a Promise.catch pattern to properly handle any rejection
+      // Store a flag on the player instance to prevent repeated attempts for the same video
+      if (player._qualitySettingAttempted) {
+        return;
+      }
+      
+      // Mark that we've attempted to set quality for this player
+      player._qualitySettingAttempted = true;
+      
+      // First just check if the method exists and works without actually changing quality
       player.getQualities()
         .then(qualities => {
-          if (qualities && qualities.length > 0) {
-            return player.setQuality(quality);
+          // Only proceed if we actually have quality options
+          if (qualities && Array.isArray(qualities) && qualities.length > 0) {
+            // Check if our requested quality is in the available qualities
+            const hasRequestedQuality = qualities.some(q => 
+              typeof q === 'string' ? q === quality : q.label === quality || q.id === quality
+            );
+            
+            if (hasRequestedQuality) {
+              return player.setQuality(quality);
+            } else {
+              if (this.debugMode) {
+                logger.warn(`Requested quality '${quality}' not available. Available qualities:`, qualities);
+              }
+              return Promise.resolve();
+            }
           } else {
             if (this.debugMode) {
               logger.warn('No quality options available for this video');
             }
-            return Promise.reject(new Error('No quality options available'));
+            return Promise.resolve();
           }
         })
-        .catch(error => {
-          // Don't log in production unless debug mode is on
-          if (this.debugMode) {
-            logger.warn(`Quality setting failed: ${error.message || 'Unknown error'}`);
-          }
-          // No need to rethrow - just silently handle the error
+        .catch(() => {
+          // Silently fail - quality setting is now considered unsupported for this video
+          player._qualitySettingSupported = false;
         });
     } catch (error) {
       // Catch any synchronous errors
       if (this.debugMode) {
         logger.warn(`Error in quality setting: ${error.message || 'Unknown error'}`);
+      }
+      // Mark quality setting as unsupported for this instance
+      if (player) {
+        player._qualitySettingSupported = false;
       }
     }
   }
@@ -613,8 +663,11 @@ export class VideoPlayer extends HTMLElement {
       
       // If already has a background player, adjust settings
       if (this.backgroundPlayer) {
-        // Safely set quality using our error-handling method
-        this.safelySetQuality(this.backgroundPlayer, '540p');
+        // Only attempt to set quality if we haven't already determined it's not supported
+        if (this.backgroundPlayer._qualitySettingSupported !== false) {
+          // Safely set quality using our error-handling method
+          this.safelySetQuality(this.backgroundPlayer, '540p');
+        }
         
         // Try to reduce frame rate if possible - using try/catch for safety
         try {
@@ -1092,6 +1145,61 @@ export class VideoPlayer extends HTMLElement {
           }
         });
       }, 250);
+    }
+  }
+
+  // Helper method to check quality API support
+  checkQualityApiSupport(player) {
+    if (!player) return false;
+    
+    try {
+      // Initial assumptions - will be verified/modified during checks
+      player._qualitySettingAttempted = false;
+      player._qualitySettingSupported = true;
+      
+      // Check if method exists
+      if (typeof player.getQualities !== 'function' || typeof player.setQuality !== 'function') {
+        player._qualitySettingSupported = false;
+        if (this.debugMode) {
+          logger.warn('Quality API methods not available for this player');
+        }
+        return false;
+      }
+      
+      // Check if getQualities returns a valid result
+      player.getQualities().then(qualities => {
+        if (!qualities || !Array.isArray(qualities) || qualities.length === 0) {
+          player._qualitySettingSupported = false;
+          if (this.debugMode) {
+            logger.warn('No quality options available for this video');
+          }
+          return false;
+        }
+        
+        // Log available qualities in debug mode
+        if (this.debugMode) {
+          logger.log('Available video qualities:', qualities);
+        }
+        
+        // Mark as supported - quality setting should work
+        player._qualitySettingSupported = true;
+        return true;
+      }).catch(error => {
+        // Any error indicates the quality API isn't supported
+        player._qualitySettingSupported = false;
+        if (this.debugMode) {
+          logger.warn('Quality API check failed:', error.message);
+        }
+        return false;
+      });
+    } catch (error) {
+      if (player) {
+        player._qualitySettingSupported = false;
+      }
+      if (this.debugMode) {
+        logger.warn('Error checking quality API support:', error.message);
+      }
+      return false;
     }
   }
 }
