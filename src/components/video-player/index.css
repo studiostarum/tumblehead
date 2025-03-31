@@ -23,7 +23,7 @@ video-player.responsive {
   /* Mobile first for responsive mode */
 }
 
-@media screen and (min-width: 768px) {
+@media screen and (min-width: 48rem) {
   video-player.responsive {
     aspect-ratio: 16/9;
     /* Desktop for responsive mode */
@@ -94,8 +94,8 @@ video-player.responsive {
 }
 
 .video-player__play-button {
-  width: 80px;
-  height: 80px;
+  width: 5rem;
+  height: 5rem;
   background-color: rgba(0, 0, 0, 0.6);
   border: none;
   border-radius: 50%;
@@ -122,41 +122,41 @@ video-player.responsive {
   width: 0;
   height: 0;
   border-style: solid;
-  border-width: 15px 0 15px 25px;
+  border-width: .9375rem 0 .9375rem 1.5625rem;
   border-color: transparent transparent transparent white;
-  margin-left: 5px;
+  margin-left: .3125rem;
 }
 
 /* Responsive Media Queries */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 48rem) {
   video-player {
-    min-height: 140px;
+    min-height: 8.75rem;
   }
 
   .video-player__play-button {
-    width: 60px;
-    height: 60px;
+    width: 3.75rem;
+    height: 3.75rem;
   }
 
   .video-player__play-icon {
-    border-width: 12px 0 12px 20px;
-    margin-left: 4px;
+    border-width: .75rem 0 .75rem 1.25rem;
+    margin-left: .25rem;
   }
 }
 
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 30rem) {
   video-player {
-    min-height: 120px;
+    min-height: 7.5rem;
   }
 
   .video-player__play-button {
-    width: 50px;
-    height: 50px;
+    width: 3.125rem;
+    height: 3.125rem;
   }
 
   .video-player__play-icon {
-    border-width: 10px 0 10px 16px;
-    margin-left: 3px;
+    border-width: .625rem 0 .625rem 1rem;
+    margin-left: .1875rem;
   }
 }
 
@@ -185,7 +185,7 @@ video-player.performance-mode {
 }
 
 /* Mobile optimizations */
-@media screen and (max-width: 767px) {
+@media screen and (max-width: 47.9375rem) {
   .video-player__background {
     transform: translate(-50%, -50%) scale(1.1);
     /* Less scaling on mobile */
@@ -221,8 +221,8 @@ video-player.video-paused::after {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 50%;
   z-index: 2;
@@ -245,9 +245,9 @@ video-player.video-paused:hover::before {
   width: 0;
   height: 0;
   border-style: solid;
-  border-width: 10px 0 10px 16px;
+  border-width: .625rem 0 .625rem 1rem;
   border-color: transparent transparent transparent white;
-  margin-left: 2px;
+  margin-left: .125rem;
   z-index: 3;
 }
 
@@ -275,7 +275,7 @@ video-player.video-paused:hover::before {
 }
 
 /* Force hardware acceleration on mobile */
-@media screen and (max-width: 767px) {
+@media screen and (max-width: 47.9375rem) {
   video-player {
     transform: translateZ(0);
     backface-visibility: hidden;

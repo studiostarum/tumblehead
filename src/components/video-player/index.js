@@ -6,8 +6,8 @@ const isProduction = () => {
     return process.env.NODE_ENV === 'production';
   } catch (e) {
     // If process.env is not available, check for other indicators
-    return window.location.hostname !== 'localhost' && 
-           window.location.hostname !== '127.0.0.1';
+    return window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1';
   }
 };
 
@@ -15,8 +15,8 @@ const isProduction = () => {
 const isDebugEnabled = () => {
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.has('debug') && 
-          (urlParams.get('debug') === 'video' || urlParams.get('debug') === 'true');
+    return urlParams.has('debug') &&
+      (urlParams.get('debug') === 'video' || urlParams.get('debug') === 'true');
   } catch (e) {
     return false;
   }
@@ -60,7 +60,7 @@ export class VideoPlayer extends HTMLElement {
     this.endTime = null; // Will be calculated as start time + 20 seconds unless explicitly set
     this.defaultClipDuration = 20; // Default clip duration in seconds
     this.loopCheckInterval = null; // Interval to check for loop points
-    
+
     if (this.debugMode) {
       logger.log('Debug mode enabled for VideoPlayer');
     }
@@ -72,36 +72,36 @@ export class VideoPlayer extends HTMLElement {
 
   attributeChangedCallback(name, oldValue, newValue) {
     let shouldRender = false;
-    
+
     if (name === 'data-video-id' && newValue !== oldValue) {
       this.videoId = this.extractVideoId(newValue);
       shouldRender = true;
     }
-    
+
     if (name === 'data-lightbox' && newValue !== oldValue) {
       this.useLightbox = newValue === 'true';
       shouldRender = true;
     }
-    
+
     if (name === 'data-responsive' && newValue !== oldValue) {
       this.responsive = newValue === 'true';
       this.updateResponsiveState();
       shouldRender = true;
     }
-    
+
     if (name === 'data-poster' && newValue !== oldValue) {
       this.posterImage = newValue;
       this.updatePosterImage();
     }
-    
+
     if (name === 'data-performance-mode' && newValue !== oldValue) {
       this.performanceMode = newValue === 'true';
       this.updatePerformanceMode();
     }
-    
+
     if (name === 'data-start-time' && newValue !== oldValue) {
       this.startTime = this.parseTimeValue(newValue, 0);
-      
+
       // If end time was not explicitly set, update it to be start time + default duration
       if (!this.hasAttribute('data-end-time')) {
         this.endTime = this.startTime + this.defaultClipDuration;
@@ -109,15 +109,15 @@ export class VideoPlayer extends HTMLElement {
           logger.log(`Auto-adjusting end time to ${this.endTime} seconds (${this.defaultClipDuration}s after start time)`);
         }
       }
-      
+
       this.updateLoopSettings();
     }
-    
+
     if (name === 'data-end-time' && newValue !== oldValue) {
       this.endTime = this.parseTimeValue(newValue, null);
       this.updateLoopSettings();
     }
-    
+
     // Only render if needed and after ensuring Vimeo API is loaded
     if (shouldRender) {
       this.loadVimeoAPI().then(() => {
@@ -133,7 +133,7 @@ export class VideoPlayer extends HTMLElement {
     this.posterImage = this.getAttribute('data-poster');
     this.performanceMode = this.getAttribute('data-performance-mode') === 'true';
     this.startTime = this.parseTimeValue(this.getAttribute('data-start-time'), 0);
-    
+
     // Set end time with smart defaults (start time + 20 seconds)
     if (this.hasAttribute('data-end-time')) {
       this.endTime = this.parseTimeValue(this.getAttribute('data-end-time'), null);
@@ -143,27 +143,27 @@ export class VideoPlayer extends HTMLElement {
         logger.log(`Using default end time: ${this.endTime} seconds (${this.defaultClipDuration}s clip)`);
       }
     }
-    
+
     // Auto-detect if performance mode should be enabled
     if (this.getAttribute('data-performance-mode') === null) {
       this.detectPerformanceMode();
     }
-    
+
     // If no poster is provided, try to fetch one from Vimeo
     if (!this.posterImage && this.videoId) {
       this.fetchVimeoThumbnail();
     }
-    
+
     // Preload API for visible videos immediately
     const isVisible = this.isElementInViewport(this);
-    
+
     // Immediately load Vimeo API for all videos to reduce startup time
     // Wait for Vimeo API to load before rendering
     this.loadVimeoAPI().then(() => {
       // Render immediately after API is loaded
       this.render();
     });
-    
+
     // Initialize lightbox if needed
     if (this.useLightbox) {
       this.lightbox = new Lightbox();
@@ -174,13 +174,13 @@ export class VideoPlayer extends HTMLElement {
 
     // Use passive event listeners for better scroll performance
     window.addEventListener('resize', this.resizeHandler, { passive: true });
-    
+
     // Initial resize calculation with frame delay for better performance
     requestAnimationFrame(() => this.handleResize());
-    
+
     // Setup visibility observer to pause/play based on visibility
     this.setupVisibilityObserver();
-    
+
     // Also handle page visibility changes with passive listener
     document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this), { passive: true });
   }
@@ -188,33 +188,33 @@ export class VideoPlayer extends HTMLElement {
   disconnectedCallback() {
     // Clean up resize listener when element is removed
     window.removeEventListener('resize', this.resizeHandler);
-    
+
     // Clean up visibility observer
     if (this.visibilityObserver) {
       this.visibilityObserver.disconnect();
     }
-    
+
     // Remove visibility change listener
     document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
-    
+
     // Clean up loop check interval
     if (this.loopCheckInterval) {
       clearInterval(this.loopCheckInterval);
       this.loopCheckInterval = null;
     }
-    
+
     // Clean up video players
     if (this.backgroundPlayer) {
       try {
-        this.backgroundPlayer.destroy().catch(() => {});
+        this.backgroundPlayer.destroy().catch(() => { });
       } catch (e) {
         // Ignore any errors when destroying the player
       }
     }
-    
+
     if (this.lightboxPlayer) {
       try {
-        this.lightboxPlayer.unload().catch(() => {});
+        this.lightboxPlayer.unload().catch(() => { });
       } catch (e) {
         // Ignore any errors when unloading the player
       }
@@ -228,36 +228,36 @@ export class VideoPlayer extends HTMLElement {
       // Adjust scale based on aspect ratio differences
       const containerAspect = this.offsetWidth / this.offsetHeight;
       // Default 16:9 video aspect ratio, but could be adjusted dynamically if known
-      const videoAspect = 16/9;
-      
+      const videoAspect = 16 / 9;
+
       let scale = 1.2; // Reduced default scale for better performance
-      
+
       // Calculate container size in pixels
       const containerSize = this.offsetWidth * this.offsetHeight;
       const isLargePlayer = containerSize > 500000; // Threshold for "large" player (approx 800x625px)
-      
+
       // Adjust scale based on aspect ratio comparison
       if (containerAspect > videoAspect) {
         // Container is wider than video, need to scale width more
         // Use smaller scale for large players to improve performance
-        scale = isLargePlayer ? 
-          containerAspect / videoAspect * 1.05 : 
+        scale = isLargePlayer ?
+          containerAspect / videoAspect * 1.05 :
           containerAspect / videoAspect * 1.2;
       } else {
         // Container is taller than video, need to scale height more
         // Use smaller scale for large players to improve performance
-        scale = isLargePlayer ? 
-          videoAspect / containerAspect * 1.05 : 
+        scale = isLargePlayer ?
+          videoAspect / containerAspect * 1.05 :
           videoAspect / containerAspect * 1.2;
       }
-      
+
       // Apply the scale with consistent transform origin
       iframe.style.transformOrigin = 'center center';
       iframe.style.transform = `translate(-50%, -50%) scale(${scale})`;
-      
+
       // Check if we're in portrait mode (9:16) and adjust quality if needed
       const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;
-      
+
       // Large players don't need high quality when scaling less
       if (this.backgroundPlayer && this.backgroundPlayer._qualitySettingSupported !== false) {
         if (isPortrait && !isLargePlayer) {
@@ -273,12 +273,12 @@ export class VideoPlayer extends HTMLElement {
 
   extractVideoId(input) {
     if (!input) return '';
-    
+
     // Check if input is already just an ID (numbers only)
     if (/^\d+$/.test(input)) {
       return input;
     }
-    
+
     // Try to extract ID from URL
     const match = input.match(/(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/);
     return match ? match[1] : '';
@@ -295,7 +295,7 @@ export class VideoPlayer extends HTMLElement {
           resolve();
           return;
         }
-        
+
         // Otherwise wait for existing script to load
         const checkVimeo = setInterval(() => {
           if (window.Vimeo && window.Vimeo.Player) {
@@ -306,7 +306,7 @@ export class VideoPlayer extends HTMLElement {
         }, 100);
         return;
       }
-      
+
       // Otherwise create and load the script
       const script = document.createElement('script');
       script.src = 'https://player.vimeo.com/api/player.js';
@@ -321,14 +321,14 @@ export class VideoPlayer extends HTMLElement {
           }
         }, 100);
       };
-      
+
       document.head.appendChild(script);
     });
   }
 
   createBackgroundVideo() {
     const elements = [];
-    
+
     // Add poster image (if available)
     if (this.posterImage) {
       const poster = document.createElement('div');
@@ -336,32 +336,32 @@ export class VideoPlayer extends HTMLElement {
       poster.style.backgroundImage = `url(${this.posterImage})`;
       elements.push(poster);
     }
-    
+
     // Create iframe for background video
     const iframe = document.createElement('iframe');
     iframe.className = 'video-player__background';
     iframe.id = `video-player-background-${this.videoId}`;
-    
+
     // Simplify parameters to ensure video plays
     let videoParams = 'background=1&autoplay=1&loop=1&muted=1&quality=360p&playsinline=1';
-    
+
     // Use very low quality on mobile
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       videoParams = 'background=1&autoplay=1&loop=1&muted=1&quality=240p&playsinline=1';
     }
-    
+
     // Add start time parameter if specified
     if (this.startTime > 0) {
       videoParams += `&#t=${this.startTime}s`;
     }
-    
+
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${videoParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
-    
+
     // Add iframe to DOM
     elements.push(iframe);
-    
+
     // Set a direct fallback timer to ensure thumbnail fades out even if player fails
     const directFallbackTimer = setTimeout(() => {
       if (this.debugMode) {
@@ -369,12 +369,12 @@ export class VideoPlayer extends HTMLElement {
       }
       this.classList.add('video-loaded');
     }, 3000);
-    
+
     // Initialize Vimeo player
     if (window.Vimeo && window.Vimeo.Player) {
       try {
         this.backgroundPlayer = new window.Vimeo.Player(iframe);
-        
+
         // Always ensure background video plays for lightbox videos
         if (this.useLightbox) {
           this.backgroundPlayer.on('pause', () => {
@@ -382,21 +382,21 @@ export class VideoPlayer extends HTMLElement {
             this.backgroundPlayer.play();
           });
         }
-        
+
         // Set up event handling for player
         this.backgroundPlayer.on('loaded', () => {
           clearTimeout(directFallbackTimer);
-          
+
           // Force background play
           this.backgroundPlayer.play().catch(err => {
             logger.error('Could not play video', err);
           });
-          
+
           // Remove poster image when video is loaded
           const forceVideoLoaded = () => {
             // Add class to fade out poster
             this.classList.add('video-loaded');
-            
+
             // Check support for quality API
             if (this.performanceMode) {
               // In performance mode, force lowest quality
@@ -405,12 +405,12 @@ export class VideoPlayer extends HTMLElement {
               // Otherwise use appropriate quality for device
               this.checkQualityApiSupport(this.backgroundPlayer);
             }
-            
+
             if (this.debugMode) {
               logger.log('Background video loaded, playing...');
             }
           };
-          
+
           // Either force immediately or wait for play event
           this.backgroundPlayer.getPlaying().then(playing => {
             if (playing) {
@@ -422,7 +422,7 @@ export class VideoPlayer extends HTMLElement {
             // If we cannot get playing status, just force it
             forceVideoLoaded();
           });
-          
+
           // Force background video to play on a regular interval for lightbox videos
           if (this.useLightbox) {
             setInterval(() => {
@@ -430,7 +430,7 @@ export class VideoPlayer extends HTMLElement {
             }, 2000);
           }
         });
-        
+
         // Monitor performance to potentially reduce quality
         this.monitorPlayerPerformance(this.backgroundPlayer);
       } catch (e) {
@@ -442,72 +442,72 @@ export class VideoPlayer extends HTMLElement {
       logger.error('Vimeo API not loaded');
       this.classList.add('video-loaded');
     }
-    
+
     if (this.useLightbox) {
       // Create overlay with play button
       const overlay = document.createElement('div');
       overlay.className = 'video-player__overlay';
-      
+
       const playButton = document.createElement('button');
       playButton.className = 'video-player__play-button';
       playButton.setAttribute('aria-label', 'Play video');
-      
+
       const playIcon = document.createElement('div');
       playIcon.className = 'video-player__play-icon';
-      
+
       playButton.appendChild(playIcon);
       overlay.appendChild(playButton);
-      
+
       // Make the entire overlay clickable to open lightbox
       overlay.style.cursor = 'pointer';
       overlay.addEventListener('click', (e) => {
         this.openLightbox();
       });
-      
+
       // Add event listener to play button (for backward compatibility)
       playButton.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent double triggering when clicking the button
         this.openLightbox();
       });
-      
+
       elements.push(overlay);
     }
-    
+
     return elements;
   }
 
   openLightbox() {
     if (!this.lightbox) return;
-    
+
     // Set lightbox active state
     this.classList.add('lightbox-active');
-    
+
     // Create container for the iframe and poster
     const container = document.createElement('div');
     container.className = 'lightbox-iframe-container';
-    
+
     // Create a new iframe for the lightbox without stopping the background video
     const iframe = document.createElement('iframe');
     iframe.width = '100%';
     iframe.height = '100%';
-    
+
     // For lightbox videos, set a higher quality and enable controls
     // Always start at 0 for lightbox videos, ignoring the start time setting of the component
     let lightboxParams = 'autoplay=1&byline=0&title=0&autopause=0&quality=1080p&preload=metadata&controls=1&transparent=0';
-    
+
     // Remove any start time parameter - always play from beginning
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${lightboxParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
     iframe.setAttribute('allowfullscreen', true);
-    
+
     // Add iframe to container
     container.appendChild(iframe);
-    
+
     // Create poster element for instant visual feedback
     const poster = document.createElement('div');
     poster.className = 'lightbox-poster';
-    
+
     // Use the current poster image if available
     if (this.posterImage) {
       poster.style.backgroundImage = `url(${this.posterImage})`;
@@ -516,16 +516,16 @@ export class VideoPlayer extends HTMLElement {
       const thumbnailUrl = `https://vumbnail.com/${this.videoId}.jpg`;
       poster.style.backgroundImage = `url(${thumbnailUrl})`;
     }
-    
+
     // Create a lightbox content structure with iframe and poster
     const content = document.createDocumentFragment();
     content.appendChild(container);
     content.appendChild(poster);
-    
+
     // Set content immediately to show the lightbox faster
     this.lightbox.setContent(content);
     this.lightbox.open();
-    
+
     // Store a reference to the lightbox instance for the close event
     const originalClose = this.lightbox.close.bind(this.lightbox);
     this.lightbox.close = () => {
@@ -534,16 +534,16 @@ export class VideoPlayer extends HTMLElement {
         this.lightboxPlayer.unload();
         this.lightboxPlayer = null;
       }
-      
+
       // Call the original close method
       originalClose();
-      
+
       // Restore the original close method
       this.lightbox.close = originalClose;
-      
+
       // Remove lightbox active state
       this.classList.remove('lightbox-active');
-      
+
       // Ensure background player is always playing
       if (this.backgroundPlayer) {
         this.backgroundPlayer.play().catch(() => {
@@ -552,33 +552,33 @@ export class VideoPlayer extends HTMLElement {
         });
       }
     };
-    
+
     // Initialize the lightbox player immediately after setting content
     if (window.Vimeo && window.Vimeo.Player) {
       // Initialize player with no delay
       try {
         this.lightboxPlayer = new window.Vimeo.Player(iframe);
-        
+
         // Force immediate play
         this.lightboxPlayer.play();
-        
+
         // Hide poster once video starts playing
         this.lightboxPlayer.on('play', () => {
           poster.classList.add('hidden');
-          
+
           // Make sure background video keeps playing
           if (this.backgroundPlayer) {
             this.backgroundPlayer.play();
           }
         });
-        
+
         // Also handle the loaded event to hide poster
         this.lightboxPlayer.on('loaded', () => {
           setTimeout(() => {
             poster.classList.add('hidden');
           }, 100);
         });
-        
+
         // No longer force background video to play when lightbox video is paused
         // to allow user interaction with the lightbox video
       } catch (e) {
@@ -594,7 +594,7 @@ export class VideoPlayer extends HTMLElement {
         poster.classList.add('hidden');
       }, 1500);
     }
-    
+
     // Force background video to keep playing
     if (this.backgroundPlayer) {
       // Quick play call
@@ -607,15 +607,15 @@ export class VideoPlayer extends HTMLElement {
     while (this.firstChild) {
       this.removeChild(this.firstChild);
     }
-    
+
     if (!this.videoId) return;
-    
+
     const elements = this.createBackgroundVideo();
     elements.forEach(element => this.appendChild(element));
-    
+
     // Add necessary styling directly to the custom element
     this.classList.add('video-player');
-    
+
     // Update responsive state
     this.updateResponsiveState();
   }
@@ -630,12 +630,12 @@ export class VideoPlayer extends HTMLElement {
 
   safelySetQuality(player, quality) {
     if (!player) return;
-    
+
     // Skip quality setting entirely if we're in production mode and not in debug mode
     if (isProduction() && !this.debugMode) {
       return;
     }
-    
+
     try {
       // First check if quality setting is even supported for this player instance
       if (typeof player.getQualities !== 'function' || typeof player.setQuality !== 'function') {
@@ -644,25 +644,25 @@ export class VideoPlayer extends HTMLElement {
         }
         return;
       }
-      
+
       // Store a flag on the player instance to prevent repeated attempts for the same video
       if (player._qualitySettingAttempted) {
         return;
       }
-      
+
       // Mark that we've attempted to set quality for this player
       player._qualitySettingAttempted = true;
-      
+
       // First just check if the method exists and works without actually changing quality
       player.getQualities()
         .then(qualities => {
           // Only proceed if we actually have quality options
           if (qualities && Array.isArray(qualities) && qualities.length > 0) {
             // Check if our requested quality is in the available qualities
-            const hasRequestedQuality = qualities.some(q => 
+            const hasRequestedQuality = qualities.some(q =>
               typeof q === 'string' ? q === quality : q.label === quality || q.id === quality
             );
-            
+
             if (hasRequestedQuality) {
               return player.setQuality(quality);
             } else {
@@ -696,20 +696,20 @@ export class VideoPlayer extends HTMLElement {
 
   monitorPlayerPerformance(player) {
     if (!player) return;
-    
+
     try {
       // For mobile, just set connection quality to low directly
       if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         this.connectionQuality = 'low';
         return;
       }
-      
+
       // Set default connection quality based on navigator.connection if available
       if (navigator.connection) {
         const connection = navigator.connection;
         const effectiveType = connection.effectiveType; // 'slow-2g', '2g', '3g', or '4g'
         const downlink = connection.downlink; // Mbps
-        
+
         if (effectiveType === '4g' && downlink > 5) {
           this.connectionQuality = 'high';
         } else if (effectiveType === '4g' || (effectiveType === '3g' && downlink > 2)) {
@@ -731,27 +731,27 @@ export class VideoPlayer extends HTMLElement {
     // More comprehensive performance detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     let shouldEnablePerformanceMode = isMobile;
-    
+
     // Check for low memory devices
     if (!shouldEnablePerformanceMode && navigator.deviceMemory && navigator.deviceMemory < 4) {
       shouldEnablePerformanceMode = true;
     }
-    
+
     // Check for low-end devices with fewer CPU cores
     if (!shouldEnablePerformanceMode && navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
       shouldEnablePerformanceMode = true;
     }
-    
+
     // Check for slow connection
     if (!shouldEnablePerformanceMode && navigator.connection) {
       const conn = navigator.connection;
-      if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || 
-          (conn.effectiveType === '3g' && conn.downlink < 1.5) ||
-          conn.saveData) {
+      if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' ||
+        (conn.effectiveType === '3g' && conn.downlink < 1.5) ||
+        conn.saveData) {
         shouldEnablePerformanceMode = true;
       }
     }
-    
+
     if (shouldEnablePerformanceMode) {
       this.performanceMode = true;
       if (this.debugMode) {
@@ -764,7 +764,7 @@ export class VideoPlayer extends HTMLElement {
     if (this.performanceMode) {
       // Apply performance mode optimizations
       this.classList.add('performance-mode');
-      
+
       // If already has a background player, adjust settings
       if (this.backgroundPlayer) {
         // Only attempt to set quality if we haven't already determined it's not supported
@@ -772,7 +772,7 @@ export class VideoPlayer extends HTMLElement {
           // Set to lowest quality in performance mode
           this.safelySetQuality(this.backgroundPlayer, '240p');
         }
-        
+
         // Try to reduce frame rate if possible - using try/catch for safety
         try {
           // Some services support frame rate control
@@ -793,7 +793,7 @@ export class VideoPlayer extends HTMLElement {
       }
     } else {
       this.classList.remove('performance-mode');
-      
+
       // Restore normal quality settings if player exists
       if (this.backgroundPlayer) {
         this.monitorPlayerPerformance(this.backgroundPlayer);
@@ -813,7 +813,7 @@ export class VideoPlayer extends HTMLElement {
             this.classList.remove('video-paused');
             return;
           }
-          
+
           if (entry.isIntersecting) {
             // Only play video when more visible (50% threshold)
             if (entry.intersectionRatio >= 0.5) {
@@ -834,18 +834,18 @@ export class VideoPlayer extends HTMLElement {
         rootMargin: '0px',
         threshold: [0.1, 0.5, 0.9] // Track multiple thresholds for better control
       });
-      
+
       this.visibilityObserver.observe(this);
     }
   }
-  
+
   handleVisibilityChange() {
     // Always play lightbox background videos, even when tab is not visible
     if (this.useLightbox && this.backgroundPlayer) {
       this.backgroundPlayer.play();
       return;
     }
-    
+
     if (document.hidden) {
       // Page is hidden, pause video for non-lightbox videos
       if (this.backgroundPlayer && !this.useLightbox) {
@@ -859,7 +859,7 @@ export class VideoPlayer extends HTMLElement {
       }
     }
   }
-  
+
   isElementInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -873,7 +873,7 @@ export class VideoPlayer extends HTMLElement {
   updatePosterImage() {
     // Find all poster elements (there may be multiple)
     const posters = this.querySelectorAll('.video-player__poster');
-    
+
     if (this.posterImage && posters.length > 0) {
       // Update all poster elements
       posters.forEach(poster => {
@@ -885,7 +885,7 @@ export class VideoPlayer extends HTMLElement {
       const poster = document.createElement('div');
       poster.className = 'video-player__poster';
       poster.style.backgroundImage = `url(${this.posterImage})`;
-      
+
       // Add as the first child to appear behind other elements
       if (this.firstChild) {
         this.insertBefore(poster, this.firstChild);
@@ -900,13 +900,13 @@ export class VideoPlayer extends HTMLElement {
     if (value === null || value === undefined) {
       return defaultValue;
     }
-    
+
     // Try parsing as float (assuming seconds)
     const parsed = parseFloat(value);
     if (!isNaN(parsed)) {
       return parsed;
     }
-    
+
     // Try parsing time format like "1:30" (1 min 30 sec)
     const timeMatch = /^(\d+):(\d+)$/.exec(value);
     if (timeMatch) {
@@ -914,7 +914,7 @@ export class VideoPlayer extends HTMLElement {
       const seconds = parseInt(timeMatch[2], 10);
       return (minutes * 60) + seconds;
     }
-    
+
     return defaultValue;
   }
 
@@ -941,7 +941,7 @@ export class VideoPlayer extends HTMLElement {
           }
         });
       }
-      
+
       // Setup loop checking if we have both start and end times
       this.setupLoopChecking();
     } catch (e) {
@@ -991,12 +991,12 @@ export class VideoPlayer extends HTMLElement {
   // Helper method to check quality API support
   checkQualityApiSupport(player) {
     if (!player) return false;
-    
+
     try {
       // Initial assumptions - will be verified/modified during checks
       player._qualitySettingAttempted = false;
       player._qualitySettingSupported = true;
-      
+
       // Check if method exists
       if (typeof player.getQualities !== 'function' || typeof player.setQuality !== 'function') {
         player._qualitySettingSupported = false;
@@ -1005,7 +1005,7 @@ export class VideoPlayer extends HTMLElement {
         }
         return false;
       }
-      
+
       // Check if getQualities returns a valid result
       player.getQualities().then(qualities => {
         if (!qualities || !Array.isArray(qualities) || qualities.length === 0) {
@@ -1015,12 +1015,12 @@ export class VideoPlayer extends HTMLElement {
           }
           return false;
         }
-        
+
         // Log available qualities in debug mode
         if (this.debugMode) {
           logger.log('Available video qualities:', qualities);
         }
-        
+
         // Mark as supported - quality setting should work
         player._qualitySettingSupported = true;
         return true;
@@ -1046,11 +1046,11 @@ export class VideoPlayer extends HTMLElement {
   // Fetch a thumbnail from the Vimeo API
   fetchVimeoThumbnail() {
     if (!this.videoId) return;
-    
+
     try {
       // Use Vimeo oEmbed API to get video information including thumbnail
       const oembedUrl = `https://vimeo.com/api/oembed.json?url=https://vimeo.com/${this.videoId}`;
-      
+
       fetch(oembedUrl)
         .then(response => {
           if (!response.ok) {
@@ -1062,11 +1062,11 @@ export class VideoPlayer extends HTMLElement {
           if (data && data.thumbnail_url) {
             // Get a larger thumbnail by modifying the URL (from 640 to 1280 width)
             const largeThumbnail = data.thumbnail_url.replace('_640', '_1280');
-            
+
             // Set the poster image
             this.posterImage = largeThumbnail;
             this.updatePosterImage();
-            
+
             if (this.debugMode) {
               logger.log(`Loaded thumbnail from Vimeo: ${this.posterImage}`);
             }

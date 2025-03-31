@@ -22,7 +22,7 @@
 .lightbox-content {
   position: relative;
   width: 80%;
-  max-width: 900px;
+  max-width: 56.25rem;
   aspect-ratio: 16/9;
 }
 
@@ -63,14 +63,14 @@
 
 .lightbox-close {
   position: absolute;
-  top: -40px;
+  top: -2.5rem;
   right: 0;
-  width: 30px;
-  height: 30px;
+  width: 1.875rem;
+  height: 1.875rem;
   background: transparent;
   border: none;
   color: white;
-  font-size: 24px;
+  font-size: 1.5rem;
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -81,8 +81,8 @@
 .lightbox-close:before, .lightbox-close:after {
   content: '';
   position: absolute;
-  width: 20px;
-  height: 2px;
+  width: 1.25rem;
+  height: .125rem;
   background-color: white;
 }
 
