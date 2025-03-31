@@ -1,8 +1,16 @@
 export function LogoSlider() {
-    const copy = document.querySelector(".logo-slider__container").cloneNode(true);
-    document.querySelector(".logo-slider").appendChild(copy);
+    const container = document.querySelector(".logo-slider__container");
+    const slider = document.querySelector(".logo-slider");
+    
+    if (container && slider) {
+        const copy = container.cloneNode(true);
+        slider.appendChild(copy);
+    }
 }
 
-LogoSlider();
+// Only run if we're in a browser environment
+if (typeof document !== 'undefined') {
+    LogoSlider();
+}
 
 export default LogoSlider;
