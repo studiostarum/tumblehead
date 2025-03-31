@@ -162,6 +162,8 @@ export class VideoPlayer extends HTMLElement {
     this.loadVimeoAPI().then(() => {
       // Render immediately after API is loaded
       this.render();
+      // Ensure proper initialization
+      this.ensureProperVideoInitialization();
     });
 
     // Initialize lightbox if needed
@@ -254,6 +256,10 @@ export class VideoPlayer extends HTMLElement {
       // Apply the scale with consistent transform origin
       iframe.style.transformOrigin = 'center center';
       iframe.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      
+      // Ensure the iframe is positioned correctly by setting top and left explicitly
+      iframe.style.top = '50%';
+      iframe.style.left = '50%';
 
       // Check if we're in portrait mode (9:16) and adjust quality if needed
       const isPortrait = this.offsetWidth < this.offsetHeight || containerAspect < 1;
@@ -359,6 +365,12 @@ export class VideoPlayer extends HTMLElement {
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
 
+    // Apply initial positioning to ensure it's centered
+    iframe.style.top = '50%';
+    iframe.style.left = '50%';
+    iframe.style.transform = 'translate(-50%, -50%) scale(1.2)';
+    iframe.style.transformOrigin = 'center center';
+
     // Create a wrapper for the iframe to help with positioning
     const backgroundWrapper = document.createElement('div');
     backgroundWrapper.className = 'video-player__background-wrapper';
@@ -410,6 +422,9 @@ export class VideoPlayer extends HTMLElement {
               // Otherwise use appropriate quality for device
               this.checkQualityApiSupport(this.backgroundPlayer);
             }
+
+            // Ensure proper sizing of the video - call handleResize explicitly
+            this.handleResize();
 
             if (this.debugMode) {
               logger.log('Background video loaded, playing...');
@@ -623,6 +638,10 @@ export class VideoPlayer extends HTMLElement {
 
     // Update responsive state
     this.updateResponsiveState();
+    
+    // Run handleResize immediately and then again after a short delay
+    this.handleResize();
+    setTimeout(() => this.handleResize(), 50);
   }
 
   updateResponsiveState() {
@@ -1087,6 +1106,26 @@ export class VideoPlayer extends HTMLElement {
         logger.warn(`Error in fetchVimeoThumbnail: ${e.message}`);
       }
     }
+  }
+
+  // Add new method to ensure the video is properly initialized
+  ensureProperVideoInitialization() {
+    requestAnimationFrame(() => {
+      const iframe = this.querySelector('.video-player__background');
+      if (iframe) {
+        // Make sure positioning is correct
+        iframe.style.top = '50%';
+        iframe.style.left = '50%';
+        iframe.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        iframe.style.transformOrigin = 'center center';
+        
+        // Call handle resize to adjust scale based on container
+        this.handleResize();
+        
+        // Set another timeout to ensure it's properly scaled after all resources load
+        setTimeout(() => this.handleResize(), 500);
+      }
+    });
   }
 }
 
