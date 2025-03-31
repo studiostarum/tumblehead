@@ -7,35 +7,3 @@
         transform: translateX(-100%);
     }
 }
-
-.logo-slider {
-    overflow: hidden;
-    white-space: nowrap;
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.logo-slider__container {
-    display: flex;
-    align-items: center;
-    animation: 35s slide infinite linear;
-}
-
-.logo-slider__item img {
-    height: 4rem;
-    margin: 0 0.5rem;
-}
-
-@media (min-width: 768px) {
-    .logo-slider__item img {
-        height: 6rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .logo-slider__item img {
-        height: 8rem;
-        margin: 0 1rem;
-    }
-}
