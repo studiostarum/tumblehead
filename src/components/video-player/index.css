@@ -31,9 +31,12 @@ video-player.responsive {
   height: 100%;
   transform: translate(-50%, -50%) scale(1.5);
   pointer-events: none;
-  opacity: 1; /* Start fully visible */
+  opacity: 1; /* Always fully visible */
   will-change: transform; /* Optimize for GPU rendering */
   z-index: 1;
+  /* No transitions needed for immediate display */
+  transform-style: flat;
+  backface-visibility: hidden;
 }
 
 .video-player__poster {
@@ -46,29 +49,7 @@ video-player.responsive {
   background-position: center;
   background-repeat: no-repeat;
   z-index: 0; /* Position below video */
-  opacity: 0.6; /* Show partially through until video loads */
-  transition: opacity 0.5s ease;
-}
-
-.video-player__spinner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: video-player-spin 1s linear infinite;
-  z-index: 2;
-  opacity: 1;
-  transition: opacity 0.3s ease;
-}
-
-.video-player__spinner.hidden {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.8; /* Show more clearly until video fully loads */
 }
 
 .video-player__overlay {
@@ -167,34 +148,6 @@ video-player.performance-mode {
   containing: content; /* Improve rendering optimization */
 }
 
-/* Add color fade transition when video loading */
-video-player::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 0;
-}
-
-video-player.loading::before {
-  opacity: 0.5;
-}
-
-/* Optimize for reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .video-player__background,
-  .video-player__play-button,
-  .video-player__overlay {
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
 /* Mobile optimizations */
 @media screen and (max-width: 767px) {
   .video-player__background {
@@ -203,6 +156,10 @@ video-player.loading::before {
   
   video-player.performance-mode .video-player__background {
     transform: translate(-50%, -50%) scale(1.1); /* Even less scaling in performance mode */
+  }
+  video-player {
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 }
 
@@ -244,4 +201,22 @@ video-player.video-paused:hover::before {
   border-color: transparent transparent transparent white;
   margin-left: 2px;
   z-index: 3;
+}
+
+/* Optimize for reduced motion and performance */
+@media (prefers-reduced-motion: reduce) {
+  .video-player__background,
+  .video-player__play-button,
+  .video-player__overlay {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Force hardware acceleration on mobile */
+@media screen and (max-width: 767px) {
+  video-player {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
 }

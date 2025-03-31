@@ -143,8 +143,8 @@ export class VideoPlayer extends HTMLElement {
     // Load Vimeo API
     this.loadVimeoAPI();
     
-    // Add intersection observer for lazy loading
-    this.setupLazyLoading();
+    // Render immediately
+    this.render();
     
     // Initialize lightbox if needed
     if (this.useLightbox) {
@@ -159,16 +159,17 @@ export class VideoPlayer extends HTMLElement {
     
     // Initial resize calculation
     setTimeout(() => this.handleResize(), 100);
+    
+    // Setup visibility observer to pause/play based on visibility
+    this.setupVisibilityObserver();
+    
+    // Also handle page visibility changes
+    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
   }
 
   disconnectedCallback() {
     // Clean up resize listener when element is removed
     window.removeEventListener('resize', this.resizeHandler);
-    
-    // Clean up intersection observer
-    if (this.observer) {
-      this.observer.disconnect();
-    }
     
     // Clean up visibility observer
     if (this.visibilityObserver) {
@@ -281,7 +282,7 @@ export class VideoPlayer extends HTMLElement {
     
     // Create iframe for background video
     const iframe = document.createElement('iframe');
-    iframe.className = 'video-player__background loaded'; // Add loaded class immediately
+    iframe.className = 'video-player__background'; // No loaded class needed as we show immediately
     iframe.id = `video-player-background-${this.videoId}`;
     
     // Always use a lower quality for background videos 
@@ -306,64 +307,63 @@ export class VideoPlayer extends HTMLElement {
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${videoParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
-    iframe.setAttribute('loading', 'eager'); // Change to eager loading for immediate display
+    iframe.setAttribute('loading', 'eager'); // Ensure eager loading
     iframe.setAttribute('fetchpriority', 'high'); // Prioritize fetching
+    iframe.setAttribute('importance', 'high'); // Add importance attribute
     
     // Initialize Vimeo player if API is loaded
     if (window.Vimeo && window.Vimeo.Player) {
-      // We'll initialize the player after it's added to the DOM
-      setTimeout(() => {
-        try {
-          this.backgroundPlayer = new window.Vimeo.Player(iframe);
-          this.backgroundPlayer.setVolume(0); // Ensure it's muted
-          this.backgroundPlayer.setLoop(true); // Ensure it loops
-          
-          // Check if quality setting API is available for this player instance
-          this.checkQualityApiSupport(this.backgroundPlayer);
-          
-          // Set connection quality based on device capabilities
-          this.monitorPlayerPerformance(this.backgroundPlayer);
+      // We'll initialize the player immediately to ensure fast loading
+      try {
+        this.backgroundPlayer = new window.Vimeo.Player(iframe);
+        this.backgroundPlayer.setVolume(0); // Ensure it's muted
+        this.backgroundPlayer.setLoop(true); // Ensure it loops
+        
+        // Check if quality setting API is available for this player instance
+        this.checkQualityApiSupport(this.backgroundPlayer);
+        
+        // Set connection quality based on device capabilities
+        this.monitorPlayerPerformance(this.backgroundPlayer);
 
-          // Apply custom start/end times if specified
-          this.updateLoopSettings();
+        // Apply custom start/end times if specified
+        this.updateLoopSettings();
 
-          // Make sure we start at the right position
-          if (this.startTime > 0) {
-            this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
-              if (this.debugMode) {
-                logger.warn('Could not set initial start time:', e.message);
-              }
-            });
-          }
+        // Make sure we start at the right position
+        if (this.startTime > 0) {
+          this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+            if (this.debugMode) {
+              logger.warn('Could not set initial start time:', e.message);
+            }
+          });
+        }
 
-          // Setup ended event handler to handle looping with custom start/end times
-          if (this.endTime !== null) {
-            try {
-              this.backgroundPlayer.on('ended', () => {
-                // When video ends naturally, go back to start time
-                this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
-                  if (this.debugMode) {
-                    logger.warn('Could not reset to start time after end:', e.message);
-                  }
-                });
+        // Setup ended event handler to handle looping with custom start/end times
+        if (this.endTime !== null) {
+          try {
+            this.backgroundPlayer.on('ended', () => {
+              // When video ends naturally, go back to start time
+              this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+                if (this.debugMode) {
+                  logger.warn('Could not reset to start time after end:', e.message);
+                }
               });
-            } catch (e) {
-              if (this.debugMode) {
-                logger.warn('Could not set ended event handler:', e.message);
-              }
+            });
+          } catch (e) {
+            if (this.debugMode) {
+              logger.warn('Could not set ended event handler:', e.message);
             }
           }
-
-          // Handle errors
-          this.backgroundPlayer.on('error', (error) => {
-            logger.error('Vimeo player error:', error);
-          });
-          
-          logger.log('Background player initialized');
-        } catch (e) {
-          logger.error('Failed to initialize Vimeo player:', e);
         }
-      }, 0);
+
+        // Handle errors
+        this.backgroundPlayer.on('error', (error) => {
+          logger.error('Vimeo player error:', error);
+        });
+        
+        logger.log('Background player initialized');
+      } catch (e) {
+        logger.error('Failed to initialize Vimeo player:', e);
+      }
     }
     
     elements.push(iframe);
@@ -663,18 +663,6 @@ export class VideoPlayer extends HTMLElement {
     }
   }
 
-  setupLazyLoading() {
-    // Instead of using an intersection observer, render immediately 
-    // to avoid the loading delay on mobile
-    this.render();
-    
-    // Setup visibility observer to pause/play based on visibility
-    this.setupVisibilityObserver();
-    
-    // Also handle page visibility changes
-    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
-  }
-  
   setupVisibilityObserver() {
     // Create another observer to track when video is in viewport
     if ('IntersectionObserver' in window) {
