@@ -478,15 +478,15 @@ export class VideoPlayer extends HTMLElement {
     iframe.width = '100%';
     iframe.height = '100%';
     
-    // For lightbox videos, set a higher quality since they're fullscreen and in focus
+    // For lightbox videos, set a higher quality and enable controls
     // Always start at 0 for lightbox videos, ignoring the start time setting of the component
-    // Add preload=metadata to start loading the video faster
-    let lightboxParams = 'autoplay=1&byline=0&title=0&autopause=0&quality=1080p&preload=metadata';
+    let lightboxParams = 'autoplay=1&byline=0&title=0&autopause=0&quality=1080p&preload=metadata&controls=1&transparent=0';
     
     // Remove any start time parameter - always play from beginning
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${lightboxParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+    iframe.setAttribute('allowfullscreen', true);
     
     // Add iframe to container
     container.appendChild(iframe);
@@ -566,11 +566,8 @@ export class VideoPlayer extends HTMLElement {
           }, 100);
         });
         
-        this.lightboxPlayer.on('pause', () => {
-          if (this.backgroundPlayer) {
-            this.backgroundPlayer.play();
-          }
-        });
+        // No longer force background video to play when lightbox video is paused
+        // to allow user interaction with the lightbox video
       } catch (e) {
         logger.error('Failed to initialize lightbox player:', e);
         // Hide poster after a short timeout if player fails
