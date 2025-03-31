@@ -42,7 +42,7 @@ video-player.responsive {
   pointer-events: none;
   opacity: 1;
   /* Always visible */
-  z-index: 2; /* Higher z-index to ensure it's above the poster */
+  z-index: 1; /* Lower z-index so overlay can appear above */
   transform-style: flat;
   backface-visibility: hidden;
   will-change: transform; /* Optimize transform performance */
@@ -59,7 +59,7 @@ video-player.responsive {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  z-index: 2;
+  z-index: 1; /* Lower z-index so overlay can appear above */
 }
 
 .video-player__poster {
@@ -101,6 +101,8 @@ video-player.responsive {
   cursor: pointer;
   contain: content;
   /* Add CSS containment for better performance */
+  z-index: 3; /* Higher z-index to ensure it's above the video */
+  pointer-events: auto; /* Make sure clicks are registered */
 }
 
 .video-player__overlay:hover {
@@ -119,9 +121,10 @@ video-player.responsive {
   align-items: center;
   transition: transform 0.2s ease, background-color 0.2s ease;
   /* Faster transitions */
-  z-index: 2;
+  z-index: 4; /* Higher z-index to ensure it's above the overlay */
   will-change: transform;
   /* Optimize button animations */
+  pointer-events: auto; /* Make sure clicks are registered */
 }
 
 /* Animation applies both when hovering over the button itself */
@@ -312,7 +315,6 @@ video-player.video-paused:hover::before {
 .video-player__play-button,
 .video-player__overlay {
   transform: translateZ(0);
-  z-index: 1;
 }
 
 /* Prefers-reduced-motion query */
@@ -324,5 +326,33 @@ video-player.video-paused:hover::before {
     animation: none !important;
     transform: translate(-50%, -50%) scale(1.0) !important;
     transform-origin: center center !important;
+  }
+}
+
+/* Make sure the video-loaded state doesn't hide the overlay */
+.video-player.video-loaded .video-player__overlay,
+.video-player.video-loaded .video-player__play-button {
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.video-player.video-loaded .video-player__play-button {
+  z-index: 4;
+}
+
+/* Make sure any media queries don't override our z-index settings */
+@media (prefers-reduced-motion: reduce) {
+  .video-player__overlay,
+  .video-player__play-button {
+    z-index: 3 !important;
+  }
+  
+  .video-player__play-button {
+    z-index: 4 !important;
+  }
+  
+  .video-player__background,
+  .video-player__background-wrapper {
+    z-index: 1 !important;
   }
 }

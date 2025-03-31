@@ -358,7 +358,7 @@ export class VideoPlayer extends HTMLElement {
 
     // Add start time parameter if specified
     if (this.startTime > 0) {
-      videoParams += `&#t=${this.startTime}s`;
+      videoParams += `&t=${this.startTime}s`;
     }
 
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${videoParams}`;
@@ -408,6 +408,9 @@ export class VideoPlayer extends HTMLElement {
           this.backgroundPlayer.play().catch(err => {
             logger.error('Could not play video', err);
           });
+
+          // Apply loop settings immediately after loaded
+          this.updateLoopSettings();
 
           // Remove poster image when video is loaded
           const forceVideoLoaded = () => {
@@ -480,6 +483,10 @@ export class VideoPlayer extends HTMLElement {
 
       // Make the entire overlay clickable to open lightbox
       overlay.style.cursor = 'pointer';
+      
+      // Ensure overlay is clickable by setting pointer-events to auto
+      overlay.style.pointerEvents = 'auto';
+      
       overlay.addEventListener('click', (e) => {
         this.openLightbox();
       });
@@ -949,20 +956,40 @@ export class VideoPlayer extends HTMLElement {
     try {
       // Set the start time if not at beginning
       if (this.startTime > 0) {
-        this.backgroundPlayer.getCurrentTime().then(currentTime => {
-          // Only seek if we're at the very beginning or if we're past our end time
-          // This prevents seeking while someone is already watching
-          if (currentTime < 0.1 || (this.endTime !== null && currentTime > this.endTime)) {
-            this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
-              if (this.debugMode) {
-                logger.warn('Could not set start time:', e.message);
-              }
-            });
-          }
-        }).catch(e => {
+        // Force set to start time initially
+        this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
           if (this.debugMode) {
-            logger.warn('Could not get current time to set start time:', e.message);
+            logger.warn('Could not set start time:', e.message);
           }
+        });
+
+        // Also listen for the loaded event to ensure startTime is set
+        this.backgroundPlayer.off('loaded.startTime');
+        this.backgroundPlayer.on('loaded.startTime', () => {
+          this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+            if (this.debugMode) {
+              logger.warn('Could not set start time on load:', e.message);
+            }
+          });
+        });
+        
+        // Also listen for the play event to check if we need to reset time
+        this.backgroundPlayer.off('play.startTime');
+        this.backgroundPlayer.on('play.startTime', () => {
+          this.backgroundPlayer.getCurrentTime().then(currentTime => {
+            // If at the very beginning or past end time, set to start time
+            if (currentTime < 0.1 || (this.endTime !== null && currentTime > this.endTime)) {
+              this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+                if (this.debugMode) {
+                  logger.warn('Could not set start time on play:', e.message);
+                }
+              });
+            }
+          }).catch(e => {
+            if (this.debugMode) {
+              logger.warn('Could not get current time on play:', e.message);
+            }
+          });
         });
       }
 
@@ -984,7 +1011,11 @@ export class VideoPlayer extends HTMLElement {
 
     // Only setup an interval if we have an end time
     if (this.endTime !== null && this.backgroundPlayer) {
-      // Check every 250ms if we've reached the end time
+      if (this.debugMode) {
+        logger.log(`Setting up loop checking from ${this.startTime}s to ${this.endTime}s`);
+      }
+
+      // Check every 200ms if we've reached the end time (more frequent checking for accuracy)
       this.loopCheckInterval = setInterval(() => {
         if (!this.backgroundPlayer) {
           clearInterval(this.loopCheckInterval);
@@ -995,6 +1026,9 @@ export class VideoPlayer extends HTMLElement {
         this.backgroundPlayer.getCurrentTime().then(currentTime => {
           // If we've reached or passed the end time, loop back to start time
           if (currentTime >= this.endTime) {
+            if (this.debugMode) {
+              logger.log(`Looping from ${currentTime.toFixed(2)}s back to ${this.startTime}s`);
+            }
             this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
               // Silently handle errors
               if (this.debugMode) {
@@ -1008,7 +1042,7 @@ export class VideoPlayer extends HTMLElement {
             logger.warn('Error in loop checking:', e.message);
           }
         });
-      }, 250);
+      }, 200); // More frequent checks for more precise looping
     }
   }
 
