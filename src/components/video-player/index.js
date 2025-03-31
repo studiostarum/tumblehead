@@ -53,7 +53,6 @@ export class VideoPlayer extends HTMLElement {
     this.lightboxPlayer = null;
     this.responsive = false;
     this.connectionQuality = 'high'; // Default assumption
-    this.loadingStatus = 'loading'; // Track loading status
     this.posterImage = null; // Poster image URL
     this.performanceMode = false; // Low performance mode for mobile/low-power devices
     this.debugMode = isDebugEnabled(); // Check if debug mode is enabled
@@ -187,11 +186,19 @@ export class VideoPlayer extends HTMLElement {
     
     // Clean up video players
     if (this.backgroundPlayer) {
-      this.backgroundPlayer.destroy();
+      try {
+        this.backgroundPlayer.destroy().catch(() => {});
+      } catch (e) {
+        // Ignore any errors when destroying the player
+      }
     }
     
     if (this.lightboxPlayer) {
-      this.lightboxPlayer.destroy();
+      try {
+        this.lightboxPlayer.unload().catch(() => {});
+      } catch (e) {
+        // Ignore any errors when unloading the player
+      }
     }
   }
 
@@ -272,19 +279,19 @@ export class VideoPlayer extends HTMLElement {
       elements.push(poster);
     }
     
-    // Add loading spinner
-    const spinner = document.createElement('div');
-    spinner.className = 'video-player__spinner';
-    elements.push(spinner);
-    
     // Create iframe for background video
     const iframe = document.createElement('iframe');
-    iframe.className = 'video-player__background';
+    iframe.className = 'video-player__background loaded'; // Add loaded class immediately
     iframe.id = `video-player-background-${this.videoId}`;
     
-    // Always use a lower quality for background videos
-    // Instead of trying to set quality via API, set it in the URL
-    let videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=540p';
+    // Always use a lower quality for background videos 
+    // and increase playback priority for faster loading
+    let videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=540p&playsinline=1';
+    
+    // Use very low quality on mobile to improve initial loading time 
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p&playsinline=1';
+    }
     
     // Add start time parameter if specified
     if (this.startTime > 0) {
@@ -293,14 +300,14 @@ export class VideoPlayer extends HTMLElement {
     
     // Use even lower quality in performance mode
     if (this.performanceMode) {
-      videoParams = `background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p${this.startTime > 0 ? `&#t=${this.startTime}s` : ''}`;
+      videoParams = `background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p&playsinline=1${this.startTime > 0 ? `&#t=${this.startTime}s` : ''}`;
     }
     
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${videoParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
-    iframe.setAttribute('loading', 'lazy'); // Add native lazy loading
-    iframe.setAttribute('fetchpriority', 'high'); // Prioritize fetching but still lazy load
+    iframe.setAttribute('loading', 'eager'); // Change to eager loading for immediate display
+    iframe.setAttribute('fetchpriority', 'high'); // Prioritize fetching
     
     // Initialize Vimeo player if API is loaded
     if (window.Vimeo && window.Vimeo.Player) {
@@ -314,33 +321,20 @@ export class VideoPlayer extends HTMLElement {
           // Check if quality setting API is available for this player instance
           this.checkQualityApiSupport(this.backgroundPlayer);
           
-          // Instead of trying to set quality directly, we'll monitor player events
+          // Set connection quality based on device capabilities
           this.monitorPlayerPerformance(this.backgroundPlayer);
 
           // Apply custom start/end times if specified
           this.updateLoopSettings();
 
-          // Monitor loading state
-          this.backgroundPlayer.on('loaded', () => {
-            this.loadingStatus = 'loaded';
-            this.querySelector('.video-player__spinner')?.classList.add('hidden');
-            iframe.classList.add('loaded');
-            
-            // Fade out poster image when video is loaded
-            const poster = this.querySelector('.video-player__poster');
-            if (poster) {
-              poster.classList.add('hidden');
-            }
-            
-            // Make sure we start at the right position
-            if (this.startTime > 0) {
-              this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
-                if (this.debugMode) {
-                  logger.warn('Could not set initial start time:', e.message);
-                }
-              });
-            }
-          });
+          // Make sure we start at the right position
+          if (this.startTime > 0) {
+            this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+              if (this.debugMode) {
+                logger.warn('Could not set initial start time:', e.message);
+              }
+            });
+          }
 
           // Setup ended event handler to handle looping with custom start/end times
           if (this.endTime !== null) {
@@ -363,16 +357,7 @@ export class VideoPlayer extends HTMLElement {
           // Handle errors
           this.backgroundPlayer.on('error', (error) => {
             logger.error('Vimeo player error:', error);
-            this.loadingStatus = 'error';
-            // Show error state
-            const spinner = this.querySelector('.video-player__spinner');
-            if (spinner) {
-              spinner.classList.add('error');
-            }
           });
-          
-          // Implement adaptive buffering
-          this.adaptiveBuffering(this.backgroundPlayer);
           
           logger.log('Background player initialized');
         } catch (e) {
@@ -595,7 +580,13 @@ export class VideoPlayer extends HTMLElement {
     if (!player) return;
     
     try {
-      // Set default connection quality
+      // For mobile, just set connection quality to low directly
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        this.connectionQuality = 'low';
+        return;
+      }
+      
+      // Set default connection quality based on navigator.connection if available
       if (navigator.connection) {
         const connection = navigator.connection;
         const effectiveType = connection.effectiveType; // 'slow-2g', '2g', '3g', or '4g'
@@ -612,47 +603,22 @@ export class VideoPlayer extends HTMLElement {
         // Default to medium if can't detect
         this.connectionQuality = 'medium';
       }
-      
-      // Monitor for rebuffering events - safely add event listeners
-      try {
-        player.on('bufferstart', () => {
-          // If we start buffering, try to reload with lower quality
-          if (this.connectionQuality === 'high') {
-            this.connectionQuality = 'medium';
-            if (this.debugMode) {
-              logger.log('Buffering detected, reducing connection quality to medium');
-            }
-          } else if (this.connectionQuality === 'medium') {
-            this.connectionQuality = 'low';
-            if (this.debugMode) {
-              logger.log('Buffering detected, reducing connection quality to low');
-            }
-          }
-        });
-      } catch (error) {
-        // Silently handle event registration errors
-        if (this.debugMode) {
-          logger.warn('Error registering buffer event:', error.message);
-        }
-      }
-      
     } catch (error) {
-      if (this.debugMode) {
-        logger.warn('Error monitoring player performance:', error.message);
-      }
+      // Default to medium on error
+      this.connectionQuality = 'medium';
     }
   }
 
   detectPerformanceMode() {
-    // Check for low-power or mobile devices
+    // Simplified detection focused on mobile devices
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const hasLowMemory = navigator.deviceMemory && navigator.deviceMemory <= 4;
-    const hasSlowCPU = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
     
-    // Enable performance mode for mobile or low-spec devices
-    if (isMobile || hasLowMemory || hasSlowCPU) {
+    // Always enable performance mode on mobile
+    if (isMobile) {
       this.performanceMode = true;
-      logger.log('Auto-enabled performance mode for low-power device');
+      if (this.debugMode) {
+        logger.log('Auto-enabled performance mode for mobile device');
+      }
     }
   }
 
@@ -698,32 +664,12 @@ export class VideoPlayer extends HTMLElement {
   }
 
   setupLazyLoading() {
-    // Create IntersectionObserver to only load video when visible
-    if ('IntersectionObserver' in window) {
-      this.observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          // When element becomes visible
-          if (entry.isIntersecting) {
-            // Initial render only when visible
-            this.render();
-            // Disconnect observer after loading
-            this.observer.disconnect();
-            
-            // Setup visibility observer to pause/play based on visibility
-            this.setupVisibilityObserver();
-          }
-        });
-      }, {
-        rootMargin: '200px 0px', // Load video when within 200px of viewport
-        threshold: 0.01
-      });
-      
-      this.observer.observe(this);
-    } else {
-      // Fallback for browsers without IntersectionObserver
-      this.render();
-      this.setupVisibilityObserver();
-    }
+    // Instead of using an intersection observer, render immediately 
+    // to avoid the loading delay on mobile
+    this.render();
+    
+    // Setup visibility observer to pause/play based on visibility
+    this.setupVisibilityObserver();
     
     // Also handle page visibility changes
     document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
@@ -786,272 +732,6 @@ export class VideoPlayer extends HTMLElement {
     const poster = this.querySelector('.video-player__poster');
     if (this.posterImage && poster) {
       poster.style.backgroundImage = `url(${this.posterImage})`;
-    }
-  }
-
-  adaptiveBuffering(player) {
-    if (!player) return;
-    
-    try {
-      // Get buffering events - wrap each event listener in try/catch
-      try {
-        player.on('bufferstart', () => {
-          if (this.debugMode) {
-            logger.log('Buffer started');
-          }
-          this.querySelector('.video-player__spinner')?.classList.remove('hidden');
-        });
-      } catch (e) {
-        if (this.debugMode) {
-          logger.warn('Error setting bufferstart event:', e.message);
-        }
-      }
-      
-      try {
-        player.on('bufferend', () => {
-          if (this.debugMode) {
-            logger.log('Buffer ended');
-          }
-          this.querySelector('.video-player__spinner')?.classList.add('hidden');
-        });
-      } catch (e) {
-        if (this.debugMode) {
-          logger.warn('Error setting bufferend event:', e.message);
-        }
-      }
-      
-      // Adapt to rebuffering by potentially reducing quality
-      let bufferCount = 0;
-      const bufferStartTime = Date.now();
-      
-      try {
-        player.on('bufferstart', () => {
-          bufferCount++;
-          
-          // If buffering frequently (more than 3 times in 30 seconds), reduce quality
-          const timeElapsed = (Date.now() - bufferStartTime) / 1000;
-          if (bufferCount > 3 && timeElapsed < 30) {
-            if (this.debugMode) {
-              logger.log('Frequent buffering detected, considering reload at lower quality');
-            }
-            
-            // Step down quality
-            if (this.connectionQuality === 'high') {
-              this.connectionQuality = 'medium';
-              // Instead of trying to set quality, enable performance mode
-              if (!this.performanceMode) {
-                this.performanceMode = true;
-                this.updatePerformanceMode();
-                if (this.debugMode) {
-                  logger.log('Enabled performance mode due to buffering issues');
-                }
-              }
-            } else if (this.connectionQuality === 'medium') {
-              this.connectionQuality = 'low';
-              // Already in performance mode, consider reloading the video
-              this.considerReloadingVideo();
-            }
-            
-            // Reset buffer count after adjusting
-            bufferCount = 0;
-          }
-        });
-      } catch (e) {
-        if (this.debugMode) {
-          logger.warn('Error setting adaptive buffer handling:', e.message);
-        }
-      }
-      
-      // Monitor playback progress to detect stalls - using a safer approach
-      let lastPlaybackTime = 0;
-      let stuckCounter = 0;
-      let intervalId = null;
-      
-      const monitorPlayback = () => {
-        if (!player || !this.backgroundPlayer) {
-          if (intervalId) {
-            clearInterval(intervalId);
-          }
-          return;
-        }
-        
-        player.getCurrentTime()
-          .then(currentTime => {
-            // If time has not advanced in 3 seconds
-            if (Math.abs(currentTime - lastPlaybackTime) < 0.1) {
-              stuckCounter++;
-              
-              // If stuck for more than 3 checks (approx 3 seconds), trigger quality reduction
-              if (stuckCounter >= 3) {
-                if (this.debugMode) {
-                  logger.log('Playback stalled, considering reload at lower quality');
-                }
-                
-                // Reduce quality
-                if (this.connectionQuality === 'high') {
-                  this.connectionQuality = 'medium';
-                  // Enable performance mode
-                  if (!this.performanceMode) {
-                    this.performanceMode = true;
-                    this.updatePerformanceMode();
-                  }
-                } else if (this.connectionQuality === 'medium') {
-                  this.connectionQuality = 'low';
-                  // Consider reloading video at lowest quality
-                  this.considerReloadingVideo();
-                }
-                
-                // Reset counter
-                stuckCounter = 0;
-              }
-            } else {
-              // Reset counter when playback continues
-              stuckCounter = 0;
-            }
-            
-            lastPlaybackTime = currentTime;
-          })
-          .catch(err => {
-            // Silently fail individual checks - just keep monitoring
-            if (this.debugMode) {
-              logger.warn('Error checking playback progress:', err.message);
-            }
-          });
-      };
-      
-      // Start the monitoring interval
-      intervalId = setInterval(monitorPlayback, 1000);
-      
-      // Clean up interval when component is destroyed
-      this.addEventListener('disconnected', () => {
-        if (intervalId) {
-          clearInterval(intervalId);
-          intervalId = null;
-        }
-      });
-      
-    } catch (error) {
-      if (this.debugMode) {
-        logger.warn('Error setting up adaptive buffering:', error.message);
-      }
-    }
-  }
-  
-  considerReloadingVideo() {
-    // Only reload if we're already at low connection quality and having issues
-    if (this.connectionQuality === 'low' && this.performanceMode && this.backgroundPlayer) {
-      if (this.debugMode) {
-        logger.log('Considering reloading video at lowest quality');
-      }
-      
-      try {
-        // Check if the video has been playing for at least 10 seconds
-        this.backgroundPlayer.getCurrentTime()
-          .then(time => {
-            // Only reload if we've been playing for a while (persistent issues)
-            if (time > 10) {
-              if (this.debugMode) {
-                logger.log('Reloading video at lowest quality');
-              }
-              
-              // Store current time
-              const currentTime = time;
-              
-              // Create new iframe with lowest quality setting
-              const oldIframe = this.querySelector('.video-player__background');
-              if (oldIframe) {
-                // Show loading spinner
-                this.querySelector('.video-player__spinner')?.classList.remove('hidden');
-                
-                // Create new iframe with lowest quality
-                const newIframe = document.createElement('iframe');
-                newIframe.className = 'video-player__background';
-                newIframe.id = `video-player-background-${this.videoId}`;
-                newIframe.src = `https://player.vimeo.com/video/${this.videoId}?background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p`;
-                newIframe.setAttribute('frameborder', '0');
-                newIframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
-                
-                try {
-                  // Replace old iframe with new one - wrapped in try/catch
-                  oldIframe.parentNode.replaceChild(newIframe, oldIframe);
-                  
-                  // Initialize new player
-                  if (window.Vimeo && window.Vimeo.Player) {
-                    setTimeout(() => {
-                      try {
-                        // Safely destroy old player
-                        try {
-                          if (this.backgroundPlayer) {
-                            this.backgroundPlayer.destroy().catch(e => {
-                              // Silently handle destroy errors
-                              if (this.debugMode) {
-                                logger.warn('Could not destroy previous player:', e.message);
-                              }
-                            });
-                          }
-                        } catch (e) {
-                          // Ignore errors when destroying the old player
-                          if (this.debugMode) {
-                            logger.warn('Error destroying previous player:', e.message);
-                          }
-                        }
-                        
-                        // Create new player
-                        this.backgroundPlayer = new window.Vimeo.Player(newIframe);
-                        
-                        // Apply basic settings
-                        Promise.all([
-                          this.backgroundPlayer.setVolume(0).catch(() => {}),
-                          this.backgroundPlayer.setLoop(true).catch(() => {})
-                        ]).then(() => {
-                          // After applying basic settings, try to seek to previous position
-                          return this.backgroundPlayer.setCurrentTime(currentTime).catch(err => {
-                            if (this.debugMode) {
-                              logger.warn('Could not seek to previous position:', err.message);
-                            }
-                          });
-                        }).catch(() => {
-                          // Silently ignore promise.all errors
-                        });
-                        
-                        // Setup new event listeners
-                        try {
-                          this.backgroundPlayer.on('loaded', () => {
-                            newIframe.classList.add('loaded');
-                            this.querySelector('.video-player__spinner')?.classList.add('hidden');
-                          });
-                        } catch (e) {
-                          // Silently handle event subscription errors
-                        }
-                        
-                        if (this.debugMode) {
-                          logger.log('Reinitialized player at lowest quality');
-                        }
-                      } catch (e) {
-                        if (this.debugMode) {
-                          logger.error('Failed to reinitialize player:', e.message);
-                        }
-                      }
-                    }, 0);
-                  }
-                } catch (e) {
-                  if (this.debugMode) {
-                    logger.warn('Error replacing iframe:', e.message);
-                  }
-                }
-              }
-            }
-          })
-          .catch(err => {
-            if (this.debugMode) {
-              logger.warn('Error getting current time:', err.message);
-            }
-          });
-      } catch (e) {
-        if (this.debugMode) {
-          logger.warn('Error in reload process:', e.message);
-        }
-      }
     }
   }
 

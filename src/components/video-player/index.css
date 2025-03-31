@@ -31,14 +31,23 @@ video-player.responsive {
   height: 100%;
   transform: translate(-50%, -50%) scale(1.5);
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  will-change: transform, opacity; /* Optimize for GPU rendering */
+  opacity: 1; /* Start fully visible */
+  will-change: transform; /* Optimize for GPU rendering */
   z-index: 1;
 }
 
-.video-player__background.loaded {
-  opacity: 1;
+.video-player__poster {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0; /* Position below video */
+  opacity: 0.6; /* Show partially through until video loads */
+  transition: opacity 0.5s ease;
 }
 
 .video-player__spinner {
@@ -146,7 +155,6 @@ video-player.responsive {
 /* Performance mode styles */
 video-player.performance-mode .video-player__background {
   /* Reduce animation complexity */
-  transition: opacity 0.3s linear;
   will-change: auto; /* Disable GPU acceleration hints */
   transform: translate(-50%, -50%) scale(1.2); /* Less scaling for better performance */
   filter: blur(0); /* Ensure no blur filters are applied */
@@ -180,18 +188,21 @@ video-player.loading::before {
 /* Optimize for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .video-player__background,
-  .video-player__spinner,
   .video-player__play-button,
   .video-player__overlay {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Mobile optimizations */
+@media screen and (max-width: 767px) {
+  .video-player__background {
+    transform: translate(-50%, -50%) scale(1.2); /* Less scaling on mobile */
+  }
   
-  .video-player__spinner {
-    opacity: 0.5;
-    border: 3px solid rgba(255, 255, 255, 0.2);
-    border-top-color: white;
-    animation: none !important;
+  video-player.performance-mode .video-player__background {
+    transform: translate(-50%, -50%) scale(1.1); /* Even less scaling in performance mode */
   }
 }
 
