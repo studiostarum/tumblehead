@@ -64,7 +64,10 @@ video-player.responsive {
   z-index: 2;
 }
 
-.video-player__play-button:hover {
+/* Animation applies both when hovering over the button itself */
+.video-player__play-button:hover,
+/* And when hovering over the entire overlay */
+.video-player__overlay:hover .video-player__play-button {
   transform: scale(1.1);
   background-color: rgba(0, 0, 0, 0.8);
 }
