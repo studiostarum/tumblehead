@@ -140,6 +140,11 @@ export class VideoPlayer extends HTMLElement {
       this.detectPerformanceMode();
     }
     
+    // If no poster is provided, try to fetch one from Vimeo
+    if (!this.posterImage && this.videoId) {
+      this.fetchVimeoThumbnail();
+    }
+    
     // Load Vimeo API
     this.loadVimeoAPI();
     
@@ -314,11 +319,11 @@ export class VideoPlayer extends HTMLElement {
     // Initialize Vimeo player if API is loaded
     if (window.Vimeo && window.Vimeo.Player) {
       // We'll initialize the player immediately to ensure fast loading
-      try {
-        this.backgroundPlayer = new window.Vimeo.Player(iframe);
-        this.backgroundPlayer.setVolume(0); // Ensure it's muted
-        this.backgroundPlayer.setLoop(true); // Ensure it loops
-        
+        try {
+          this.backgroundPlayer = new window.Vimeo.Player(iframe);
+          this.backgroundPlayer.setVolume(0); // Ensure it's muted
+          this.backgroundPlayer.setLoop(true); // Ensure it loops
+          
         // Check if quality setting API is available for this player instance
         this.checkQualityApiSupport(this.backgroundPlayer);
         
@@ -348,7 +353,7 @@ export class VideoPlayer extends HTMLElement {
                 }
               });
             });
-          } catch (e) {
+        } catch (e) {
             if (this.debugMode) {
               logger.warn('Could not set ended event handler:', e.message);
             }
@@ -717,9 +722,27 @@ export class VideoPlayer extends HTMLElement {
   }
 
   updatePosterImage() {
-    const poster = this.querySelector('.video-player__poster');
-    if (this.posterImage && poster) {
+    // Find all poster elements (there may be multiple)
+    const posters = this.querySelectorAll('.video-player__poster');
+    
+    if (this.posterImage && posters.length > 0) {
+      // Update all poster elements
+      posters.forEach(poster => {
+        poster.style.backgroundImage = `url(${this.posterImage})`;
+      });
+    } else if (this.posterImage && posters.length === 0) {
+      // If no poster elements exist but we have a poster image URL, 
+      // create a new poster element and add it to the player
+      const poster = document.createElement('div');
+      poster.className = 'video-player__poster';
       poster.style.backgroundImage = `url(${this.posterImage})`;
+      
+      // Add as the first child to appear behind other elements
+      if (this.firstChild) {
+        this.insertBefore(poster, this.firstChild);
+      } else {
+        this.appendChild(poster);
+      }
     }
   }
 
@@ -868,6 +891,47 @@ export class VideoPlayer extends HTMLElement {
         logger.warn('Error checking quality API support:', error.message);
       }
       return false;
+    }
+  }
+
+  // Fetch a thumbnail from the Vimeo API
+  fetchVimeoThumbnail() {
+    if (!this.videoId) return;
+    
+    try {
+      // Use Vimeo oEmbed API to get video information including thumbnail
+      const oembedUrl = `https://vimeo.com/api/oembed.json?url=https://vimeo.com/${this.videoId}`;
+      
+      fetch(oembedUrl)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data && data.thumbnail_url) {
+            // Get a larger thumbnail by modifying the URL (from 640 to 1280 width)
+            const largeThumbnail = data.thumbnail_url.replace('_640', '_1280');
+            
+            // Set the poster image
+            this.posterImage = largeThumbnail;
+            this.updatePosterImage();
+            
+            if (this.debugMode) {
+              logger.log(`Loaded thumbnail from Vimeo: ${this.posterImage}`);
+            }
+          }
+        })
+        .catch(error => {
+          if (this.debugMode) {
+            logger.warn(`Failed to fetch Vimeo thumbnail: ${error.message}`);
+          }
+        });
+    } catch (e) {
+      if (this.debugMode) {
+        logger.warn(`Error in fetchVimeoThumbnail: ${e.message}`);
+      }
     }
   }
 }
