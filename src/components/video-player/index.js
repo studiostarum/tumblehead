@@ -92,9 +92,6 @@ export class VideoPlayer extends HTMLElement {
   }
 
   createBackgroundVideo() {
-    const container = document.createElement('div');
-    container.className = 'video-player';
-    
     // Create iframe for background video
     const iframe = document.createElement('iframe');
     iframe.className = 'video-player__background';
@@ -103,37 +100,6 @@ export class VideoPlayer extends HTMLElement {
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allowfullscreen', '');
     iframe.setAttribute('allow', 'autoplay; fullscreen');
-    
-    container.appendChild(iframe);
-    
-    if (this.useLightbox) {
-      // Create overlay with play button
-      const overlay = document.createElement('div');
-      overlay.className = 'video-player__overlay';
-      
-      const playButton = document.createElement('button');
-      playButton.className = 'video-player__play-button';
-      playButton.setAttribute('aria-label', 'Play video');
-      
-      const playIcon = document.createElement('div');
-      playIcon.className = 'video-player__play-icon';
-      
-      playButton.appendChild(playIcon);
-      overlay.appendChild(playButton);
-      container.appendChild(overlay);
-      
-      // Make the entire overlay clickable to open lightbox
-      overlay.style.cursor = 'pointer';
-      overlay.addEventListener('click', (e) => {
-        this.openLightbox();
-      });
-      
-      // Add event listener to play button (for backward compatibility)
-      playButton.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent double triggering when clicking the button
-        this.openLightbox();
-      });
-    }
     
     // Initialize Vimeo player if API is loaded
     if (window.Vimeo && window.Vimeo.Player) {
@@ -150,7 +116,39 @@ export class VideoPlayer extends HTMLElement {
       }, 0);
     }
     
-    return container;
+    const elements = [iframe];
+    
+    if (this.useLightbox) {
+      // Create overlay with play button
+      const overlay = document.createElement('div');
+      overlay.className = 'video-player__overlay';
+      
+      const playButton = document.createElement('button');
+      playButton.className = 'video-player__play-button';
+      playButton.setAttribute('aria-label', 'Play video');
+      
+      const playIcon = document.createElement('div');
+      playIcon.className = 'video-player__play-icon';
+      
+      playButton.appendChild(playIcon);
+      overlay.appendChild(playButton);
+      
+      // Make the entire overlay clickable to open lightbox
+      overlay.style.cursor = 'pointer';
+      overlay.addEventListener('click', (e) => {
+        this.openLightbox();
+      });
+      
+      // Add event listener to play button (for backward compatibility)
+      playButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent double triggering when clicking the button
+        this.openLightbox();
+      });
+      
+      elements.push(overlay);
+    }
+    
+    return elements;
   }
 
   openLightbox() {
@@ -229,8 +227,11 @@ export class VideoPlayer extends HTMLElement {
     
     if (!this.videoId) return;
     
-    const videoContainer = this.createBackgroundVideo();
-    this.appendChild(videoContainer);
+    const elements = this.createBackgroundVideo();
+    elements.forEach(element => this.appendChild(element));
+    
+    // Add necessary styling directly to the custom element
+    this.classList.add('video-player');
   }
 }
 
