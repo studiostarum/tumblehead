@@ -7,7 +7,14 @@ video-player {
   height: 100%;
   aspect-ratio: 16/9;
   /* Default for non-responsive */
-  background-color: #eee;
+  background-color: #000;
+  /* Darker background to hide potential artifacts */
+  contain: content;
+  /* CSS containment to improve performance */
+  transform: translateZ(0);
+  /* Force GPU acceleration */
+  backface-visibility: hidden;
+  /* Prevent flickering */
 }
 
 /* Responsive mode settings */
@@ -29,12 +36,12 @@ video-player.responsive {
   left: 50%;
   width: 100%;
   height: 100%;
-  transform: translate(-50%, -50%) scale(1.5);
+  transform: translate(-50%, -50%) scale(1.2);
+  /* Reduced scale for better performance */
   pointer-events: none;
-  opacity: 1; /* Always fully visible */
-  will-change: transform; /* Optimize for GPU rendering */
-  z-index: 1;
-  /* No transitions needed for immediate display */
+  opacity: 1;
+  /* Always visible */
+  z-index: 2; /* Higher z-index to ensure it's above the poster */
   transform-style: flat;
   backface-visibility: hidden;
 }
@@ -48,8 +55,20 @@ video-player.responsive {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  z-index: 0; /* Position below video */
-  opacity: 0.8; /* Show more clearly until video fully loads */
+  z-index: 0;
+  /* Position below video */
+  opacity: 1;
+  /* Start fully visible */
+  transition: opacity 0.8s ease;
+  /* Longer transition for a noticeable fade */
+  will-change: opacity;
+  /* Optimize for transitions */
+}
+
+/* Fade out poster when video is loaded */
+.video-player.video-loaded .video-player__poster {
+  opacity: 0 !important;
+  /* Force opacity to 0 with !important to override any inline styles */
 }
 
 .video-player__overlay {
@@ -61,8 +80,11 @@ video-player.responsive {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease;
+  /* Faster transition */
   cursor: pointer;
+  contain: content;
+  /* Add CSS containment for better performance */
 }
 
 .video-player__overlay:hover {
@@ -79,8 +101,11 @@ video-player.responsive {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: transform 0.3s ease, background-color 0.3s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  /* Faster transitions */
   z-index: 2;
+  will-change: transform;
+  /* Optimize button animations */
 }
 
 /* Animation applies both when hovering over the button itself */
@@ -136,30 +161,47 @@ video-player.responsive {
 /* Performance mode styles */
 video-player.performance-mode .video-player__background {
   /* Reduce animation complexity */
-  will-change: auto; /* Disable GPU acceleration hints */
-  transform: translate(-50%, -50%) scale(1.2); /* Less scaling for better performance */
-  filter: blur(0); /* Ensure no blur filters are applied */
+  will-change: auto;
+  /* Disable GPU acceleration hints */
+  transform: translate(-50%, -50%) scale(1.1);
+  /* Less scaling for better performance */
+  filter: none;
+  /* Ensure no filters are applied */
+  transition: none;
+  /* Disable transitions completely */
 }
 
 /* Optimize rendering in performance mode */
 video-player.performance-mode {
-  transform: translateZ(0); /* Force GPU acceleration but only in performance mode */
-  background-color: #000; /* Darker background to hide potential artifacts */
-  containing: content; /* Improve rendering optimization */
+  transform: translateZ(0);
+  /* Force GPU acceleration */
+  background-color: #000;
+  /* Darker background to hide potential artifacts */
+  contain: strict;
+  /* Maximum containment for best performance */
 }
 
 /* Mobile optimizations */
 @media screen and (max-width: 767px) {
   .video-player__background {
-    transform: translate(-50%, -50%) scale(1.2); /* Less scaling on mobile */
+    transform: translate(-50%, -50%) scale(1.1);
+    /* Less scaling on mobile */
   }
-  
+
   video-player.performance-mode .video-player__background {
-    transform: translate(-50%, -50%) scale(1.1); /* Even less scaling in performance mode */
+    transform: translate(-50%, -50%) scale(1.0);
+    /* No scaling in performance mode */
   }
+
   video-player {
     transform: translateZ(0);
     backface-visibility: hidden;
+  }
+
+  /* Simplify animations on mobile */
+  .video-player__overlay,
+  .video-player__play-button {
+    transition-duration: 0.1s;
   }
 }
 
@@ -180,7 +222,8 @@ video-player.video-paused::after {
   border-radius: 50%;
   z-index: 2;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
+  /* Faster transition */
 }
 
 video-player.video-paused:hover::after {
@@ -205,11 +248,25 @@ video-player.video-paused:hover::before {
 
 /* Optimize for reduced motion and performance */
 @media (prefers-reduced-motion: reduce) {
+
   .video-player__background,
   .video-player__play-button,
-  .video-player__overlay {
+  .video-player__overlay,
+  video-player.video-paused::after,
+  .video-player__poster,
+  .video-player.video-loaded {
     transition: none !important;
     animation: none !important;
+  }
+
+  /* Show content immediately */
+  .video-player__background,
+  .video-player__background.loaded {
+    opacity: 1;
+  }
+
+  .video-player.video-loaded .video-player__poster {
+    opacity: 0;
   }
 }
 
@@ -218,5 +275,36 @@ video-player.video-paused:hover::before {
   video-player {
     transform: translateZ(0);
     backface-visibility: hidden;
+    contain: strict;
+  }
+}
+
+/* Add support for low data mode */
+@media (prefers-reduced-data: reduce) {
+
+  video-player.performance-mode .video-player__background,
+  .video-player__background {
+    transform: translate(-50%, -50%) scale(1.0);
+    /* No scaling in data saver mode */
+  }
+}
+
+/* Layer compositing optimization - isolate animated elements */
+.video-player__background,
+.video-player__play-button,
+.video-player__overlay {
+  transform: translateZ(0);
+  z-index: 1;
+}
+
+/* Prefers-reduced-motion query */
+@media (prefers-reduced-motion: reduce) {
+
+  .video-player__background,
+  .video-player__play-button,
+  .video-player__overlay {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
   }
 }

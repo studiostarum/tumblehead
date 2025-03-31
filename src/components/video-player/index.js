@@ -145,7 +145,10 @@ export class VideoPlayer extends HTMLElement {
       this.fetchVimeoThumbnail();
     }
     
-    // Load Vimeo API
+    // Preload API for visible videos immediately
+    const isVisible = this.isElementInViewport(this);
+    
+    // Immediately load Vimeo API for all videos to reduce startup time
     this.loadVimeoAPI();
     
     // Render immediately
@@ -159,17 +162,17 @@ export class VideoPlayer extends HTMLElement {
     // Update responsive state
     this.updateResponsiveState();
 
-    // Add resize listener for responsive behavior
-    window.addEventListener('resize', this.resizeHandler);
+    // Use passive event listeners for better scroll performance
+    window.addEventListener('resize', this.resizeHandler, { passive: true });
     
-    // Initial resize calculation
-    setTimeout(() => this.handleResize(), 100);
+    // Initial resize calculation with frame delay for better performance
+    requestAnimationFrame(() => this.handleResize());
     
     // Setup visibility observer to pause/play based on visibility
     this.setupVisibilityObserver();
     
-    // Also handle page visibility changes
-    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+    // Also handle page visibility changes with passive listener
+    document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this), { passive: true });
   }
 
   disconnectedCallback() {
@@ -287,16 +290,15 @@ export class VideoPlayer extends HTMLElement {
     
     // Create iframe for background video
     const iframe = document.createElement('iframe');
-    iframe.className = 'video-player__background'; // No loaded class needed as we show immediately
+    iframe.className = 'video-player__background';
     iframe.id = `video-player-background-${this.videoId}`;
     
-    // Always use a lower quality for background videos 
-    // and increase playback priority for faster loading
-    let videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=540p&playsinline=1';
+    // Simplify parameters to ensure video plays
+    let videoParams = 'background=1&autoplay=1&loop=1&muted=1&quality=360p&playsinline=1';
     
-    // Use very low quality on mobile to improve initial loading time 
+    // Use very low quality on mobile
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      videoParams = 'background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p&playsinline=1';
+      videoParams = 'background=1&autoplay=1&loop=1&muted=1&quality=240p&playsinline=1';
     }
     
     // Add start time parameter if specified
@@ -304,74 +306,61 @@ export class VideoPlayer extends HTMLElement {
       videoParams += `&#t=${this.startTime}s`;
     }
     
-    // Use even lower quality in performance mode
-    if (this.performanceMode) {
-      videoParams = `background=1&autoplay=1&loop=1&byline=0&title=0&muted=1&autopause=0&transparent=0&dnt=1&quality=360p&playsinline=1${this.startTime > 0 ? `&#t=${this.startTime}s` : ''}`;
-    }
-    
     iframe.src = `https://player.vimeo.com/video/${this.videoId}?${videoParams}`;
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
-    iframe.setAttribute('loading', 'eager'); // Ensure eager loading
-    iframe.setAttribute('fetchpriority', 'high'); // Prioritize fetching
-    iframe.setAttribute('importance', 'high'); // Add importance attribute
     
-    // Initialize Vimeo player if API is loaded
-    if (window.Vimeo && window.Vimeo.Player) {
-      // We'll initialize the player immediately to ensure fast loading
+    // Add iframe to DOM
+    elements.push(iframe);
+    
+    // Set a direct fallback timer to ensure thumbnail fades out even if player fails
+    const directFallbackTimer = setTimeout(() => {
+      if (this.debugMode) {
+        logger.log('Direct fallback timer triggered - forcing thumbnail fade out');
+      }
+      this.classList.add('video-loaded');
+    }, 3000); // 3 second maximum wait
+    
+    // Initialize Vimeo player with a simpler approach
+    setTimeout(() => {
+      if (window.Vimeo && window.Vimeo.Player) {
         try {
           this.backgroundPlayer = new window.Vimeo.Player(iframe);
-          this.backgroundPlayer.setVolume(0); // Ensure it's muted
-          this.backgroundPlayer.setLoop(true); // Ensure it loops
           
-        // Check if quality setting API is available for this player instance
-        this.checkQualityApiSupport(this.backgroundPlayer);
-        
-        // Set connection quality based on device capabilities
-        this.monitorPlayerPerformance(this.backgroundPlayer);
-
-        // Apply custom start/end times if specified
-        this.updateLoopSettings();
-
-        // Make sure we start at the right position
-        if (this.startTime > 0) {
-          this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
+          // Force fade out on any player event
+          const forceVideoLoaded = () => {
+            clearTimeout(directFallbackTimer);
+            this.classList.add('video-loaded');
             if (this.debugMode) {
-              logger.warn('Could not set initial start time:', e.message);
+              logger.log('Forcing video-loaded class addition');
             }
+          };
+          
+          // Add event handlers for all possible events
+          this.backgroundPlayer.on('loaded', forceVideoLoaded);
+          this.backgroundPlayer.on('play', forceVideoLoaded);
+          this.backgroundPlayer.on('playing', forceVideoLoaded);
+          this.backgroundPlayer.on('timeupdate', forceVideoLoaded);
+          
+          // Add another safety timeout inside the player initialization
+          setTimeout(forceVideoLoaded, 1000);
+          
+          // Handle errors by still forcing the fade
+          this.backgroundPlayer.on('error', (error) => {
+            logger.error('Vimeo player error:', error);
+            forceVideoLoaded(); // Force fade even on error
           });
-        }
-
-        // Setup ended event handler to handle looping with custom start/end times
-        if (this.endTime !== null) {
-          try {
-            this.backgroundPlayer.on('ended', () => {
-              // When video ends naturally, go back to start time
-              this.backgroundPlayer.setCurrentTime(this.startTime).catch(e => {
-                if (this.debugMode) {
-                  logger.warn('Could not reset to start time after end:', e.message);
-                }
-              });
-            });
+          
         } catch (e) {
-            if (this.debugMode) {
-              logger.warn('Could not set ended event handler:', e.message);
-            }
-          }
+          logger.error('Failed to initialize Vimeo player:', e);
+          // Force thumbnail fade even if player fails
+          this.classList.add('video-loaded');
         }
-
-        // Handle errors
-        this.backgroundPlayer.on('error', (error) => {
-          logger.error('Vimeo player error:', error);
-        });
-        
-        logger.log('Background player initialized');
-      } catch (e) {
-        logger.error('Failed to initialize Vimeo player:', e);
+      } else {
+        // If Vimeo API isn't available, still fade out thumbnail
+        this.classList.add('video-loaded');
       }
-    }
-    
-    elements.push(iframe);
+    }, 100);
     
     if (this.useLightbox) {
       // Create overlay with play button
@@ -615,14 +604,34 @@ export class VideoPlayer extends HTMLElement {
   }
 
   detectPerformanceMode() {
-    // Simplified detection focused on mobile devices
+    // More comprehensive performance detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    let shouldEnablePerformanceMode = isMobile;
     
-    // Always enable performance mode on mobile
-    if (isMobile) {
+    // Check for low memory devices
+    if (!shouldEnablePerformanceMode && navigator.deviceMemory && navigator.deviceMemory < 4) {
+      shouldEnablePerformanceMode = true;
+    }
+    
+    // Check for low-end devices with fewer CPU cores
+    if (!shouldEnablePerformanceMode && navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
+      shouldEnablePerformanceMode = true;
+    }
+    
+    // Check for slow connection
+    if (!shouldEnablePerformanceMode && navigator.connection) {
+      const conn = navigator.connection;
+      if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || 
+          (conn.effectiveType === '3g' && conn.downlink < 1.5) ||
+          conn.saveData) {
+        shouldEnablePerformanceMode = true;
+      }
+    }
+    
+    if (shouldEnablePerformanceMode) {
       this.performanceMode = true;
       if (this.debugMode) {
-        logger.log('Auto-enabled performance mode for mobile device');
+        logger.log('Auto-enabled performance mode based on device/network capabilities');
       }
     }
   }
@@ -636,15 +645,15 @@ export class VideoPlayer extends HTMLElement {
       if (this.backgroundPlayer) {
         // Only attempt to set quality if we haven't already determined it's not supported
         if (this.backgroundPlayer._qualitySettingSupported !== false) {
-          // Safely set quality using our error-handling method
-          this.safelySetQuality(this.backgroundPlayer, '540p');
+          // Set to lowest quality in performance mode
+          this.safelySetQuality(this.backgroundPlayer, '240p');
         }
         
         // Try to reduce frame rate if possible - using try/catch for safety
         try {
           // Some services support frame rate control
           if (typeof this.backgroundPlayer.setPlaybackRate === 'function') {
-            this.backgroundPlayer.setPlaybackRate(0.9) // Slightly slower playback
+            this.backgroundPlayer.setPlaybackRate(0.8) // Slower playback for better performance
               .catch(error => {
                 // Silently handle any errors when setting playback rate
                 if (this.debugMode) {
@@ -671,15 +680,18 @@ export class VideoPlayer extends HTMLElement {
   setupVisibilityObserver() {
     // Create another observer to track when video is in viewport
     if ('IntersectionObserver' in window) {
+      // Use a more aggressive threshold to only play videos when they're significantly visible
       this.visibilityObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            // Play video when visible
-            if (this.backgroundPlayer) {
-              this.backgroundPlayer.play();
-              this.classList.remove('video-paused');
+            // Only play video when more visible (50% threshold)
+            if (entry.intersectionRatio >= 0.5) {
+              if (this.backgroundPlayer) {
+                this.backgroundPlayer.play();
+                this.classList.remove('video-paused');
+              }
             }
-        } else {
+          } else {
             // Pause video when not visible (only if not in lightbox mode)
             if (this.backgroundPlayer && !this.classList.contains('lightbox-active')) {
               this.backgroundPlayer.pause();
@@ -689,7 +701,7 @@ export class VideoPlayer extends HTMLElement {
         });
       }, {
         rootMargin: '0px',
-        threshold: 0.1 // Consider visible when at least 10% is visible
+        threshold: [0.1, 0.5, 0.9] // Track multiple thresholds for better control
       });
       
       this.visibilityObserver.observe(this);
