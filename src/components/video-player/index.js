@@ -1,8 +1,14 @@
 export class VideoPlayer {
     constructor() {
-        // Get all videos that match our criteria
+        console.log('VideoPlayer constructor called');
+        
+        // Get all lightbox videos
         this.videos = document.querySelectorAll('.lightbox-video video');
-        console.log('VideoPlayer initialized with', this.videos.length, 'videos');
+        console.log('Found videos:', this.videos.length);
+
+        const lightboxComponents = document.querySelectorAll('.lightbox_component');
+        console.log('Found lightbox components:', lightboxComponents.length);
+        
         this.setupVideos();
         this.init();
     }
@@ -14,6 +20,7 @@ export class VideoPlayer {
             video.setAttribute('playsinline', '');
             video.setAttribute('muted', '');
             video.setAttribute('loop', '');
+            video.setAttribute('controls', '');
             
             // Force muted state and autoplay
             video.muted = true;
@@ -43,34 +50,34 @@ export class VideoPlayer {
     }
 
     init() {
-        // Add click handlers for both lightbox close and backdrop
-        const lightboxClose = document.querySelector('.lightbox_close');
-        const lightboxBackdrop = document.querySelector('.lightbox_backdrop');
+        // Get all close buttons and backdrops from all video components
+        const lightboxComponents = document.querySelectorAll('.lightbox_component');
+        console.log('Initializing lightbox components:', lightboxComponents.length);
+        
+        lightboxComponents.forEach((component, index) => {
+            const lightboxClose = component.querySelector('.lightbox_close');
+            const lightboxBackdrop = component.querySelector('.lightbox_backdrop');
+            const video = this.videos[index];
 
-        if (lightboxClose) {
-            console.log('Lightbox close button found and listener attached');
-            lightboxClose.addEventListener('click', () => {
-                console.log('Lightbox close button clicked');
-                this.videos.forEach((video, index) => {
-                    console.log(`Resetting video ${index}`);
-                    this.resetVideo(video);
+            if (lightboxClose) {
+                console.log(`Lightbox close button found for video ${index}`);
+                lightboxClose.addEventListener('click', () => {
+                    console.log(`Lightbox close button clicked for video ${index}`);
+                    if (video) this.resetVideo(video);
                 });
-            });
-        } else {
-            console.warn('Lightbox close button not found');
-        }
+            } else {
+                console.warn(`Lightbox close button not found for video ${index}`);
+            }
 
-        if (lightboxBackdrop) {
-            console.log('Lightbox backdrop found and listener attached');
-            lightboxBackdrop.addEventListener('click', () => {
-                console.log('Lightbox backdrop clicked');
-                this.videos.forEach((video, index) => {
-                    console.log(`Resetting video ${index}`);
-                    this.resetVideo(video);
+            if (lightboxBackdrop) {
+                console.log(`Lightbox backdrop found for video ${index}`);
+                lightboxBackdrop.addEventListener('click', () => {
+                    console.log(`Lightbox backdrop clicked for video ${index}`);
+                    if (video) this.resetVideo(video);
                 });
-            });
-        } else {
-            console.warn('Lightbox backdrop not found');
-        }
+            } else {
+                console.warn(`Lightbox backdrop not found for video ${index}`);
+            }
+        });
     }
 }
