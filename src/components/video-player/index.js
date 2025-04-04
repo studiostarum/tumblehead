@@ -2,12 +2,34 @@ export class VideoPlayer {
     constructor() {
         // Get all videos that match our criteria
         this.videos = document.querySelectorAll('video[autoplay][playsinline][muted][loop]');
+        this.setupVideos();
         this.init();
     }
 
+    setupVideos() {
+        this.videos.forEach(video => {
+            // Ensure all required attributes are set
+            video.setAttribute('autoplay', '');
+            video.setAttribute('playsinline', '');
+            video.setAttribute('muted', '');
+            video.setAttribute('loop', '');
+            
+            // Force muted state and autoplay
+            video.muted = true;
+            video.play().catch(error => {
+                console.warn('Auto-play failed:', error);
+            });
+        });
+    }
+
     resetVideo(video) {
-        video.currentTime = 0; // Reset to beginning
-        video.muted = true;    // Ensure video is muted
+        video.currentTime = 0;
+        video.muted = true;
+        
+        // Ensure video continues playing after reset
+        video.play().catch(error => {
+            console.warn('Video replay failed:', error);
+        });
     }
 
     init() {
