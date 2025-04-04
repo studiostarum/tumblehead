@@ -11,6 +11,4 @@
 /* Import component styles */
 @import './components/project-grid/index.css';
 @import './components/navbar/index.css';
-@import './components/video-player/index.css';
-@import './components/lightbox/index.css';
 @import './components/logo-slider/index.css';
